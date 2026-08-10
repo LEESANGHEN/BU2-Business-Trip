@@ -82,15 +82,20 @@ function aggregatePersonTrips(){
     // 출장 원래 type 기록 (인원에 복수 타입 있을 수 있음)
     if(!persons[key].types) persons[key].types={};
     persons[key].types[sc.type]=true;
-    // 출장일수 통계는 최초 계획 복귀일(origEnd) 기준 — 현장 연장분은 별도(extDays)로 표기.
-    // end/status 등 위치·상태 판단은 실제(연장 반영) 복귀일 기준으로 유지.
+    // 최초 계획/1차 연장/2차 연장 구간별 일수를 각각 계산
     var planEnd=sc.origEnd||sc.end;
     var planDays=dd(sc.start,planEnd);
-    var extDays=sc.origEnd?(dd(sc.start,sc.end)-planDays):0;
+    var ext1=sc.extensions&&sc.extensions[0];
+    var ext2=sc.extensions&&sc.extensions[1];
+    var ext1Days=ext1?dd(_addDaysStr(planEnd,1),ext1.end):0;
+    var ext2Days=ext2?dd(_addDaysStr(ext1.end,1),ext2.end):0;
     persons[key].trips.push({
+      scheduleId:sc.id,type:sc.type,
       siteId:siteId,siteName:siteName,siteColor:siteColor,
       region:region,start:sc.start,end:sc.end,planEnd:planEnd,
-      days:planDays,extDays:extDays,status:status,task:sc.task,note:sc.note,
+      days:planDays,ext1Days:ext1Days,ext2Days:ext2Days,
+      tripTotal:planDays+ext1Days+ext2Days,
+      status:status,task:sc.task,note:sc.note,
       domestic:sc.domestic||false
     });
   });
@@ -191,19 +196,12 @@ function getCurrentLocation(trips){
   return {onTrip:false};
 }
 
-function statusHtml(st){
-  if(st==='going') return '<span class="pm-trip-status status-going">출장중</span>';
-  if(st==='plan')  return '<span class="pm-trip-status status-plan">예정</span>';
-  return '<span class="pm-trip-status status-done">완료</span>';
-}
-
 // ── 상태 변수
 var _pmFilter='all';          // 상태 필터: all | going | home
 var _pmSearch='';             // 이름 검색
-var _pmSortKey='name';        // 정렬 기준: name | americas | europe | total | korea12m | koreaCur
+var _pmSortKey='name';        // 정렬 기준: name | days | grandTotal
 var _pmSortAsc=true;          // 정렬 방향
 var _pmTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localOutsource:true}; // 인원유형 체크
-var _pmExpanded={};           // 행 펼침 상태: { '이름': true }
 var _pmSitePeriod='all';      // 사이트별 출장일 집계 기간: all | year | r12
 var _pmSiteCollapsed=true;    // 사이트별 출장일 요약 접기 상태 (기본 접힘)
 var _pmSiteTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localOutsource:true}; // 사이트별 요약 인원유형 체크
@@ -216,10 +214,6 @@ function setPmSearch(v){
 function setPmSort(key){
   if(_pmSortKey===key) _pmSortAsc=!_pmSortAsc;
   else { _pmSortKey=key; _pmSortAsc=key==='name'; }
-  renderPersonBody();
-}
-function togglePersonExpand(name){
-  _pmExpanded[name]=!_pmExpanded[name];
   renderPersonBody();
 }
 function togglePmType(type){
@@ -451,7 +445,7 @@ function renderPersonTab(){
 
 // 정렬 버튼 HTML 조각 생성 (컨트롤바 내 정렬 버튼 업데이트에 재사용)
 function buildSortBtnsHtml(){
-  var sortBtns=[['name','이름'],['koreaCur','현재국내'],['siteTotal','전체 출장일수']];
+  var sortBtns=[['name','이름'],['days','최초 출장일수'],['grandTotal','전체 출장일수']];
   var h='<span style="font-size:10px;color:#555">정렬</span>';
   sortBtns.forEach(function(b){
     var isOn=_pmSortKey===b[0];
@@ -486,54 +480,48 @@ function renderPersonBody(){
 
   var allPersons=aggregatePersonTrips();
 
-  // 이름 검색 + 인원유형 필터 + 상태 필터
-  var names=Object.keys(allPersons).filter(function(n){
-    var p=allPersons[n];
-    var typeKeys=Object.keys(p.types||{});
-    if(typeKeys.length===0) typeKeys=[p.type];
-    if(!typeKeys.some(function(t){return _pmTypeFilter[t];})) return false;
-    if(_pmSearch && n.toLowerCase().indexOf(_pmSearch)<0) return false;
-    var loc=getCurrentLocation(p.trips);
-    if(_pmFilter==='going' && !loc.onTrip) return false;
-    if(_pmFilter==='home'  &&  loc.onTrip) return false;
+  // 인원별 전체 출장일수(모든 출장 합산) 미리 계산
+  var grandTotals={};
+  Object.keys(allPersons).forEach(function(n){
+    grandTotals[n]=allPersons[n].trips.reduce(function(s,t){return s+t.tripTotal;},0);
+  });
+
+  // 출장(일정) 1건당 1행으로 평탄화
+  var rows=[];
+  Object.keys(allPersons).forEach(function(n){
+    allPersons[n].trips.forEach(function(t){
+      rows.push({name:n,trip:t,grandTotal:grandTotals[n]});
+    });
+  });
+
+  // 이름 검색 + 인원유형 필터 + 상태 필터 (행=출장 단위)
+  rows=rows.filter(function(r){
+    if(!_pmTypeFilter[r.trip.type]) return false;
+    if(_pmSearch && r.name.toLowerCase().indexOf(_pmSearch)<0) return false;
+    if(_pmFilter==='going' && r.trip.status!=='going') return false;
+    if(_pmFilter==='home'  && !r.trip.domestic) return false;
     return true;
   });
 
-  if(!names.length){
-    body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">해당 조건의 인원이 없습니다.</div>';
+  if(!rows.length){
+    body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">해당 조건의 출장이 없습니다.</div>';
     return;
   }
 
   // 정렬
-  names=names.slice().sort(function(a,b){
-    var pa=allPersons[a], pb=allPersons[b];
+  rows.sort(function(a,b){
     var v;
-    if(_pmSortKey==='name')          v=a.localeCompare(b,'ko');
-    else if(_pmSortKey==='koreaCur') v=calcCurrentKoreaDays(pa.trips)-calcCurrentKoreaDays(pb.trips);
-    else if(_pmSortKey==='siteTotal')v=personTotalDays(pa.trips)-personTotalDays(pb.trips);
-    else                             v=a.localeCompare(b,'ko');
+    if(_pmSortKey==='name')            v=a.name.localeCompare(b.name,'ko')||a.trip.start.localeCompare(b.trip.start);
+    else if(_pmSortKey==='days')       v=a.trip.days-b.trip.days;
+    else if(_pmSortKey==='grandTotal') v=a.grandTotal-b.grandTotal;
+    else                                v=a.name.localeCompare(b.name,'ko');
     return _pmSortAsc?v:-v;
   });
 
-  body.innerHTML=renderPersonTable(allPersons, names);
+  body.innerHTML=renderPersonTable(rows);
 }
 
-// 인원의 전체 출장일수 합계 (전체 기간, 모든 사이트)
-function personTotalDays(trips){
-  return (trips||[]).reduce(function(sum,t){return sum+t.days;},0);
-}
-
-// 인원별 사이트 방문 합계 (사이트별 총 출장일수)
-function aggregatePersonSiteTotals(trips){
-  var map={};
-  (trips||[]).forEach(function(t){
-    if(!map[t.siteId]) map[t.siteId]={siteId:t.siteId,siteName:t.siteName,siteColor:t.siteColor,region:t.region,days:0};
-    map[t.siteId].days+=t.days;
-  });
-  return Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return b.days-a.days;});
-}
-
-function renderPersonTable(persons, nameList){
+function renderPersonTable(rows){
   var html='<table class="pm-person-table">';
   html+='<thead><tr>';
   function thS(key,lbl){
@@ -542,133 +530,39 @@ function renderPersonTable(persons, nameList){
     return '<th class="'+(isOn?'on':'')+'" onclick="setPmSort(\''+key+'\')">'+lbl+arrow+'</th>';
   }
   html+=thS('name','이름');
-  html+='<th>현재위치</th>';
-  html+=thS('koreaCur','현재국내');
-  html+=thS('siteTotal','전체 출장일수');
+  html+='<th>지역</th><th>사이트</th>';
+  html+=thS('days','최초 출장일수');
+  html+='<th>1차 연장일수</th><th>2차 연장일수</th>';
+  html+=thS('grandTotal','전체 출장일수');
   html+='</tr></thead><tbody>';
 
-  nameList.forEach(function(name){
-    html+=renderPersonRow(name, persons[name]);
-    if(_pmExpanded[name]) html+=renderPersonTimeline(persons[name].trips);
-  });
+  rows.forEach(function(r){ html+=renderPersonRow(r); });
 
   html+='</tbody></table>';
   html+='<div style="font-size:10px;color:#707080;padding:8px 4px;margin-top:4px">'
-    +'* 이름을 클릭하면 사이트별 합계와 출장 이력을 펼쳐볼 수 있습니다.'
+    +'* 전체 출장일수는 해당 인원의 모든 출장을 합산한 값입니다 (같은 인원의 각 행에 동일하게 표시).'
     +'</div>';
   return html;
 }
 
-function renderPersonRow(name, person){
-  var trips=person.trips;
-  var loc=getCurrentLocation(trips);
-  var koreaCur=calcCurrentKoreaDays(trips);
-  var totalDays=personTotalDays(trips);
+var REGION_LBL_KO={americas:'미국',canada:'캐나다',europe:'유럽',china:'중국',vietnam:'베트남',korea:'국내'};
+function renderPersonRow(r){
+  var t=r.trip;
+  var tc=TYPE_COLOR[t.type]||'#555';
+  var tl=TYPE_LBL[t.type]||t.type;
+  var regionLbl=REGION_LBL_KO[t.region]||'기타';
 
-  var tc=TYPE_COLOR[person.type]||'#555';
-  var tl=TYPE_LBL[person.type]||person.type;
-  var expanded=_pmExpanded[name];
-  var arrow=expanded?'▼':'▶';
-
-  var html='<tr class="pm-person-row" onclick="togglePersonExpand(\''+name.replace(/'/g,"\\'")+'\')">';
-
-  // 이름 + 유형 + 펼침 화살표
+  var html='<tr class="pm-person-row">';
   html+='<td><div style="display:flex;align-items:center;gap:6px">'
-    +'<span style="font-size:10px;color:#606070">'+arrow+'</span>'
-    +'<span class="pm-name">'+name+'</span>'
+    +'<span class="pm-name">'+r.name+'</span>'
     +'<span class="pm-type" style="background:'+tc+'">'+tl+'</span>'
     +'</div></td>';
-
-  // 현재 위치
-  if(loc.onTrip){
-    html+='<td><div style="display:flex;flex-direction:column;gap:1px">'
-      +'<span style="font-size:12px;font-weight:600;color:'+loc.siteColor+'">'+loc.siteName+'</span>'
-      +'<span style="font-size:10px;color:#909090">~'+fmt(loc.endDate)+'</span>'
-      +'</div></td>';
-  } else {
-    html+='<td><span style="font-size:12px;color:#4aaa70;font-weight:500">🇰🇷 국내</span></td>';
-  }
-
-  // 현재국내
-  var curColor=koreaCur===0?(loc.onTrip?'#606070':'#e84040'):(koreaCur<30?'#e8a020':'#4aaa70');
-  html+='<td style="text-align:center"><span style="font-size:16px;font-weight:600;color:'+curColor+'">'+koreaCur+'</span><span class="pm-days-unit"> 일</span></td>';
-
-  // 전체 출장일수 (전체 기간, 모든 사이트 합계)
-  html+='<td style="text-align:center"><span class="pm-days-big" style="font-size:16px;font-weight:700">'+totalDays+'</span><span class="pm-days-unit"> 일</span></td>';
-
+  html+='<td>'+regionLbl+'</td>';
+  html+='<td><span class="pm-site-chip" style="background:'+t.siteColor+'"></span>'+t.siteName+'</td>';
+  html+='<td style="text-align:center"><span class="pm-days-big" style="font-size:15px">'+t.days+'</span><span class="pm-days-unit"> 일</span></td>';
+  html+='<td style="text-align:center">'+(t.ext1Days>0?'<span style="color:#e0972e;font-weight:600">'+t.ext1Days+'일</span>':'<span style="color:var(--tx-muted)">-</span>')+'</td>';
+  html+='<td style="text-align:center">'+(t.ext2Days>0?'<span style="color:#e05050;font-weight:600">'+t.ext2Days+'일</span>':'<span style="color:var(--tx-muted)">-</span>')+'</td>';
+  html+='<td style="text-align:center"><span class="pm-days-big" style="font-size:15px;font-weight:700">'+r.grandTotal+'</span><span class="pm-days-unit"> 일</span></td>';
   html+='</tr>';
-  return html;
-}
-
-function renderPersonTimeline(trips){
-  if(!trips||!trips.length) return '';
-  var sorted=trips.slice().sort(function(a,b){return a.start>b.start?1:-1;});
-  var rows=renderPersonSiteSummary(trips);
-  var prevEnd=null;
-  var todayStr=TODAY.getFullYear()+'-'+String(TODAY.getMonth()+1).padStart(2,'0')+'-'+String(TODAY.getDate()).padStart(2,'0');
-
-  sorted.forEach(function(t){
-    // 이전 출장과 사이에 국내 체류 갭이 있으면 표시
-    if(prevEnd!==null){
-      var gapStart=new Date(pd(prevEnd));
-      gapStart.setDate(gapStart.getDate()+1);
-      var gapEnd=new Date(pd(t.start));
-      gapEnd.setDate(gapEnd.getDate()-1);
-      if(gapStart<=gapEnd){
-        var gapDays=Math.round((gapEnd-gapStart)/86400000)+1;
-        rows+='<div class="pm-tl-korea">'
-          +'<span style="font-size:16px;margin-right:2px">🇰🇷</span>'
-          +'<span style="flex:1">국내 체류</span>'
-          +'<span style="color:#a0a0a8;font-size:11px">'+fmtFull(gapStart.getFullYear()+'-'+String(gapStart.getMonth()+1).padStart(2,'0')+'-'+String(gapStart.getDate()).padStart(2,'0'))
-          +' → '+fmtFull(gapEnd.getFullYear()+'-'+String(gapEnd.getMonth()+1).padStart(2,'0')+'-'+String(gapEnd.getDate()).padStart(2,'0'))+'</span>'
-          +'<span style="min-width:50px;text-align:right;color:#b0b0b8">'+gapDays+'일</span>'
-          +'</div>';
-      }
-    }
-    // 출장 행
-    var stHtml=statusHtml(t.status);
-    var extNote=t.extDays>0?' <span style="color:#e8a020">(연장 +'+t.extDays+'일 → '+fmtFull(t.end)+')</span>':'';
-    rows+='<div class="pm-tl-trip">'
-      +'<span class="pm-trip-site" style="background:'+t.siteColor+'">'+t.siteName+'</span>'
-      +'<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#1e1e2a;color:#b0b0b8">'+(t.region==='americas'?'미국':t.region==='canada'?'캐나다':t.region==='europe'?'유럽':t.region==='china'?'중국':t.region==='vietnam'?'베트남':t.region==='korea'?'국내':'기타')+'</span>'
-      +'<span style="flex:1;color:#a0a0a8;font-size:11px">'+fmtFull(t.start)+' → '+fmtFull(t.planEnd)+extNote+'</span>'
-      +'<span style="min-width:50px;text-align:right;color:#c8c8d4">'+t.days+'일</span>'
-      +stHtml
-      +'</div>';
-    prevEnd=t.end;
-  });
-
-  // 마지막 출장 후 현재까지 국내 체류 (출장중이 아닌 경우)
-  var onTrip=trips.some(function(t){return TODAY>=pd(t.start)&&TODAY<=pd(t.end);});
-  if(!onTrip && prevEnd!==null){
-    var afterStart=new Date(pd(prevEnd));
-    afterStart.setDate(afterStart.getDate()+1);
-    if(afterStart<=TODAY){
-      var afterDays=Math.round((TODAY-afterStart)/86400000)+1;
-      rows+='<div class="pm-tl-korea">'
-        +'<span style="font-size:16px;margin-right:2px">🇰🇷</span>'
-        +'<span style="flex:1">국내 체류 (현재)</span>'
-        +'<span style="color:#a0a0a8;font-size:11px">'+fmtFull(afterStart.getFullYear()+'-'+String(afterStart.getMonth()+1).padStart(2,'0')+'-'+String(afterStart.getDate()).padStart(2,'0'))+' → 오늘</span>'
-        +'<span style="min-width:50px;text-align:right;color:#4aaa70">'+afterDays+'일</span>'
-        +'</div>';
-    }
-  }
-
-  return '<tr class="pm-expand-row"><td colspan="4"><div class="pm-timeline">'+rows+'</div></td></tr>';
-}
-
-// 인원 펼침 시 상단에 보여줄 "사이트별 합계" 칩 목록
-function renderPersonSiteSummary(trips){
-  var sites=aggregatePersonSiteTotals(trips);
-  if(!sites.length) return '';
-  var regionLbl={americas:'미국',canada:'캐나다',europe:'유럽',china:'중국',vietnam:'베트남',korea:'국내'};
-  var html='<div class="pm-tl-sitesum">';
-  sites.forEach(function(s){
-    html+='<span class="pm-site-sum-chip" style="border-color:'+s.siteColor+'">'
-      +'<span class="pm-site-chip" style="background:'+s.siteColor+'"></span>'
-      +s.siteName+(regionLbl[s.region]?' · '+regionLbl[s.region]:'')
-      +' <b>'+s.days+'일</b></span>';
-  });
-  html+='</div>';
   return html;
 }

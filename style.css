@@ -403,7 +403,6 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .pm-person-table td{padding:8px 10px;border-bottom:1px solid var(--bd-subtle);vertical-align:middle}
 .pm-person-table tr:hover td{background:var(--bg-sel)}
 .pm-person-table tr:last-child td{border-bottom:none}
-.pm-person-row{cursor:pointer}
 /* 인원 탭 — 사이트별 Total 출장일수 요약 */
 .pm-site-days{margin-bottom:16px;background:var(--bg-alt);border:1px solid var(--bd-light);border-radius:7px;overflow:hidden}
 .pm-site-days-head{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--bd-light)}
