@@ -1151,15 +1151,9 @@ function todayLbl(){return (TODAY.getMonth()+1)+'/'+TODAY.getDate();}
 function barCls(sc){
   var s=pd(sc.start),e=pd(sc.end);
   var isHq=(sc.type==='hq'||sc.type==='tech'||sc.type==='vision'||sc.type==='host');
-  var pfx=isHq?'bar-hq-':'bar-out-';
-  if(TODAY>e) return pfx+'done';
-  if(TODAY<s) return pfx+'plan';
-  // 진행 중: 최초 계획/1차 연장/2차 연장 구간 중 오늘이 속한 구간으로 색상 구분
-  var origEnd=pd(sc.origEnd||sc.end);
-  if(TODAY<=origEnd) return pfx+'going';
-  var ext1=sc.extensions&&sc.extensions[0];
-  if(ext1&&TODAY<=pd(ext1.end)) return pfx+'ext1';
-  return pfx+'ext2';
+  if(TODAY>e) return isHq?'bar-hq-done':'bar-out-done';
+  if(TODAY>=s)return isHq?'bar-hq-going':'bar-out-going';
+  return           isHq?'bar-hq-plan':'bar-out-plan';
 }
 
 /* ── 테마 (다크/라이트) ── */

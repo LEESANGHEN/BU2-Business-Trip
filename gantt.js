@@ -119,24 +119,58 @@ function addEv(el,evts,chips){
 }
 
 function makeTL(h,cls,evts,chips){var el=document.createElement('div');el.className=cls;el.style.cssText='flex:1;position:relative;min-height:'+h+'px;height:'+h+'px';addGrid(el);addTodayLine(el);if(evts)addEv(el,evts,chips);return el;}
+function _addDaysStr(ds,n){var d=pd(ds);d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function addBar(el,sched){
-  var sp=d2px(sched.start),ep=d2px(sched.end)+Math.round(WPX/7),wp=Math.max(ep-sp,8);
+  var exts=sched.extensions||[];
+  var extCount=exts.length;
   var days=dd(sched.start,sched.end),dr=fmt(sched.start)+'~'+fmt(sched.end);
   var tl=TYPE_LBL[sched.type]||sched.type;
   var domesticTag=sched.domestic?' [국내]':'';
-  var extCount=(sched.extensions&&sched.extensions.length)||0;
   var extTag=extCount?' 🔺연장'+extCount:'';
   var txt=dr+' · '+sched.name+' ['+tl+']'+domesticTag+extTag+' ('+days+'일)'+(sched.note?' · '+sched.note:'');
   var tooltip=txt;
   if(extCount){
     tooltip+='\n[연장 이력] 최초 복귀일: '+fmtFull(sched.origEnd||sched.end);
-    sched.extensions.forEach(function(e){
+    exts.forEach(function(e){
       tooltip+='\n'+e.seq+'차 연장 → '+fmtFull(e.end)+(e.note?' ('+e.note+')':'');
     });
   }
-  var bar=document.createElement('div');bar.className='bar '+barCls(sched)+(extCount?' bar-extended':'');bar.style.cssText='left:'+sp+'px;width:'+wp+'px';bar.title=tooltip;
-  bar.onclick=(function(id){return function(){openEditSc(id);};})(sched.id);
-  var lbl=document.createElement('span');lbl.className='barlbl';lbl.textContent=txt;bar.appendChild(lbl);el.appendChild(bar);
+  var sp=d2px(sched.start),ep=d2px(sched.end)+Math.round(WPX/7),wp=Math.max(ep-sp,8);
+
+  if(!extCount){
+    // 연장 없는 일반 일정: 기존 단일 색상(완료/출장중/예정)
+    var bar=document.createElement('div');bar.className='bar '+barCls(sched);bar.style.cssText='left:'+sp+'px;width:'+wp+'px';bar.title=tooltip;
+    bar.onclick=(function(id){return function(){openEditSc(id);};})(sched.id);
+    var lbl=document.createElement('span');lbl.className='barlbl';lbl.textContent=txt;bar.appendChild(lbl);el.appendChild(bar);
+    return;
+  }
+
+  // 연장 있는 일정: 최초 계획/1차 연장/2차 연장 구간을 각각 다른 색으로 분할 표시
+  var isHq=(sched.type==='hq'||sched.type==='tech'||sched.type==='vision'||sched.type==='host');
+  var pfx=isHq?'bar-hq-':'bar-out-';
+  var segments=[];
+  var origEnd=sched.origEnd||sched.end;
+  segments.push({s:sched.start,e:origEnd,cls:pfx+'going'});
+  var prevEnd=origEnd;
+  exts.forEach(function(e,i){
+    segments.push({s:_addDaysStr(prevEnd,1),e:e.end,cls:pfx+'ext'+(i+1)});
+    prevEnd=e.end;
+  });
+
+  var wrap=document.createElement('div');
+  wrap.className='bar-seg-wrap'+(TODAY>pd(sched.end)?' bar-seg-done':'');
+  wrap.style.cssText='left:'+sp+'px;width:'+wp+'px';
+  wrap.title=tooltip;
+  wrap.onclick=(function(id){return function(){openEditSc(id);};})(sched.id);
+  segments.forEach(function(seg){
+    var segSp=d2px(seg.s),segEp=d2px(seg.e)+Math.round(WPX/7);
+    var segDiv=document.createElement('div');
+    segDiv.className='barseg '+seg.cls;
+    segDiv.style.cssText='left:'+(segSp-sp)+'px;width:'+Math.max(segEp-segSp,2)+'px';
+    wrap.appendChild(segDiv);
+  });
+  var lbl=document.createElement('span');lbl.className='barlbl';lbl.textContent=txt;wrap.appendChild(lbl);
+  el.appendChild(wrap);
 }
 function wtLabelTxt(wt){
   var days=dd(wt.start,wt.end),dr=fmt(wt.start)+'~'+fmt(wt.end);
