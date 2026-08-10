@@ -124,8 +124,17 @@ function addBar(el,sched){
   var days=dd(sched.start,sched.end),dr=fmt(sched.start)+'~'+fmt(sched.end);
   var tl=TYPE_LBL[sched.type]||sched.type;
   var domesticTag=sched.domestic?' [국내]':'';
-  var txt=dr+' · '+sched.name+' ['+tl+']'+domesticTag+' ('+days+'일)'+(sched.note?' · '+sched.note:'');
-  var bar=document.createElement('div');bar.className='bar '+barCls(sched);bar.style.cssText='left:'+sp+'px;width:'+wp+'px';bar.title=txt;
+  var extCount=(sched.extensions&&sched.extensions.length)||0;
+  var extTag=extCount?' 🔺연장'+extCount:'';
+  var txt=dr+' · '+sched.name+' ['+tl+']'+domesticTag+extTag+' ('+days+'일)'+(sched.note?' · '+sched.note:'');
+  var tooltip=txt;
+  if(extCount){
+    tooltip+='\n[연장 이력] 최초 복귀일: '+fmtFull(sched.origEnd||sched.end);
+    sched.extensions.forEach(function(e){
+      tooltip+='\n'+e.seq+'차 연장 → '+fmtFull(e.end)+(e.note?' ('+e.note+')':'');
+    });
+  }
+  var bar=document.createElement('div');bar.className='bar '+barCls(sched)+(extCount?' bar-extended':'');bar.style.cssText='left:'+sp+'px;width:'+wp+'px';bar.title=tooltip;
   bar.onclick=(function(id){return function(){openEditSc(id);};})(sched.id);
   var lbl=document.createElement('span');lbl.className='barlbl';lbl.textContent=txt;bar.appendChild(lbl);el.appendChild(bar);
 }

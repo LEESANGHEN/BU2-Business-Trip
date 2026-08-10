@@ -82,10 +82,15 @@ function aggregatePersonTrips(){
     // 출장 원래 type 기록 (인원에 복수 타입 있을 수 있음)
     if(!persons[key].types) persons[key].types={};
     persons[key].types[sc.type]=true;
+    // 출장일수 통계는 최초 계획 복귀일(origEnd) 기준 — 현장 연장분은 별도(extDays)로 표기.
+    // end/status 등 위치·상태 판단은 실제(연장 반영) 복귀일 기준으로 유지.
+    var planEnd=sc.origEnd||sc.end;
+    var planDays=dd(sc.start,planEnd);
+    var extDays=sc.origEnd?(dd(sc.start,sc.end)-planDays):0;
     persons[key].trips.push({
       siteId:siteId,siteName:siteName,siteColor:siteColor,
-      region:region,start:sc.start,end:sc.end,
-      days:dd(sc.start,sc.end),status:status,task:sc.task,note:sc.note,
+      region:region,start:sc.start,end:sc.end,planEnd:planEnd,
+      days:planDays,extDays:extDays,status:status,task:sc.task,note:sc.note,
       domestic:sc.domestic||false
     });
   });
@@ -114,7 +119,9 @@ function aggregateSiteDays(period){
     if(!proj) return;
     var site=S.sites.find(function(s){return s.id===proj.siteId;});
     if(!site) return;
-    var days=rangeStart?calcOverlapDays(sc.start,sc.end,rangeStart,rangeEnd):dd(sc.start,sc.end);
+    // 현장 연장분은 제외하고 최초 계획 복귀일 기준으로 집계
+    var planEnd=sc.origEnd||sc.end;
+    var days=rangeStart?calcOverlapDays(sc.start,planEnd,rangeStart,rangeEnd):dd(sc.start,planEnd);
     if(days<=0) return;
     var siteId=site.id;
     if(!siteMap[siteId]) siteMap[siteId]={siteId:siteId,name:site.name,color:site.color,groupId:site.groupId,total:0,hq:0,out:0,local:0,names:{}};
@@ -334,7 +341,8 @@ function openSiteRosterModal(siteId){
     if(!_pmSiteTypeFilter[sc.type]) return;
     var proj=S.projects.find(function(p){return p.id===sc.projectId;});
     if(!proj||proj.siteId!==siteId) return;
-    var days=rangeStart?calcOverlapDays(sc.start,sc.end,rangeStart,rangeEnd):dd(sc.start,sc.end);
+    var planEnd=sc.origEnd||sc.end;
+    var days=rangeStart?calcOverlapDays(sc.start,planEnd,rangeStart,rangeEnd):dd(sc.start,planEnd);
     if(days<=0) return;
     rows.push({name:sc.name,type:sc.type,task:sc.task||'',start:sc.start,end:sc.end,days:days});
   });
@@ -619,10 +627,11 @@ function renderPersonTimeline(trips){
     }
     // 출장 행
     var stHtml=statusHtml(t.status);
+    var extNote=t.extDays>0?' <span style="color:#e8a020">(연장 +'+t.extDays+'일 → '+fmtFull(t.end)+')</span>':'';
     rows+='<div class="pm-tl-trip">'
       +'<span class="pm-trip-site" style="background:'+t.siteColor+'">'+t.siteName+'</span>'
       +'<span style="font-size:10px;padding:1px 5px;border-radius:3px;background:#1e1e2a;color:#b0b0b8">'+(t.region==='americas'?'미국':t.region==='canada'?'캐나다':t.region==='europe'?'유럽':t.region==='china'?'중국':t.region==='vietnam'?'베트남':t.region==='korea'?'국내':'기타')+'</span>'
-      +'<span style="flex:1;color:#a0a0a8;font-size:11px">'+fmtFull(t.start)+' → '+fmtFull(t.end)+'</span>'
+      +'<span style="flex:1;color:#a0a0a8;font-size:11px">'+fmtFull(t.start)+' → '+fmtFull(t.planEnd)+extNote+'</span>'
       +'<span style="min-width:50px;text-align:right;color:#c8c8d4">'+t.days+'일</span>'
       +stHtml
       +'</div>';
