@@ -1,4 +1,4 @@
-﻿var EVC=[{id:'purple',bg:'#534AB7'},{id:'red',bg:'#b52020'},{id:'green',bg:'#1a8c66'},{id:'amber',bg:'#b8720a'},{id:'coral',bg:'#c04a22'},{id:'blue',bg:'#1558a0'}];
+var EVC=[{id:'purple',bg:'#534AB7'},{id:'red',bg:'#b52020'},{id:'green',bg:'#1a8c66'},{id:'amber',bg:'#b8720a'},{id:'coral',bg:'#c04a22'},{id:'blue',bg:'#1558a0'}];
 var TYPE_LBL={hq:'본사',outsource:'외주',tech:'기술',vision:'비전',host:'호스트',localOutsource:'현지외주'};
 var TYPE_COLOR={hq:'#1a5a9a',outsource:'#8a5a00',tech:'#2a7a5a',vision:'#6a3a9a',host:'#7a2a2a',localOutsource:'#1a8ca0'};
 
@@ -862,7 +862,7 @@ function getDeviceTag(){
     return t;
   }catch(e){return 'unknown';}
 }
-var DEFAULT_SHEETS_URL='https://script.google.com/macros/s/AKfycbwzOXzciY5Rh6BEZn6kyjbogzoTwoD0SCCaCnTcZRVEYKJOPr-GcJF0CsOlxlhqYBX0vA/exec';
+var DEFAULT_SHEETS_URL='https://script.google.com/macros/s/AKfycbyjHgit5SDZj3TFZlbKAtSAFuexQ7opJXdzP7SrapzYiXBlI_OzxZ9jjmAn5IpozDaHUQ/exec';
 // 최초 접속 시 기본 URL 자동 설정
 (function(){
   try{if(!localStorage.getItem(SHEETS_LS_KEY))localStorage.setItem(SHEETS_LS_KEY,DEFAULT_SHEETS_URL);}catch(e){}
