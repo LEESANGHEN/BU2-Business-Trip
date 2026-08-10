@@ -1,7 +1,8 @@
 ﻿/* ── 모달 ── */
 var _selCol='purple',_dragIdx=null;
-function openModal(t){if(t==='schedule')showSM(null);else if(t==='event')showEM(null);else showSiteM();}
-function openEditSc(id){var s=S.schedules.find(function(x){return x.id===id;});if(s)showSM(s);}
+var _editExtSeq=null; // 현재 인라인 수정 중인 연장 회차 (null이면 없음)
+function openModal(t){if(t==='schedule'){_editExtSeq=null;showSM(null);}else if(t==='event')showEM(null);else showSiteM();}
+function openEditSc(id){var s=S.schedules.find(function(x){return x.id===id;});if(s){_editExtSeq=null;showSM(s);}}
 function openEditEv(id){var e=S.events.find(function(x){return x.id===id;});if(e)showEM(e);}
 function mw(inner,wide){document.getElementById('mc').innerHTML='<div class="mover"><div class="modal'+(wide?' wide':'')+'">'+inner+'</div></div>';}
 function cm(){document.getElementById('mc').innerHTML='';_selCol='purple';_dragIdx=null;}
@@ -180,16 +181,30 @@ function showSM(ex){
     if(exts.length){
       html+='<div style="font-size:11px;color:var(--tx-muted);margin-bottom:4px">최초 계획 복귀일: '+fmtFull(ex.origEnd||ex.end)+'</div>';
       exts.forEach(function(e){
-        html+='<div style="font-size:12px;margin-bottom:2px">'+e.seq+'차 연장 → <b>'+fmtFull(e.end)+'</b>'+(e.note?' · '+_esc(e.note):'')+'</div>';
+        if(_editExtSeq===e.seq){
+          html+='<div style="display:flex;gap:5px;margin-bottom:4px;align-items:center">'
+            +'<span style="font-size:12px;flex-shrink:0">'+e.seq+'차 연장</span>'
+            +'<input type="text" id="f_extEditEnd_'+e.seq+'" value="'+e.end+'" maxlength="10" oninput="fmtDateInput(this)" style="font-family:monospace;width:110px">'
+            +'<input type="text" id="f_extEditNote_'+e.seq+'" value="'+_esc(e.note||'')+'" placeholder="사유(선택)" style="flex:1">'
+            +'<button class="btn sm pri" type="button" onclick="saveEditExtension(\''+ex.id+'\','+e.seq+')">저장</button>'
+            +'<button class="btn sm" type="button" onclick="cancelEditExtension(\''+ex.id+'\')">취소</button>'
+            +'</div>';
+        } else {
+          html+='<div style="display:flex;gap:6px;align-items:center;margin-bottom:2px">'
+            +'<span style="font-size:12px;flex:1">'+e.seq+'차 연장 → <b>'+fmtFull(e.end)+'</b>'+(e.note?' · '+_esc(e.note):'')+'</span>'
+            +'<button class="btn sm" type="button" onclick="startEditExtension(\''+ex.id+'\','+e.seq+')">수정</button>'
+            +'<button class="btn sm red" type="button" onclick="deleteExtension(\''+ex.id+'\','+e.seq+')">삭제</button>'
+            +'</div>';
+        }
       });
     }
-    if(exts.length<2){
+    if(exts.length<2&&_editExtSeq===null){
       html+='<div style="display:flex;gap:5px;margin-top:6px">'
         +'<input type="text" id="f_extEnd" placeholder="연장 복귀일" maxlength="10" oninput="fmtDateInput(this)" style="font-family:monospace;width:110px">'
         +'<input type="text" id="f_extNote" placeholder="사유(선택)" style="flex:1">'
         +'<button class="btn sm" id="f_extAdd" type="button">'+(exts.length+1)+'차 연장 등록</button>'
         +'</div>';
-    } else {
+    } else if(exts.length>=2){
       html+='<div style="font-size:11px;color:var(--tx-muted)">최대 연장 횟수(2회)에 도달했습니다.</div>';
     }
     html+='</div>';
@@ -307,6 +322,59 @@ function addExtension(scheduleId){
   sc.end=newEnd;
   _touch(sc);
   saveData();
+  showSM(sc);
+  renderAll();
+}
+function startEditExtension(scheduleId,seq){
+  _editExtSeq=seq;
+  var sc=S.schedules.find(function(s){return s.id===scheduleId;});
+  if(sc) showSM(sc);
+}
+function cancelEditExtension(scheduleId){
+  _editExtSeq=null;
+  var sc=S.schedules.find(function(s){return s.id===scheduleId;});
+  if(sc) showSM(sc);
+}
+function saveEditExtension(scheduleId,seq){
+  var endInp=document.getElementById('f_extEditEnd_'+seq);
+  var noteInp=document.getElementById('f_extEditNote_'+seq);
+  if(!endInp) return;
+  var newEnd=endInp.value.trim();
+  var note=noteInp?noteInp.value.trim():'';
+  var dateRe=/^\d{4}-\d{2}-\d{2}$/;
+  if(!dateRe.test(newEnd)){alert('연장 복귀일 형식이 올바르지 않아요.\n예: 2026-04-15');return;}
+  var sc=S.schedules.find(function(s){return s.id===scheduleId;});
+  if(!sc||!sc.extensions) return;
+  var idx=sc.extensions.findIndex(function(e){return e.seq===seq;});
+  if(idx<0) return;
+  var prevEnd=idx===0?(sc.origEnd||sc.end):sc.extensions[idx-1].end;
+  var nextExt=sc.extensions[idx+1];
+  if(newEnd<=prevEnd){alert('연장 복귀일은 이전 단계 복귀일('+prevEnd+')보다 이후여야 합니다.');return;}
+  if(nextExt&&newEnd>=nextExt.end){alert('연장 복귀일은 다음 연장 복귀일('+nextExt.end+')보다 이전이어야 합니다.');return;}
+  sc.extensions[idx].end=newEnd;
+  sc.extensions[idx].note=note;
+  if(idx===sc.extensions.length-1) sc.end=newEnd; // 마지막 연장이면 실제 복귀일도 갱신
+  _touch(sc);
+  saveData();
+  _editExtSeq=null;
+  showSM(sc);
+  renderAll();
+}
+function deleteExtension(scheduleId,seq){
+  if(!confirm(seq+'차 연장 기록을 삭제할까요?\n이후 회차가 있다면 번호가 당겨집니다.'))return;
+  var sc=S.schedules.find(function(s){return s.id===scheduleId;});
+  if(!sc||!sc.extensions) return;
+  sc.extensions=sc.extensions.filter(function(e){return e.seq!==seq;});
+  sc.extensions.forEach(function(e,i){e.seq=i+1;});
+  if(sc.extensions.length){
+    sc.end=sc.extensions[sc.extensions.length-1].end;
+  } else {
+    sc.end=sc.origEnd;
+    delete sc.origEnd;
+  }
+  _touch(sc);
+  saveData();
+  _editExtSeq=null;
   showSM(sc);
   renderAll();
 }

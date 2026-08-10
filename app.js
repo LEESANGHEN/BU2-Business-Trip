@@ -1,4 +1,4 @@
-var EVC=[{id:'purple',bg:'#534AB7'},{id:'red',bg:'#b52020'},{id:'green',bg:'#1a8c66'},{id:'amber',bg:'#b8720a'},{id:'coral',bg:'#c04a22'},{id:'blue',bg:'#1558a0'}];
+﻿var EVC=[{id:'purple',bg:'#534AB7'},{id:'red',bg:'#b52020'},{id:'green',bg:'#1a8c66'},{id:'amber',bg:'#b8720a'},{id:'coral',bg:'#c04a22'},{id:'blue',bg:'#1558a0'}];
 var TYPE_LBL={hq:'본사',outsource:'외주',tech:'기술',vision:'비전',host:'호스트',localOutsource:'현지외주'};
 var TYPE_COLOR={hq:'#1a5a9a',outsource:'#8a5a00',tech:'#2a7a5a',vision:'#6a3a9a',host:'#7a2a2a',localOutsource:'#1a8ca0'};
 
@@ -1151,9 +1151,15 @@ function todayLbl(){return (TODAY.getMonth()+1)+'/'+TODAY.getDate();}
 function barCls(sc){
   var s=pd(sc.start),e=pd(sc.end);
   var isHq=(sc.type==='hq'||sc.type==='tech'||sc.type==='vision'||sc.type==='host');
-  if(TODAY>e) return isHq?'bar-hq-done':'bar-out-done';
-  if(TODAY>=s)return isHq?'bar-hq-going':'bar-out-going';
-  return           isHq?'bar-hq-plan':'bar-out-plan';
+  var pfx=isHq?'bar-hq-':'bar-out-';
+  if(TODAY>e) return pfx+'done';
+  if(TODAY<s) return pfx+'plan';
+  // 진행 중: 최초 계획/1차 연장/2차 연장 구간 중 오늘이 속한 구간으로 색상 구분
+  var origEnd=pd(sc.origEnd||sc.end);
+  if(TODAY<=origEnd) return pfx+'going';
+  var ext1=sc.extensions&&sc.extensions[0];
+  if(ext1&&TODAY<=pd(ext1.end)) return pfx+'ext1';
+  return pfx+'ext2';
 }
 
 /* ── 테마 (다크/라이트) ── */
