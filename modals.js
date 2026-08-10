@@ -1,4 +1,4 @@
-﻿/* ── 모달 ── */
+/* ── 모달 ── */
 var _selCol='purple',_dragIdx=null;
 function openModal(t){if(t==='schedule')showSM(null);else if(t==='event')showEM(null);else showSiteM();}
 function openEditSc(id){var s=S.schedules.find(function(x){return x.id===id;});if(s)showSM(s);}
@@ -268,18 +268,40 @@ function delSc(id){if(!confirm('이 출장 일정을 삭제할까요?'))return;S
 function showSiteM(){
   mw('<div class="mtit">사이트 / 프로젝트 관리</div>'
     +'<div class="sitemgr">'
-    +'<div class="sitemgr-l"><div class="smtit">그룹 & 사이트</div><div id="grpSiteRows"></div>'
+    +'<div class="sitemgr-l">'
+    +'<div class="smtit">그룹 관리 (간트차트 고객사 분류)</div><div id="grpListRows"></div>'
+    +'<div style="display:flex;gap:5px;margin:6px 0 12px"><input type="text" id="ns_grp" placeholder="그룹명" style="flex:1"><button class="btn sm pri" onclick="addGroup()">추가</button></div>'
+    +'<div class="smtit">그룹 & 사이트</div><div id="grpSiteRows"></div>'
     +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid #2a2a34">'
-    +'<div style="font-size:10px;color:#666;margin-bottom:5px">새 그룹 추가</div>'
-    +'<div style="display:flex;gap:5px"><input type="text" id="ns_grp" placeholder="그룹명" style="flex:1"><button class="btn sm pri" onclick="addGroup()">추가</button></div>'
-    +'<div style="font-size:10px;color:#666;margin:8px 0 5px">새 사이트 추가</div>'
+    +'<div style="font-size:10px;color:#666;margin-bottom:5px">새 사이트 추가</div>'
     +'<div style="display:flex;gap:5px;margin-bottom:4px"><input type="text" id="ns_n" placeholder="사이트명" style="flex:1"><input type="color" id="ns_c" value="#1558a0" style="width:30px;padding:1px;border:1px solid #3a3a44;border-radius:4px;background:#1e1e26"></div>'
     +'<div style="display:flex;gap:5px"><select id="ns_grpsel" style="flex:1">'+S.groups.map(function(g){return '<option value="'+g.id+'">'+g.name+'</option>';}).join('')+'</select><button class="btn sm pri" onclick="addSite()">추가</button></div>'
     +'</div></div>'
     +'<div class="sitemgr-r"><div class="smtit">프로젝트</div><div id="projRows"></div></div>'
     +'</div>'
     +'<div class="mfoot"><button class="btn sm" onclick="cm()">닫기</button></div>',true);
-  buildGrpSiteRows();buildProjRows();
+  buildGrpListRows();buildGrpSiteRows();buildProjRows();
+}
+
+function buildGrpListRows(){
+  var el=document.getElementById('grpListRows');if(!el)return;el.innerHTML='';
+  if(!S.groups.length){
+    var empty=document.createElement('div');
+    empty.style.cssText='font-size:10px;color:#555;padding:2px 8px 4px';
+    empty.textContent='(그룹 없음)';
+    el.appendChild(empty);
+    return;
+  }
+  S.groups.forEach(function(g){
+    var row=document.createElement('div');row.className='mrow';
+    var ni=document.createElement('input');ni.type='text';ni.value=g.name;
+    ni.style.cssText='flex:1;min-width:80px;font-size:11px';
+    ni.onchange=(function(gid){return function(){updGN(gid,this.value);};})(g.id);
+    var btnD=document.createElement('button');btnD.className='btn sm red';btnD.textContent='삭제';
+    btnD.onclick=(function(gid){return function(){delGroup(gid);};})(g.id);
+    [ni,btnD].forEach(function(el2){row.appendChild(el2);});
+    el.appendChild(row);
+  });
 }
 
 function buildGrpSiteRows(){
@@ -374,7 +396,7 @@ function delGroup(id){
   _markDeleted('groups',id);
   saveData();showSiteM();renderAll();
 }
-function updGN(id,v){var g=S.groups.find(function(g){return g.id===id;});if(g){g.name=v.trim();_touch(g);saveData();renderSidebar();}}
+function updGN(id,v){var g=S.groups.find(function(g){return g.id===id;});if(g){g.name=v.trim();_touch(g);saveData();renderSidebar();buildGrpSiteRows();}}
 function moveSiteGroup(sid,gid){var s=S.sites.find(function(s){return s.id===sid;});if(s){s.groupId=gid;_touch(s);saveData();buildGrpSiteRows();renderSidebar();renderGantt();}}
 
 /* 사이트 CRUD */
