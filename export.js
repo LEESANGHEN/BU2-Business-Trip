@@ -364,30 +364,25 @@ function _buildEquipSheet(wb){
 }
 
 function _buildEquipXCell(exCell,cell,defaultBg,todayStr){
-  if(!cell||cell.type==='na'){
+  cell=_migrateEquipCell(cell);
+  if(cell.na){
     exCell.value='N/A';
     _xStyle(exCell,{bg:'#1a1a1a',fg:'#555566',align:'center'});
     return;
   }
-  if(cell.type==='done'){
-    exCell.value='100% ✓'+(cell.value?' ('+cell.value+')':'');
+  var pct=parseFloat(cell.percent)||0;
+  var isDone=pct>=100;
+  var isOver=cell.planDate&&cell.planDate<todayStr&&!isDone;
+  var parts=[];
+  if(cell.planDate) parts.push(cell.planDate);
+  parts.push(pct+'%');
+  if(isDone&&cell.doneDate) parts.push('완료 '+cell.doneDate);
+  exCell.value=parts.join(' · ')+(isDone?' ✓':'');
+  if(isDone){
     _xStyle(exCell,{bg:'#0a1e10',fg:'#4aaa70',align:'center',bold:true});
-    return;
+  } else {
+    _xStyle(exCell,{bg:defaultBg,fg:isOver?'#ff6060':(pct>=90?'#7adeaa':'#c8c8d4'),align:'center'});
   }
-  if(cell.type==='percent'){
-    var pct=parseFloat(cell.value)||0;
-    exCell.value=pct;
-    _xStyle(exCell,{bg:defaultBg,fg:pct>=90?'#7adeaa':'#c8c8d4',align:'center'});
-    return;
-  }
-  if(cell.type==='date'){
-    var isOver=cell.value&&cell.value<todayStr;
-    exCell.value=cell.value||'';
-    _xStyle(exCell,{bg:defaultBg,fg:isOver?'#ff6060':'#5a9aee',align:'center'});
-    return;
-  }
-  exCell.value='';
-  _xStyle(exCell,{bg:defaultBg,fg:'#c8c8d4',align:'center'});
 }
 
 /* ── Sheet 4: 이력관리 ── */

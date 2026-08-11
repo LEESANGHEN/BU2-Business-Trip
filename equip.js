@@ -71,6 +71,28 @@ function _sortedEquipItemsGrouped(){
   });
 }
 
+// 예전 {type,value} 단일선택 셀 형식 → {na,planDate,percent,doneDate} 동시표시 형식으로 변환
+function _migrateEquipCell(c){
+  if(!c) return {na:true,planDate:'',percent:0,doneDate:''};
+  if(c.na!==undefined) return c; // 이미 새 형식
+  if(!c.type||c.type==='na') return {na:true,planDate:'',percent:0,doneDate:''};
+  if(c.type==='date')    return {na:false,planDate:c.value||'',percent:0,doneDate:''};
+  if(c.type==='percent') return {na:false,planDate:'',percent:parseFloat(c.value)||0,doneDate:''};
+  if(c.type==='done')    return {na:false,planDate:'',percent:100,doneDate:c.value||''};
+  return {na:true,planDate:'',percent:0,doneDate:''};
+}
+function _migrateEquipCells(){
+  var changed=false;
+  S.equipUnits.forEach(function(u){
+    if(!u.cells) return;
+    Object.keys(u.cells).forEach(function(itemId){
+      var c=u.cells[itemId];
+      if(c&&c.na===undefined){ u.cells[itemId]=_migrateEquipCell(c); changed=true; _touch(u); }
+    });
+  });
+  if(changed) saveData();
+}
+
 /* ── 진행율 계산 ── */
 function calcUnitProgress(unit){
   var items=S.equipItems.slice().sort(function(a,b){return a.order-b.order;});
@@ -78,11 +100,9 @@ function calcUnitProgress(unit){
   var total=0,count=0;
   items.forEach(function(item){
     var cell=(unit.cells||{})[item.id];
-    if(!cell||cell.type==='na') return;
+    if(!cell||cell.na) return;
     count++;
-    if(cell.type==='done') total+=100;
-    else if(cell.type==='percent') total+=(parseFloat(cell.value)||0);
-    else if(cell.type==='date') total+=0;
+    total+=(parseFloat(cell.percent)||0);
   });
   if(!count) return 0;
   return Math.round(total/count);
@@ -177,66 +197,49 @@ function fixEquipStickyOffsets(){
 
 /* ── 메인 렌더 진입점 ── */
 function renderEquipTab(){
+  _migrateEquipCells();
   renderEquipSidebar();
   renderEquipGrid();
 }
 
+/* ── 셀 내용(시작예정일 + 진행율 + 완료) 공용 렌더러 ── */
+function _equipCellInner(cell){
+  if(!cell||cell.na){
+    return {done:false,html:'<span class="eq-na">N/A</span>'};
+  }
+  var pct=parseFloat(cell.percent)||0;
+  var isDone=pct>=100;
+  var today=TODAY.toISOString().slice(0,10);
+  var isOver=cell.planDate&&cell.planDate<today&&!isDone;
+  var html='';
+  if(cell.planDate){
+    html+='<div class="'+(isOver?'eq-date overdue':'eq-date')+'" style="font-size:10px">'+cell.planDate+'</div>';
+  }
+  if(isDone){
+    html+='<div style="font-weight:600;color:#4aaa70">100% ✓</div>';
+    if(cell.doneDate) html+='<div style="font-size:10px;color:#5a9aee">'+cell.doneDate+'</div>';
+  } else {
+    var barCls2=pct>=90?'eq-bar-fill hi':'eq-bar-fill';
+    html+='<div class="eq-pct">'+pct+'%</div>'
+      +'<div class="eq-bar-wrap"><div class="'+barCls2+'" style="width:'+Math.min(pct,100)+'%"></div></div>';
+  }
+  return {done:isDone,html:html};
+}
 /* ── 셀 HTML ── */
 function renderEquipCell(cell,editMode,unitId,itemId){
-  var inner='';
-  var cls='eq-td';
-  if(editMode) cls+=' editable';
+  var r=_equipCellInner(cell);
+  var cls='eq-td'+(r.done?' eq-done':'')+(editMode?' editable':'');
   var onclick=editMode?' onclick="openEquipCellEdit(\''+unitId+'\',\''+itemId+'\')">':'>';
-
-  if(!cell||cell.type==='na'){
-    return '<td class="'+cls+'"'+onclick+'<span class="eq-na">N/A</span></td>';
-  }
-  if(cell.type==='done'){
-    var doneDate=cell.value?'<div style="font-size:10px;color:#5a9aee;margin-top:2px">'+cell.value+'</div>':'';
-    return '<td class="'+cls+' eq-done"'+onclick+'100% ✓'+doneDate+'</td>';
-  }
-  if(cell.type==='percent'){
-    var pct=parseFloat(cell.value)||0;
-    var barCls2=pct>=90?'eq-bar-fill hi':'eq-bar-fill';
-    inner='<div class="eq-pct">'+pct+'%</div>'
-      +'<div class="eq-bar-wrap"><div class="'+barCls2+'" style="width:'+Math.min(pct,100)+'%"></div></div>';
-    return '<td class="'+cls+'"'+onclick+inner+'</td>';
-  }
-  if(cell.type==='date'){
-    var today=TODAY.toISOString().slice(0,10);
-    var isOver=cell.value&&cell.value<today;
-    var dateCls=isOver?'eq-date overdue':'eq-date';
-    return '<td class="'+cls+'"'+onclick+'<span class="'+dateCls+'">'+cell.value+'</span></td>';
-  }
-  return '<td class="'+cls+'"'+onclick+inner+'</td>';
+  return '<td class="'+cls+'"'+onclick+r.html+'</td>';
 }
 
 /* ── sticky 셀 렌더러 (고정 열용) ── */
 function renderEquipCellSticky(cell,editMode,unitId,itemId,extraCls,extraStyle){
-  var cls='eq-td-fix'+(extraCls?' '+extraCls:'')+(editMode?' editable':'');
+  var r=_equipCellInner(cell);
+  var cls='eq-td-fix'+(r.done?' eq-done':'')+(extraCls?' '+extraCls:'')+(editMode?' editable':'');
   var style=extraStyle?(' style="'+extraStyle+'"'):'';
   var onclick=editMode?' onclick="openEquipCellEdit(\''+unitId+'\',\''+itemId+'\')">':'>';
-  if(!cell||cell.type==='na'){
-    return '<td class="'+cls+'"'+style+onclick+'<span class="eq-na">N/A</span></td>';
-  }
-  if(cell.type==='done'){
-    var doneDate=cell.value?'<div style="font-size:10px;color:#5a9aee;margin-top:2px">'+cell.value+'</div>':'';
-    return '<td class="'+cls+' eq-done"'+style+onclick+'100% ✓'+doneDate+'</td>';
-  }
-  if(cell.type==='percent'){
-    var pct=parseFloat(cell.value)||0;
-    var barCls2=pct>=90?'eq-bar-fill hi':'eq-bar-fill';
-    var inner='<div class="eq-pct">'+pct+'%</div>'
-      +'<div class="eq-bar-wrap"><div class="'+barCls2+'" style="width:'+Math.min(pct,100)+'%"></div></div>';
-    return '<td class="'+cls+'"'+style+onclick+inner+'</td>';
-  }
-  if(cell.type==='date'){
-    var today=TODAY.toISOString().slice(0,10);
-    var isOver=cell.value&&cell.value<today;
-    var dateCls=isOver?'eq-date overdue':'eq-date';
-    return '<td class="'+cls+'"'+style+onclick+'<span class="'+dateCls+'">'+cell.value+'</span></td>';
-  }
-  return '<td class="'+cls+'"'+style+onclick+'</td>';
+  return '<td class="'+cls+'"'+style+onclick+r.html+'</td>';
 }
 
 /* ── 메모 셀 렌더러 ── */
@@ -330,6 +333,7 @@ function renderEquipGrid(){
   var el=document.getElementById('eqGrid');
   if(!el) return;
 
+  _migrateEquipCells();
   var items=_sortedEquipItemsGrouped();
   // 양산시작(ei21)은 고정 열로 분리, 나머지가 스크롤 항목
   var msDateItem=items.find(function(i){return i.id==='ei21';});
@@ -544,78 +548,47 @@ function openEquipCellEdit(unitId,itemId){
   var unit=S.equipUnits.find(function(u){return u.id===unitId;});
   var item=S.equipItems.find(function(i){return i.id===itemId;});
   if(!unit||!item) return;
-  var cell=(unit.cells||{})[itemId]||{type:'na',value:null};
-  var t=cell.type||'na';
-  var v=cell.value||'';
+  var cell=_migrateEquipCell((unit.cells||{})[itemId]);
 
   mw('<div class="mtit">셀 편집</div>'
     +'<div style="font-size:11px;color:#888;margin-bottom:14px">'+item.name+'</div>'
-    +'<div class="fg">'
-    +'<label class="fl">상태</label>'
-    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
-    +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">'
-    +'<input type="radio" name="eq_type" value="na"'+(t==='na'?' checked':'')+' onchange="equipCellTypeChange()"> N/A</label>'
-    +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">'
-    +'<input type="radio" name="eq_type" value="date"'+(t==='date'?' checked':'')+' onchange="equipCellTypeChange()"> 시작예정일</label>'
-    +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">'
-    +'<input type="radio" name="eq_type" value="percent"'+(t==='percent'?' checked':'')+' onchange="equipCellTypeChange()"> 진행율(%)</label>'
-    +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer">'
-    +'<input type="radio" name="eq_type" value="done"'+(t==='done'?' checked':'')+' onchange="equipCellTypeChange()"> 완료(100%)</label>'
-    +'</div></div>'
-    +'<div class="fg" id="eq_val_wrap" style="'+(t==='na'?'display:none':'')+'"><label class="fl" id="eq_val_lbl">'+(t==='done'?'완료 일자 (선택)':(t==='date'?'예정일':'진행율(%)'))+'</label>'
-    +'<input type="'+(t==='done'||t==='date'?'date':'number')+'" id="eq_val" min="0" max="100" value="'+v+'" placeholder="'+(t==='done'?'날짜 선택 (선택사항)':'')+'" style="width:100%"></div>'
+    +'<label class="chkrow" style="margin-bottom:10px"><input type="checkbox" id="eq_na"'+(cell.na?' checked':'')+' onchange="equipCellNaChange()"> 해당 없음 (N/A)</label>'
+    +'<div id="eq_fields_wrap" style="'+(cell.na?'display:none':'')+'">'
+    +'<div class="fg"><label class="fl">시작 예정일 (선택)</label>'
+    +'<input type="date" id="eq_planDate" value="'+(cell.planDate||'')+'" style="width:100%"></div>'
+    +'<div class="fg"><label class="fl">진행율(%) — 100이면 자동으로 완료 처리됩니다</label>'
+    +'<input type="number" id="eq_percent" min="0" max="100" value="'+(cell.percent!=null?cell.percent:0)+'" style="width:100%"></div>'
+    +'<div class="fg"><label class="fl">완료일 (선택, 100%일 때만 표시됨)</label>'
+    +'<input type="date" id="eq_doneDate" value="'+(cell.doneDate||'')+'" style="width:100%"></div>'
+    +'</div>'
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
     +'<button class="btn sm pri" onclick="saveEquipCell(\''+unitId+'\',\''+itemId+'\')">저장</button>'
     +'</div>');
 }
 
-function equipCellTypeChange(){
-  var t=document.querySelector('input[name="eq_type"]:checked');
-  if(!t) return;
-  var wrap=document.getElementById('eq_val_wrap');
-  var lbl=document.getElementById('eq_val_lbl');
-  var inp=document.getElementById('eq_val');
-  if(t.value==='na'){
-    wrap.style.display='none';
-  } else if(t.value==='done'){
-    wrap.style.display='';
-    lbl.textContent='완료 일자 (선택)';
-    inp.type='date';
-    inp.removeAttribute('min');inp.removeAttribute('max');
-    inp.placeholder='날짜 선택 (선택사항)';
-  } else if(t.value==='date'){
-    wrap.style.display='';
-    lbl.textContent='예정일';
-    inp.type='date';
-    inp.removeAttribute('min');inp.removeAttribute('max');
-    inp.placeholder='';
-  } else {
-    wrap.style.display='';
-    lbl.textContent='진행율(%)';
-    inp.type='number';inp.min='0';inp.max='100';
-    inp.placeholder='';
-  }
+function equipCellNaChange(){
+  var na=document.getElementById('eq_na').checked;
+  var wrap=document.getElementById('eq_fields_wrap');
+  if(wrap) wrap.style.display=na?'none':'';
 }
 
 function saveEquipCell(unitId,itemId){
   var unit=S.equipUnits.find(function(u){return u.id===unitId;});
   if(!unit) return;
-  var typeEl=document.querySelector('input[name="eq_type"]:checked');
-  if(!typeEl) return;
-  var type=typeEl.value;
-  var value=null;
-  if(type==='date'){
-    value=document.getElementById('eq_val').value||'';
-    if(!value){alert('날짜를 입력해주세요.');return;}
-  } else if(type==='done'){
-    value=document.getElementById('eq_val').value||null;
-  } else if(type==='percent'){
-    value=parseFloat(document.getElementById('eq_val').value);
-    if(isNaN(value)||value<0||value>100){alert('0~100 사이의 숫자를 입력해주세요.');return;}
+  var na=document.getElementById('eq_na').checked;
+  var cell;
+  if(na){
+    cell={na:true,planDate:'',percent:0,doneDate:''};
+  } else {
+    var planDate=document.getElementById('eq_planDate').value||'';
+    var percent=parseFloat(document.getElementById('eq_percent').value);
+    if(isNaN(percent)||percent<0||percent>100){alert('진행율은 0~100 사이의 숫자로 입력해주세요.');return;}
+    var doneDate=document.getElementById('eq_doneDate').value||'';
+    cell={na:false,planDate:planDate,percent:percent,doneDate:doneDate};
   }
   if(!unit.cells) unit.cells={};
-  unit.cells[itemId]={type:type,value:value};
+  unit.cells[itemId]=cell;
   unit.cellsMt=Date.now();
   _touch(unit);
   saveData();cm();renderEquipGrid();
@@ -791,7 +764,7 @@ function saveAddEquipUnit(){
   var initCells={};
   S.equipItems.forEach(function(item){
     var s=item.siteIds;
-    if(!s||s.length===0||s.indexOf(siteId)>=0) initCells[item.id]={type:'na',value:null};
+    if(!s||s.length===0||s.indexOf(siteId)>=0) initCells[item.id]={na:true,planDate:'',percent:0,doneDate:''};
   });
   S.equipUnits.push(_touch({id:genId('eu',S.equipUnits),siteId:siteId,equipProjectId:equipProjectId,lineName:lineName,unitName:unitName,memo:'',cells:initCells,cellsMt:Date.now()}));
   saveData();
@@ -894,7 +867,7 @@ function saveAddEquipItem(){
   S.equipUnits.forEach(function(u){
     if(!u.cells) u.cells={};
     var applicable=siteIds.length===0||siteIds.indexOf(u.siteId)>=0;
-    if(applicable){u.cells[newItem.id]={type:'na',value:null};_touch(u);}
+    if(applicable){u.cells[newItem.id]={na:true,planDate:'',percent:0,doneDate:''};_touch(u);}
   });
   saveData();cm();renderEquipTab();
 }
@@ -935,7 +908,7 @@ function saveEditEquipItem(itemId){
     var wasApplicable=!item.siteIds||item.siteIds.length===0||item.siteIds.indexOf(u.siteId)>=0;
     var nowApplicable=newSiteIds.length===0||newSiteIds.indexOf(u.siteId)>=0;
     if(!wasApplicable&&nowApplicable&&!u.cells[itemId]){
-      u.cells[itemId]={type:'na',value:null};_touch(u);
+      u.cells[itemId]={na:true,planDate:'',percent:0,doneDate:''};_touch(u);
     }
   });
   item.name=name;item.groupName=group;item.siteIds=newSiteIds;
