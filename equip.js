@@ -651,12 +651,15 @@ function openEquipCellEdit(unitId,itemId){
     +'<div class="fg"><label class="fl">완료일 (선택, 100%일 때만 표시됨)</label>'
     +'<input type="date" id="eq_doneDate" value="'+(cell.doneDate||'')+'" style="width:100%"></div>'
     +'<div class="fg"><label class="fl">특이사항 (선택) — 마우스를 올리면 셀에서 바로 확인 가능</label>'
-    +'<textarea id="eq_note" rows="2" placeholder="예: 부품 입고 지연으로 일정 연기" style="width:100%;resize:vertical;background:var(--bg-input);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:4px;padding:6px;font-size:12px">'+(cell.note||'')+'</textarea></div>'
+    +'<textarea id="eq_note" rows="8" placeholder="예: 부품 입고 지연으로 일정 연기" style="width:100%;resize:vertical;background:var(--bg-input);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:4px;padding:6px;font-size:12px">'+(cell.note||'')+'</textarea></div>'
     +'</div>'
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
     +'<button class="btn sm pri" onclick="saveEquipCell(\''+unitId+'\',\''+itemId+'\')">저장</button>'
     +'</div>');
+  // 특이사항 칸을 넓게 쓸 수 있도록 이 모달만 폭을 1.5배로 확대 (기본 460px → 690px)
+  var modalEl=document.querySelector('.mover .modal');
+  if(modalEl) modalEl.style.width='690px';
 }
 
 function equipCellNaChange(){
