@@ -936,19 +936,63 @@ function _collectSiteIds(){
   return ids;
 }
 
+/* ── 그룹 선택기 (드롭다운 목록에서 옵션별로 바로 삭제 가능) ── */
+function _buildEquipGroupOptionRows(){
+  var groups=['SAT','IT'];
+  S.equipItems.forEach(function(i){if(i.groupName&&groups.indexOf(i.groupName)<0)groups.push(i.groupName);});
+  var rows='<div class="eq-group-opt" onclick="_selectEquipGroupOption(\'\')">없음</div>';
+  groups.forEach(function(g){
+    var gEsc=g.replace(/'/g,"\\'");
+    var gHtml=g.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    rows+='<div class="eq-group-opt">'
+      +'<span onclick="_selectEquipGroupOption(\''+gEsc+'\')">'+gHtml+'</span>'
+      +'<button type="button" class="eq-group-opt-del" onclick="event.stopPropagation();_deleteEquipGroupOption(\''+gEsc+'\')" title="목록에서 그룹 삭제">✕</button>'
+      +'</div>';
+  });
+  return rows;
+}
+function _buildEquipGroupPickerHtml(currentGroup){
+  currentGroup=currentGroup||'';
+  return '<div class="fg"><label class="fl">그룹</label>'
+    +'<div style="position:relative">'
+    +'<button type="button" id="eq_group_trigger" class="btn sm" style="width:100%;text-align:left;display:flex;justify-content:space-between;align-items:center" onclick="_toggleEquipGroupPanel()">'
+    +'<span id="eq_group_label">'+(currentGroup||'없음')+'</span><span>▾</span></button>'
+    +'<input type="hidden" id="eq_group_value" value="'+currentGroup+'">'
+    +'<div id="eq_group_panel" class="eq-group-panel" style="display:none">'+_buildEquipGroupOptionRows()+'</div>'
+    +'</div>'
+    +'<input type="text" id="eq_group_custom" placeholder="새 그룹명 직접 입력" style="margin-top:5px"></div>';
+}
+function _toggleEquipGroupPanel(){
+  var panel=document.getElementById('eq_group_panel');
+  if(panel) panel.style.display=(panel.style.display==='none')?'block':'none';
+}
+function _selectEquipGroupOption(value){
+  var valEl=document.getElementById('eq_group_value');
+  var lblEl=document.getElementById('eq_group_label');
+  if(valEl) valEl.value=value;
+  if(lblEl) lblEl.textContent=value||'없음';
+  var panel=document.getElementById('eq_group_panel');
+  if(panel) panel.style.display='none';
+}
+// 목록에 있는 그룹 항목 자체를 삭제 — 현재 선택 여부와 무관하게, 그 그룹에 속한 모든 공정 항목을 "없음"으로 변경
+function _deleteEquipGroupOption(group){
+  var count=S.equipItems.filter(function(i){return i.groupName===group;}).length;
+  if(!confirm('"'+group+'" 그룹을 목록에서 삭제하면 이 그룹에 속한 항목 '+count+'개가 모두 "없음"으로 변경됩니다.\n계속하시겠습니까?')) return;
+  S.equipItems.forEach(function(i){if(i.groupName===group){i.groupName='';_touch(i);}});
+  saveData();
+  var valEl=document.getElementById('eq_group_value');
+  if(valEl&&valEl.value===group) _selectEquipGroupOption(''); // 지금 선택돼 있던 값이면 "없음"으로
+  var panel=document.getElementById('eq_group_panel');
+  if(panel){panel.innerHTML=_buildEquipGroupOptionRows();panel.style.display='block';}
+  renderEquipTab(); // 모달 뒤 배경 그리드에도 즉시 반영
+}
+
 /* ── 항목 추가 ── */
 function openAddEquipItem(){
-  var groups=['SAT','IT'];
-  var existGroups=[];
-  S.equipItems.forEach(function(i){if(i.groupName&&existGroups.indexOf(i.groupName)<0)existGroups.push(i.groupName);});
-  existGroups.forEach(function(g){if(groups.indexOf(g)<0)groups.push(g);});
-  var opts='<option value="">없음</option>'+groups.map(function(g){return '<option value="'+g+'">'+g+'</option>';}).join('');
   mw('<div class="mtit">공정 항목 추가</div>'
     +'<div class="fg"><label class="fl">항목명</label>'
     +'<input type="text" id="eq_item_name" placeholder="예: Final Check"></div>'
-    +'<div class="fg"><label class="fl">그룹 (선택)</label>'
-    +'<select id="eq_item_group">'+opts+'</select>'
-    +'<input type="text" id="eq_item_group_custom" placeholder="새 그룹명 직접 입력" style="margin-top:5px"></div>'
+    +_buildEquipGroupPickerHtml('')
     +_buildSiteCheckboxesHtml(null)
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
@@ -959,8 +1003,8 @@ function openAddEquipItem(){
 function saveAddEquipItem(){
   var name=document.getElementById('eq_item_name').value.trim();
   if(!name){alert('항목명을 입력해주세요.');return;}
-  var group=document.getElementById('eq_item_group_custom').value.trim()
-    ||document.getElementById('eq_item_group').value||'';
+  var group=document.getElementById('eq_group_custom').value.trim()
+    ||document.getElementById('eq_group_value').value||'';
   var siteIds=_collectSiteIds();
   var maxOrder=0;
   S.equipItems.forEach(function(i){if(i.order>maxOrder)maxOrder=i.order;});
@@ -978,39 +1022,15 @@ function saveAddEquipItem(){
 function openEditEquipItem(itemId){
   var item=S.equipItems.find(function(i){return i.id===itemId;});
   if(!item) return;
-  var groups=['SAT','IT'];
-  S.equipItems.forEach(function(i){if(i.groupName&&groups.indexOf(i.groupName)<0)groups.push(i.groupName);});
-  var opts=groups.map(function(g){
-    return '<option value="'+g+'"'+(item.groupName===g?' selected':'')+'>'+g+'</option>';
-  }).join('');
   mw('<div class="mtit">항목 수정</div>'
     +'<div class="fg"><label class="fl">항목명</label>'
     +'<input type="text" id="eq_edit_name" value="'+item.name+'"></div>'
-    +'<div class="fg"><label class="fl">그룹</label>'
-    +'<div style="display:flex;gap:5px">'
-    +'<select id="eq_edit_group" style="flex:1"><option value=""'+(item.groupName?'':' selected')+'>없음</option>'+opts+'</select>'
-    +'<button class="btn sm warn" type="button" onclick="deleteEquipItemGroup()">그룹 삭제</button>'
-    +'</div>'
-    +'<input type="text" id="eq_edit_group_custom" placeholder="새 그룹명 직접 입력" style="margin-top:5px" value="'+(groups.indexOf(item.groupName)<0?item.groupName:'')+'"></div>'
+    +_buildEquipGroupPickerHtml(item.groupName||'')
     +_buildSiteCheckboxesHtml(item.siteIds||[])
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
     +'<button class="btn sm pri" onclick="saveEditEquipItem(\''+itemId+'\')">저장</button>'
     +'</div>');
-}
-// 드롭다운(또는 직접입력)에 선택된 그룹을 통째로 삭제 — 그 그룹에 속한 모든 항목을 "없음"으로 변경
-function deleteEquipItemGroup(){
-  var sel=document.getElementById('eq_edit_group');
-  var customEl=document.getElementById('eq_edit_group_custom');
-  var group=(customEl&&customEl.value.trim())||(sel&&sel.value)||'';
-  if(!group){alert('삭제할 그룹을 선택하거나 입력해주세요.');return;}
-  var count=S.equipItems.filter(function(i){return i.groupName===group;}).length;
-  if(!count){alert('"'+group+'" 그룹에 속한 항목이 없습니다.');return;}
-  if(!confirm('"'+group+'" 그룹을 삭제하면 이 그룹에 속한 항목 '+count+'개가 모두 "없음"으로 변경됩니다.\n계속하시겠습니까?')) return;
-  S.equipItems.forEach(function(i){if(i.groupName===group){i.groupName='';_touch(i);}});
-  saveData();
-  cm();
-  renderEquipTab();
 }
 
 function saveEditEquipItem(itemId){
@@ -1018,8 +1038,8 @@ function saveEditEquipItem(itemId){
   if(!item) return;
   var name=document.getElementById('eq_edit_name').value.trim();
   if(!name){alert('항목명을 입력해주세요.');return;}
-  var group=document.getElementById('eq_edit_group_custom').value.trim()
-    ||document.getElementById('eq_edit_group').value||'';
+  var group=document.getElementById('eq_group_custom').value.trim()
+    ||document.getElementById('eq_group_value').value||'';
   var newSiteIds=_collectSiteIds();
   // 새로 추가된 사이트의 units에 cells 초기화 (기존 데이터는 유지)
   S.equipUnits.forEach(function(u){

@@ -357,6 +357,13 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 /* 셀 특이사항 표시 점 */
 .eq-note-dot{position:absolute;top:2px;right:3px;font-size:7px;color:#e8a020;line-height:1}
 .eq-td{position:relative}
+/* 그룹 선택기 드롭다운 (옵션별 삭제 버튼 포함) */
+.eq-group-panel{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--bg-panel);border:1px solid var(--bd-main);border-radius:4px;margin-top:2px;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.4)}
+.eq-group-opt{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;font-size:12px;color:var(--tx-primary);cursor:pointer}
+.eq-group-opt:hover{background:var(--bg-sel)}
+.eq-group-opt span{flex:1}
+.eq-group-opt-del{background:none;border:none;color:#c04040;cursor:pointer;font-size:11px;padding:2px 6px;border-radius:3px}
+.eq-group-opt-del:hover{background:#7a1010;color:#fff}
 /* 출장인원 칩 */
 .eq-chip{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;background:#1a2a3a;color:#7aafee;border:1px solid #2a4a6a;margin:1px;white-space:nowrap}
 .eq-chip.hq{background:#1a2a4a;color:#7aafee;border-color:#2a4a8a}
