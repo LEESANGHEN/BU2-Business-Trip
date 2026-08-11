@@ -218,8 +218,8 @@ function showSM(ex){
   html+='</div>';
   mw(html);
   // 이벤트 등록
-  function _updDomWarn(){var sid=document.getElementById('f_site').value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');var warn=document.getElementById('f_dom_warn');if(warn)warn.style.display=(domCb&&domCb.checked&&reg!=='korea'&&reg!=='other')?'inline':'none';}
-  document.getElementById('f_site').onchange=function(){upP();var sid=this.value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');if(domCb&&reg!=='korea'&&reg!=='other'){domCb.checked=false;}_updDomWarn();};
+  function _updDomWarn(){var sid=document.getElementById('f_site').value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');var warn=document.getElementById('f_dom_warn');if(warn)warn.style.display=(domCb&&domCb.checked&&reg!=='국내'&&reg!=='기타')?'inline':'none';}
+  document.getElementById('f_site').onchange=function(){upP();var sid=this.value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');if(domCb&&reg!=='국내'&&reg!=='기타'){domCb.checked=false;}_updDomWarn();};
   document.getElementById('f_domestic').onchange=function(){_updDomWarn();};
   document.getElementById('f_start').onchange=function(){calcD();};
   document.getElementById('f_end').onchange=function(){calcD();};
@@ -421,20 +421,14 @@ function buildGrpListRows(){
 
 function buildGrpSiteRows(){
   var el=document.getElementById('grpSiteRows');if(!el)return;el.innerHTML='';
-  var COUNTRY_SECTIONS=[
-    {key:'usa',     label:'미국',   region:'americas'},
-    {key:'canada',  label:'캐나다', region:'canada'},
-    {key:'china',   label:'중국',   region:'china'},
-    {key:'vietnam', label:'베트남', region:'vietnam'},
-    {key:'poland',  label:'폴란드', region:'europe'},
-    {key:'korea',   label:'국내',   region:'other'}
-  ];
-  var regionOpts=[['americas','미주(미국)'],['canada','캐나다'],['europe','유럽'],['china','중국'],['vietnam','베트남'],['other','기타']];
+  var COUNTRY_SECTIONS=BASE_REGIONS.map(function(r){return {key:r,label:r,region:r};});
+  var regionOpts=getAllRegionOptions().map(function(r){return [r,r];});
+  regionOpts.push(['__new__','+ 직접 입력...']);
 
   COUNTRY_SECTIONS.forEach(function(sec){
     var secSites=S.sites.filter(function(s){
       var c=s.country||'';
-      return c===sec.key || (!c && (s.region||'other')===sec.region);
+      return c===sec.key || (!c && (s.region||'기타')===sec.region);
     });
 
     // 섹션 헤더
@@ -469,8 +463,18 @@ function buildGrpSiteRows(){
       var rsel=document.createElement('select');
       rsel.title='출장일 집계 지역';
       rsel.style.cssText='font-size:10px;padding:2px 3px;max-width:80px;color:#ccc';
-      regionOpts.forEach(function(r){var o=document.createElement('option');o.value=r[0];o.textContent=r[1];if((site.region||'other')===r[0])o.selected=true;rsel.appendChild(o);});
-      rsel.onchange=(function(sid){return function(){updSiteRegion(sid,this.value);};})(site.id);
+      regionOpts.forEach(function(r){var o=document.createElement('option');o.value=r[0];o.textContent=r[1];if((site.region||'기타')===r[0])o.selected=true;rsel.appendChild(o);});
+      rsel.onchange=(function(sid){return function(){
+        if(this.value==='__new__'){
+          var name=prompt('새 지역명을 입력하세요 (예: 필리핀)');
+          name=name?name.trim():'';
+          if(!name){buildGrpSiteRows();return;}
+          updSiteRegion(sid,name);
+          buildGrpSiteRows();
+          return;
+        }
+        updSiteRegion(sid,this.value);
+      };})(site.id);
       var btnP=document.createElement('button');btnP.className='btn sm';btnP.textContent='PJT+';
       btnP.onclick=(function(sid){return function(){addP(sid);};})(site.id);
       var btnD=document.createElement('button');btnD.className='btn sm red';btnD.textContent='삭제';

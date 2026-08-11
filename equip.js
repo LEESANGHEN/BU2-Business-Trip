@@ -790,14 +790,14 @@ function saveAddEquipUnit(){
 }
 
 /* ── 사이트 선택 체크박스 HTML 생성 헬퍼 ── */
-var _REGION_LABEL={'americas':'미주 (미국)','canada':'캐나다','china':'중국','vietnam':'베트남','europe':'유럽'};
-var _REGION_ORDER=['americas','canada','vietnam','china','europe'];
+var _REGION_LABEL={};
+var _REGION_ORDER=['국내','중국','대만','일본','베트남','말레이시아','싱가폴','태국'];
 function _buildSiteCheckboxesHtml(checkedIds){
   var allChecked=!checkedIds||checkedIds.length===0;
   // S.sites 기반으로 region별 동적 그룹화
   var regionMap={};
   (S.sites||[]).forEach(function(site){
-    var r=site.region||'other';
+    var r=site.region||'기타';
     if(!regionMap[r]) regionMap[r]=[];
     regionMap[r].push(site);
   });
@@ -805,12 +805,13 @@ function _buildSiteCheckboxesHtml(checkedIds){
   (S.equipSiteOrder||[]).forEach(function(sid){
     var found=(S.sites||[]).some(function(s){return s.id===sid;});
     if(!found){
-      if(!regionMap['other']) regionMap['other']=[];
-      regionMap['other'].push({id:sid,name:sid});
+      if(!regionMap['기타']) regionMap['기타']=[];
+      regionMap['기타'].push({id:sid,name:sid});
     }
   });
   var orderedRegions=_REGION_ORDER.filter(function(r){return regionMap[r];});
-  if(regionMap['other']) orderedRegions.push('other');
+  // 정해진 순서에 없는 지역(직접입력·기타 포함)도 뒤에 이어서 표시
+  Object.keys(regionMap).forEach(function(r){if(orderedRegions.indexOf(r)<0) orderedRegions.push(r);});
 
   var html='<div class="fg"><label class="fl">적용 사이트</label>'
     +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer;margin-bottom:6px">'

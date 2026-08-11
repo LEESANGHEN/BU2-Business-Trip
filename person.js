@@ -2,22 +2,21 @@
    인원 출장일 관리
 ════════════════════════════════════════════ */
 
-var REGION_AMERICAS_IDS=['ESHD','ESMI','ESHG','MILS','UC2','현대JV','BOSK_TN'];
-var REGION_CANADA_IDS=['ESOT'];
-var REGION_EUROPE_IDS=['WA','ESWA'];
-var REGION_CHINA_IDS=[];
-var REGION_VIETNAM_IDS=[];
+// BU2 실제 출장 국가 기준 지역 목록 (사이트별 "지역 선택"의 기본 옵션)
+var BASE_REGIONS=['국내','중국','대만','일본','베트남','말레이시아','싱가폴','태국','기타'];
 
 function getSiteRegion(siteId){
-  // 사이트 데이터에 region 필드가 있으면 우선 사용
   var site=S.sites.find(function(s){return s.id===siteId;});
-  if(site&&site.region) return site.region;
-  // 하위 호환: 하드코딩 배열
-  var sid=(siteId||'').toUpperCase();
-  if(REGION_AMERICAS_IDS.map(function(x){return x.toUpperCase();}).indexOf(sid)>=0) return 'americas';
-  if(REGION_CANADA_IDS.map(function(x){return x.toUpperCase();}).indexOf(sid)>=0)   return 'canada';
-  if(REGION_EUROPE_IDS.map(function(x){return x.toUpperCase();}).indexOf(sid)>=0)   return 'europe';
-  return 'other';
+  return (site&&site.region)||'기타';
+}
+
+// 지역 드롭다운에 보여줄 전체 옵션: 기본 지역 + 이미 사이트에 쓰인 커스텀(직접입력) 지역
+function getAllRegionOptions(){
+  var seen={};
+  var list=[];
+  BASE_REGIONS.forEach(function(r){if(!seen[r]){seen[r]=true;list.push(r);}});
+  S.sites.forEach(function(s){if(s.region&&!seen[s.region]){seen[s.region]=true;list.push(s.region);}});
+  return list;
 }
 
 function calcOverlapDays(start,end,rangeStart,rangeEnd){
@@ -38,7 +37,7 @@ function getRolling12(){
 // 롤링 12개월 창 안에서 모든 지역 합산 해외 체류일
 function calcTotalOverseas12M(trips, rolling12){
   var set={};
-  trips.filter(function(t){return t.region!=='korea';}).forEach(function(t){
+  trips.filter(function(t){return t.region!=='국내';}).forEach(function(t){
     var s=new Date(Math.max(pd(t.start),rolling12.start));
     var e=new Date(Math.min(pd(t.end),rolling12.end));
     if(s>e) return;
@@ -54,7 +53,7 @@ function calcCurrentKoreaDays(trips){
   var pastTrips=trips.filter(function(t){return pd(t.end)<=TODAY;});
   if(!pastTrips.length) return 0;
   var lastEnd=pastTrips.reduce(function(mx,t){return pd(t.end)>pd(mx)?t.end:mx;},pastTrips[0].end);
-  var onTrip=trips.some(function(t){return t.region!=='korea'&&TODAY>=pd(t.start)&&TODAY<=pd(t.end);});
+  var onTrip=trips.some(function(t){return t.region!=='국내'&&TODAY>=pd(t.start)&&TODAY<=pd(t.end);});
   if(onTrip) return 0;
   var returnDay=new Date(pd(lastEnd));
   returnDay.setDate(returnDay.getDate()+1);
@@ -72,7 +71,7 @@ function aggregatePersonTrips(){
     var siteId=proj.siteId;
     var siteName=site?site.name:siteId;
     var siteColor=site?site.color:'#555';
-    var region=sc.domestic?'korea':getSiteRegion(siteId);
+    var region=sc.domestic?'국내':getSiteRegion(siteId);
     var s=pd(sc.start),e=pd(sc.end);
     var status=TODAY>e?'done':(TODAY>=s?'going':'plan');
     var key=sc.name;
@@ -545,12 +544,11 @@ function renderPersonTable(rows){
   return html;
 }
 
-var REGION_LBL_KO={americas:'미국',canada:'캐나다',europe:'유럽',china:'중국',vietnam:'베트남',korea:'국내'};
 function renderPersonRow(r){
   var t=r.trip;
   var tc=TYPE_COLOR[t.type]||'#555';
   var tl=TYPE_LBL[t.type]||t.type;
-  var regionLbl=REGION_LBL_KO[t.region]||'기타';
+  var regionLbl=t.region||'기타';
 
   var html='<tr class="pm-person-row">';
   html+='<td><div style="display:flex;align-items:center;gap:6px">'
