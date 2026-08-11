@@ -987,13 +987,30 @@ function openEditEquipItem(itemId){
     +'<div class="fg"><label class="fl">항목명</label>'
     +'<input type="text" id="eq_edit_name" value="'+item.name+'"></div>'
     +'<div class="fg"><label class="fl">그룹</label>'
-    +'<select id="eq_edit_group"><option value=""'+(item.groupName?'':' selected')+'>없음</option>'+opts+'</select>'
+    +'<div style="display:flex;gap:5px">'
+    +'<select id="eq_edit_group" style="flex:1"><option value=""'+(item.groupName?'':' selected')+'>없음</option>'+opts+'</select>'
+    +'<button class="btn sm warn" type="button" onclick="deleteEquipItemGroup()">그룹 삭제</button>'
+    +'</div>'
     +'<input type="text" id="eq_edit_group_custom" placeholder="새 그룹명 직접 입력" style="margin-top:5px" value="'+(groups.indexOf(item.groupName)<0?item.groupName:'')+'"></div>'
     +_buildSiteCheckboxesHtml(item.siteIds||[])
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
     +'<button class="btn sm pri" onclick="saveEditEquipItem(\''+itemId+'\')">저장</button>'
     +'</div>');
+}
+// 드롭다운(또는 직접입력)에 선택된 그룹을 통째로 삭제 — 그 그룹에 속한 모든 항목을 "없음"으로 변경
+function deleteEquipItemGroup(){
+  var sel=document.getElementById('eq_edit_group');
+  var customEl=document.getElementById('eq_edit_group_custom');
+  var group=(customEl&&customEl.value.trim())||(sel&&sel.value)||'';
+  if(!group){alert('삭제할 그룹을 선택하거나 입력해주세요.');return;}
+  var count=S.equipItems.filter(function(i){return i.groupName===group;}).length;
+  if(!count){alert('"'+group+'" 그룹에 속한 항목이 없습니다.');return;}
+  if(!confirm('"'+group+'" 그룹을 삭제하면 이 그룹에 속한 항목 '+count+'개가 모두 "없음"으로 변경됩니다.\n계속하시겠습니까?')) return;
+  S.equipItems.forEach(function(i){if(i.groupName===group){i.groupName='';_touch(i);}});
+  saveData();
+  cm();
+  renderEquipTab();
 }
 
 function saveEditEquipItem(itemId){
