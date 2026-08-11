@@ -12,6 +12,19 @@ function _saveEquipCollapsed(){
 }
 var PROJ_TYPE_COLOR={'납품셋업':'#1a55bb','개조':'#aa6000','이설':'#1a7a3a','개발':'#7a1a99','본사셋업':'#1a9999'};
 var PROJ_TYPES=['납품셋업','개조','이설','개발','본사셋업'];
+var _CUSTOM_TYPE_PALETTE=['#b0182f','#4a4a4a','#8a6d1a','#1a4a8a','#6d1a4a','#2a8a6d','#8a3a1a','#3a3a8a'];
+function _typeColor(type){
+  if(PROJ_TYPE_COLOR[type]) return PROJ_TYPE_COLOR[type];
+  var h=0;
+  for(var i=0;i<type.length;i++) h=(h*31+type.charCodeAt(i))>>>0;
+  return _CUSTOM_TYPE_PALETTE[h%_CUSTOM_TYPE_PALETTE.length];
+}
+function _allProjTypes(){
+  var extra=[];
+  (S.equipProjects||[]).forEach(function(p){if(p.projType&&PROJ_TYPES.indexOf(p.projType)<0&&extra.indexOf(p.projType)<0)extra.push(p.projType);});
+  (S.equipUnits||[]).forEach(function(u){if(u.unitType&&PROJ_TYPES.indexOf(u.unitType)<0&&extra.indexOf(u.unitType)<0)extra.push(u.unitType);});
+  return PROJ_TYPES.concat(extra);
+}
 
 /* ── 프로젝트 담당자 (역할별 5종) ── */
 var EQUIP_MGR_ROLES=[
@@ -387,7 +400,7 @@ function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
   // 프로젝트 없는 사이트 직속 호기에만 유형 배지 표시 (프로젝트 호기는 프로젝트 행에서 표시)
   var isNoProj=!(unit.equipProjectId&&(S.equipProjects||[]).find(function(p){return p.id===unit.equipProjectId;}));
   var uType=isNoProj?(unit.unitType||'납품셋업'):null;
-  var uTypeBadge=uType?'<span class="eq-type-badge" style="font-size:9px;padding:1px 5px;background:'+(PROJ_TYPE_COLOR[uType]||'#1a55bb')+'">'+uType+'</span>':'';
+  var uTypeBadge=uType?'<span class="eq-type-badge" style="font-size:9px;padding:1px 5px;background:'+_typeColor(uType)+'">'+uType+'</span>':'';
   html+='<td class="eq-td-fix eq-col-unit'+(e?' editable':'')+'"'
     +' style="left:0;border-right:1px solid var(--bd-main);font-weight:500;'+unitBg+'"'
     +(e?' onclick="openEditEquipUnit(\''+unit.id+'\')"':'')+'>'
@@ -580,7 +593,7 @@ function renderEquipGrid(){
         var projPct=calcProjectProgress(proj.id);
         var projPctStr=projPct!==null?projPct+'%':'—';
         var pType=proj.projType||'납품셋업';
-        var pTypeColor=PROJ_TYPE_COLOR[pType]||'#1a55bb';
+        var pTypeColor=_typeColor(pType);
         var typeBadge='<span class="eq-type-badge" style="background:'+pTypeColor+'">'+pType+'</span>';
         bodyHtml+='<tr class="eq-project-row">'
           +'<td colspan="4" class="eq-proj-sticky" style="position:sticky;left:0;z-index:22;background:var(--bg-deep);'
@@ -720,9 +733,20 @@ function saveUnitMemo(unitId,clear){
 
 /* ── 프로젝트 CRUD ── */
 function _projTypeOpts(sel){
-  return PROJ_TYPES.map(function(t){
+  return _allProjTypes().map(function(t){
     return '<option value="'+t+'"'+(t===(sel||'납품셋업')?' selected':'')+'>'+t+'</option>';
   }).join('');
+}
+function _typeFieldHtml(selId,sel){
+  return '<select id="'+selId+'">'+_projTypeOpts(sel)+'</select>'
+    +'<input type="text" id="'+selId+'_custom" placeholder="새 유형 직접 입력 (선택)" autocorrect="off" autocomplete="off" spellcheck="false" style="margin-top:4px;width:100%">';
+}
+function _readTypeField(selId,fallback){
+  var custom=document.getElementById(selId+'_custom');
+  var v=custom?custom.value.trim():'';
+  if(v) return v;
+  var sel=document.getElementById(selId);
+  return (sel&&sel.value)||fallback;
 }
 function openAddEquipProject(){
   ensureEquipSiteOrder();
@@ -736,7 +760,7 @@ function openAddEquipProject(){
     +'<input type="text" id="eq_proj_name" placeholder="예: Phase 1" autocorrect="off" autocomplete="off" spellcheck="false"'
     +' onkeydown="if(event.key===\'Enter\')saveAddEquipProject()"></div>'
     +'<div class="fg"><label class="fl">유형</label>'
-    +'<select id="eq_proj_type">'+_projTypeOpts()+'</select></div>'
+    +_typeFieldHtml('eq_proj_type')+'</div>'
     +_equipMgrFieldsHtml('eq_proj_')
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
@@ -747,7 +771,7 @@ function openAddEquipProject(){
 function saveAddEquipProject(){
   var siteId=document.getElementById('eq_proj_site').value;
   var name=document.getElementById('eq_proj_name').value.trim();
-  var projType=document.getElementById('eq_proj_type').value||'납품셋업';
+  var projType=_readTypeField('eq_proj_type','납품셋업');
   if(!name){alert('프로젝트명을 입력해주세요.');return;}
   var proj=_touch({id:genId('ep',S.equipProjects),siteId:siteId,name:name,projType:projType});
   _readEquipMgrFields('eq_proj_',proj);
@@ -762,7 +786,7 @@ function openEditEquipProject(projectId){
     +'<input type="text" id="eq_edit_proj_name" value="'+proj.name+'" autocorrect="off" autocomplete="off" spellcheck="false"'
     +' onkeydown="if(event.key===\'Enter\')saveEditEquipProject(\''+projectId+'\')"></div>'
     +'<div class="fg"><label class="fl">유형</label>'
-    +'<select id="eq_edit_proj_type">'+_projTypeOpts(proj.projType||'납품셋업')+'</select></div>'
+    +_typeFieldHtml('eq_edit_proj_type',proj.projType||'납품셋업')+'</div>'
     +_equipMgrFieldsHtml('eq_edit_proj_',proj)
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
@@ -774,7 +798,7 @@ function saveEditEquipProject(projectId){
   var proj=S.equipProjects.find(function(p){return p.id===projectId;});
   if(!proj) return;
   var name=document.getElementById('eq_edit_proj_name').value.trim();
-  var projType=document.getElementById('eq_edit_proj_type').value||'납품셋업';
+  var projType=_readTypeField('eq_edit_proj_type','납품셋업');
   if(!name){alert('프로젝트명을 입력해주세요.');return;}
   proj.name=name;
   proj.projType=projType;
@@ -1126,7 +1150,7 @@ function openEditEquipUnit(unitId){
   // 프로젝트에 속하지 않는 사이트 직속 호기일 때 유형 선택 표시
   var hasProj=!!(unit.equipProjectId&&(S.equipProjects||[]).find(function(p){return p.id===unit.equipProjectId;}));
   var typeRow=hasProj?'':'<div class="fg"><label class="fl">유형</label>'
-    +'<select id="eq_edit_unit_type">'+_projTypeOpts(unit.unitType||'납품셋업')+'</select></div>';
+    +_typeFieldHtml('eq_edit_unit_type',unit.unitType||'납품셋업')+'</div>';
   mw('<div class="mtit">라인 / 호기 수정</div>'
     +'<div class="fg"><label class="fl">사이트</label>'
     +'<select id="eq_edit_unit_site" onchange="_updateEditUnitProjSelect(\''+unitId+'\')">'+siteOpts+'</select></div>'
@@ -1161,7 +1185,7 @@ function saveEditEquipUnit(unitId){
   unit.siteId=newSiteId;
   unit.equipProjectId=projEl?projEl.value||null:null;
   unit.lineName=ln;unit.unitName=un;
-  if(typeEl) unit.unitType=typeEl.value||'납품셋업';
+  if(typeEl) unit.unitType=_readTypeField('eq_edit_unit_type','납품셋업');
   _touch(unit);
   saveData();cm();renderEquipTab();
 }
