@@ -419,7 +419,18 @@ function buildGrpListRows(){
   });
 }
 
+// 국가/세부지역이 분리되기 전 데이터 이전: country가 없고 region만 있던 사이트는
+// 그 region 값이 사실 "국가"였으므로 country로 옮기고 region은 비움 (한 번만 실행되면 됨)
+function _migrateSiteCountry(){
+  var changed=false;
+  S.sites.forEach(function(s){
+    if(!s.country&&s.region){ s.country=s.region; s.region=''; _touch(s); changed=true; }
+  });
+  if(changed) saveData();
+}
+
 function buildGrpSiteRows(){
+  _migrateSiteCountry();
   var el=document.getElementById('grpSiteRows');if(!el)return;el.innerHTML='';
   var COUNTRY_SECTIONS=BASE_REGIONS.map(function(r){return {key:r,label:r};});
   var countryOpts=getAllRegionOptions();
@@ -452,14 +463,14 @@ function buildGrpSiteRows(){
       // 간트 그룹 선택 (고객사별 간트차트 왼쪽 패널 분류)
       var gsel=document.createElement('select');
       gsel.title='간트차트 고객사 그룹';
-      gsel.style.cssText='font-size:10px;padding:2px 3px;max-width:90px;color:#ccc';
+      gsel.style.cssText='font-size:10px;padding:2px 3px;width:100px;color:#ccc';
       S.groups.forEach(function(g){var o=document.createElement('option');o.value=g.id;o.textContent=g.name;if((site.groupId||'_none')===g.id)o.selected=true;gsel.appendChild(o);});
       gsel.onchange=(function(sid){return function(){moveSiteGroup(sid,this.value);};})(site.id);
 
       // 국가 선택
       var csel=document.createElement('select');
       csel.title='출장 국가';
-      csel.style.cssText='font-size:10px;padding:2px 3px;max-width:70px;color:#ccc';
+      csel.style.cssText='font-size:10px;padding:2px 3px;width:80px;color:#ccc';
       countryOpts.forEach(function(c){var o=document.createElement('option');o.value=c;o.textContent=c;if((site.country||'기타')===c)o.selected=true;csel.appendChild(o);});
       var cNewOpt=document.createElement('option');cNewOpt.value='__new__';cNewOpt.textContent='+ 직접 입력...';csel.appendChild(cNewOpt);
       csel.onchange=(function(sid){return function(){
@@ -477,7 +488,7 @@ function buildGrpSiteRows(){
       // 세부 지역 선택 — 위에서 고른 국가에 등록된 지역 목록만 표시 (국가별로 옵션이 바뀜)
       var rsel=document.createElement('select');
       rsel.title='세부 지역(도시)';
-      rsel.style.cssText='font-size:10px;padding:2px 3px;max-width:90px;color:#ccc';
+      rsel.style.cssText='font-size:10px;padding:2px 3px;width:100px;color:#ccc';
       var curCountry=site.country||'기타';
       var cityOpts=getRegionOptionsForCountry(curCountry);
       var blankOpt=document.createElement('option');blankOpt.value='';blankOpt.textContent='(선택 안 함)';
