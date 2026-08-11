@@ -354,6 +354,9 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .eq-bar-wrap{width:64px;background:var(--bg-alt);border-radius:3px;height:5px;margin:3px auto 0;overflow:hidden}
 .eq-bar-fill{height:100%;border-radius:3px;background:#b87a10;transition:width .2s}
 .eq-bar-fill.hi{background:#2a8a40}
+/* 셀 특이사항 표시 점 */
+.eq-note-dot{position:absolute;top:2px;right:3px;font-size:7px;color:#e8a020;line-height:1}
+.eq-td{position:relative}
 /* 출장인원 칩 */
 .eq-chip{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;background:#1a2a3a;color:#7aafee;border:1px solid #2a4a6a;margin:1px;white-space:nowrap}
 .eq-chip.hq{background:#1a2a4a;color:#7aafee;border-color:#2a4a8a}

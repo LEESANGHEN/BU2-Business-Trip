@@ -258,23 +258,32 @@ function _equipCellInner(cell){
     html+='<div class="eq-pct">'+pct+'%</div>'
       +'<div class="eq-bar-wrap"><div class="'+barCls2+'" style="width:'+Math.min(pct,100)+'%"></div></div>';
   }
+  if(cell.note) html+='<span class="eq-note-dot" title="특이사항 있음">●</span>';
   return {done:isDone,html:html};
+}
+// 셀에 특이사항이 있으면 hover 시 말풍선 툴팁으로 보여주는 속성(data-memo + 메모 툴팁 재사용) 생성
+function _equipCellNoteAttrs(cell){
+  if(!cell||!cell.note) return '';
+  var esc=cell.note.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return ' data-memo="'+esc+'" onmouseenter="showMemoTooltip(this)" onmouseleave="hideMemoTooltip()"';
 }
 /* ── 셀 HTML ── */
 function renderEquipCell(cell,editMode,unitId,itemId){
   var r=_equipCellInner(cell);
   var cls='eq-td'+(r.done?' eq-done':'')+(editMode?' editable':'');
-  var onclick=editMode?' onclick="openEquipCellEdit(\''+unitId+'\',\''+itemId+'\')">':'>';
-  return '<td class="'+cls+'"'+onclick+r.html+'</td>';
+  var attrs=_equipCellNoteAttrs(cell);
+  if(editMode) attrs+=' onclick="openEquipCellEdit(\''+unitId+'\',\''+itemId+'\')"';
+  return '<td class="'+cls+'"'+attrs+'>'+r.html+'</td>';
 }
 
 /* ── sticky 셀 렌더러 (고정 열용) ── */
 function renderEquipCellSticky(cell,editMode,unitId,itemId,extraCls,extraStyle){
   var r=_equipCellInner(cell);
   var cls='eq-td-fix'+(r.done?' eq-done':'')+(extraCls?' '+extraCls:'')+(editMode?' editable':'');
-  var style=extraStyle?(' style="'+extraStyle+'"'):'';
-  var onclick=editMode?' onclick="openEquipCellEdit(\''+unitId+'\',\''+itemId+'\')">':'>';
-  return '<td class="'+cls+'"'+style+onclick+r.html+'</td>';
+  var attrs=extraStyle?(' style="'+extraStyle+'"'):'';
+  attrs+=_equipCellNoteAttrs(cell);
+  if(editMode) attrs+=' onclick="openEquipCellEdit(\''+unitId+'\',\''+itemId+'\')"';
+  return '<td class="'+cls+'"'+attrs+'>'+r.html+'</td>';
 }
 
 /* ── 메모 셀 렌더러 ── */
@@ -601,6 +610,8 @@ function openEquipCellEdit(unitId,itemId){
     +'<input type="number" id="eq_percent" min="0" max="100" value="'+(cell.percent!=null?cell.percent:0)+'" style="width:100%"></div>'
     +'<div class="fg"><label class="fl">완료일 (선택, 100%일 때만 표시됨)</label>'
     +'<input type="date" id="eq_doneDate" value="'+(cell.doneDate||'')+'" style="width:100%"></div>'
+    +'<div class="fg"><label class="fl">특이사항 (선택) — 마우스를 올리면 셀에서 바로 확인 가능</label>'
+    +'<textarea id="eq_note" rows="2" placeholder="예: 부품 입고 지연으로 일정 연기" style="width:100%;resize:vertical;background:var(--bg-input);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:4px;padding:6px;font-size:12px">'+(cell.note||'')+'</textarea></div>'
     +'</div>'
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
@@ -618,15 +629,17 @@ function saveEquipCell(unitId,itemId){
   var unit=S.equipUnits.find(function(u){return u.id===unitId;});
   if(!unit) return;
   var na=document.getElementById('eq_na').checked;
+  var noteEl=document.getElementById('eq_note');
+  var note=noteEl?noteEl.value.trim():'';
   var cell;
   if(na){
-    cell={na:true,planDate:'',percent:0,doneDate:''};
+    cell={na:true,planDate:'',percent:0,doneDate:'',note:note};
   } else {
     var planDate=document.getElementById('eq_planDate').value||'';
     var percent=parseFloat(document.getElementById('eq_percent').value);
     if(isNaN(percent)||percent<0||percent>100){alert('진행율은 0~100 사이의 숫자로 입력해주세요.');return;}
     var doneDate=document.getElementById('eq_doneDate').value||'';
-    cell={na:false,planDate:planDate,percent:percent,doneDate:doneDate};
+    cell={na:false,planDate:planDate,percent:percent,doneDate:doneDate,note:note};
   }
   if(!unit.cells) unit.cells={};
   unit.cells[itemId]=cell;
