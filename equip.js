@@ -10,8 +10,8 @@ var _equipCollapsed=(function(){
 function _saveEquipCollapsed(){
   try{localStorage.setItem(_EQUIP_COLLAPSED_LS_KEY,JSON.stringify(_equipCollapsed));}catch(e){}
 }
-var PROJ_TYPE_COLOR={'납품셋업':'#1a55bb','개조':'#aa6000','이설':'#1a7a3a','개발':'#7a1a99'};
-var PROJ_TYPES=['납품셋업','개조','이설','개발'];
+var PROJ_TYPE_COLOR={'납품셋업':'#1a55bb','개조':'#aa6000','이설':'#1a7a3a','개발':'#7a1a99','본사셋업':'#1a9999'};
+var PROJ_TYPES=['납품셋업','개조','이설','개발','본사셋업'];
 
 /* ── 프로젝트 담당자 (역할별 5종) ── */
 var EQUIP_MGR_ROLES=[
