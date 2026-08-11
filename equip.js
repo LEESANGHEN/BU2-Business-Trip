@@ -309,14 +309,15 @@ function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
     +(e?' onclick="openEditEquipUnit(\''+unit.id+'\')"':'')+'>'
     +uTypeBadge+(unit.unitName||'')+pctBar+'</td>';
   if(msDateItem){
-    html+=renderEquipCellSticky((unit.cells||{})[msDateItem.id],e,unit.id,msDateItem.id,
+    // 항목별 셋업 시작일/진행율은 수정모드와 무관하게 항상 클릭해서 개별 수정 가능
+    html+=renderEquipCellSticky((unit.cells||{})[msDateItem.id],true,unit.id,msDateItem.id,
       'eq-col-msdate','left:0;border-right:1px solid #3a3a44');
   } else {
     html+='<td class="eq-td-fix eq-col-msdate" style="left:0;border-right:1px solid #3a3a44"></td>';
   }
   html+=renderEquipMemoCell(unit,e);
   scrollItems.forEach(function(item){
-    html+=renderEquipCell((unit.cells||{})[item.id],e,unit.id,item.id);
+    html+=renderEquipCell((unit.cells||{})[item.id],true,unit.id,item.id);
   });
   if(e){
     html+='<td class="eq-td" style="white-space:nowrap">'
