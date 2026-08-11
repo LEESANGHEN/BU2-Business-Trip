@@ -336,6 +336,8 @@ function renderEquipGrid(){
 
   _migrateEquipCells();
   var items=_sortedEquipItemsGrouped();
+  var groupSeq=[];
+  items.forEach(function(i){var g=i.groupName||'';if(groupSeq.indexOf(g)<0)groupSeq.push(g);});
   // 양산시작(ei21)은 고정 열로 분리, 나머지가 스크롤 항목
   var msDateItem=items.find(function(i){return i.id==='ei21';});
   var scrollItems=items.filter(function(i){
@@ -425,7 +427,19 @@ function renderEquipGrid(){
   // 스크롤 항목 헤더
   scrollItems.forEach(function(item,itemIdx){
     var g=item.groupName||'';
-    var groupLbl=g?'<div style="font-size:8px;color:#534AB7;margin-bottom:2px;letter-spacing:.04em">'+g+'</div>':'';
+    var isGroupStart=(g!==prevGroup);
+    var groupLbl='';
+    if(g){
+      groupLbl='<div style="font-size:8px;color:#534AB7;margin-bottom:2px;letter-spacing:.04em">'+g+'</div>';
+      if(e&&isGroupStart){
+        var gIdx=groupSeq.indexOf(g);
+        var gIsFirst=(gIdx<=0),gIsLast=(gIdx>=groupSeq.length-1);
+        groupLbl='<div style="font-size:8px;color:#534AB7;margin-bottom:2px;letter-spacing:.04em">'+g
+          +(gIsFirst?'':' <button class="eq-item-edit-btn" title="그룹 전체 위로 이동" style="width:auto;padding:0 3px;display:inline-block;font-size:8px" onclick="moveEquipGroup(\''+g.replace(/'/g,"\\'")+'\',-1)">◀그룹</button>')
+          +(gIsLast?'':' <button class="eq-item-edit-btn" title="그룹 전체 아래로 이동" style="width:auto;padding:0 3px;display:inline-block;font-size:8px" onclick="moveEquipGroup(\''+g.replace(/'/g,"\\'")+'\',1)">그룹▶</button>')
+          +'</div>';
+      }
+    }
     var borderLeft=(g&&g!==prevGroup&&prevGroup!==null)?'border-left:2px solid #534AB7;':'';
     prevGroup=g;
     if(e){
@@ -953,6 +967,26 @@ function moveEquipItem(itemId,dir){
   a.order=b.order;
   b.order=tmp;
   _touch(a);_touch(b);
+  saveData();renderEquipGrid();
+}
+
+/* ── 그룹 전체 순서 변경 (그룹에 속한 항목들을 통째로 이동) ── */
+function moveEquipGroup(groupName,dir){
+  var sorted=_sortedEquipItemsGrouped();
+  var groupSeq=[];
+  sorted.forEach(function(i){var g=i.groupName||'';if(groupSeq.indexOf(g)<0)groupSeq.push(g);});
+  var idx=groupSeq.indexOf(groupName);
+  var swapIdx=idx+dir;
+  if(idx<0||swapIdx<0||swapIdx>=groupSeq.length) return;
+  var tmp=groupSeq[idx];groupSeq[idx]=groupSeq[swapIdx];groupSeq[swapIdx]=tmp;
+  // 새 그룹 순서대로 전체 항목의 order를 다시 매김 (그룹 안에서의 상대 순서는 그대로 유지)
+  var seq=0;
+  groupSeq.forEach(function(g){
+    sorted.filter(function(i){return (i.groupName||'')===g;}).forEach(function(item){
+      item.order=seq++;
+      _touch(item);
+    });
+  });
   saveData();renderEquipGrid();
 }
 
