@@ -2,20 +2,42 @@
    인원 출장일 관리
 ════════════════════════════════════════════ */
 
-// BU2 실제 출장 국가 기준 지역 목록 (사이트별 "지역 선택"의 기본 옵션)
+// BU2 실제 출장 국가 목록 (사이트별 "국가 선택"의 기본 옵션)
 var BASE_REGIONS=['국내','중국','대만','일본','베트남','말레이시아','싱가폴','태국','기타'];
 
+// 국가별 세부 지역(도시) 목록 — "국가"를 고르면 이 목록을 기준으로 "세부 지역" 드롭다운이 바뀜
+var COUNTRY_REGIONS={
+  '국내':['부산','김해','진해','구미','세종'],
+  '중국':['충칭','선전','후아이안','후이저우'],
+  '대만':['타이중','양메이','신펑','산잉','중리','가오슝','타오위안'],
+  '일본':['기후 이비','나가노','니가타','교토 아야베'],
+  '베트남':['타이응우옌성','하이퐁'],
+  '말레이시아':['쿨림'],
+  '싱가폴':['우드랜드'],
+  '태국':['시마하폿']
+};
+
+// 사이트의 "국가" (인원 출장일/설비 진행율 탭에서 "지역"으로 표시되는 값)
 function getSiteRegion(siteId){
   var site=S.sites.find(function(s){return s.id===siteId;});
-  return (site&&site.region)||'기타';
+  return (site&&site.country)||'기타';
 }
 
-// 지역 드롭다운에 보여줄 전체 옵션: 기본 지역 + 이미 사이트에 쓰인 커스텀(직접입력) 지역
+// 국가 드롭다운에 보여줄 전체 옵션: 기본 국가 + 이미 사이트에 쓰인 커스텀(직접입력) 국가
 function getAllRegionOptions(){
   var seen={};
   var list=[];
   BASE_REGIONS.forEach(function(r){if(!seen[r]){seen[r]=true;list.push(r);}});
-  S.sites.forEach(function(s){if(s.region&&!seen[s.region]){seen[s.region]=true;list.push(s.region);}});
+  S.sites.forEach(function(s){if(s.country&&!seen[s.country]){seen[s.country]=true;list.push(s.country);}});
+  return list;
+}
+
+// 특정 국가를 선택했을 때 "세부 지역" 드롭다운에 보여줄 옵션: 그 국가의 기본 도시 + 이미 그 국가에 쓰인 커스텀 지역
+function getRegionOptionsForCountry(country){
+  var seen={};
+  var list=[];
+  (COUNTRY_REGIONS[country]||[]).forEach(function(r){if(!seen[r]){seen[r]=true;list.push(r);}});
+  S.sites.forEach(function(s){if((s.country||'기타')===country&&s.region&&!seen[s.region]){seen[s.region]=true;list.push(s.region);}});
   return list;
 }
 

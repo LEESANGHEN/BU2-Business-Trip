@@ -794,10 +794,10 @@ var _REGION_LABEL={};
 var _REGION_ORDER=['국내','중국','대만','일본','베트남','말레이시아','싱가폴','태국'];
 function _buildSiteCheckboxesHtml(checkedIds){
   var allChecked=!checkedIds||checkedIds.length===0;
-  // S.sites 기반으로 region별 동적 그룹화
+  // S.sites 기반으로 국가별 동적 그룹화
   var regionMap={};
   (S.sites||[]).forEach(function(site){
-    var r=site.region||'기타';
+    var r=site.country||'기타';
     if(!regionMap[r]) regionMap[r]=[];
     regionMap[r].push(site);
   });
