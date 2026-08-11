@@ -938,7 +938,8 @@ function _collectSiteIds(){
 
 /* ── 그룹 선택기 (드롭다운 목록에서 옵션별로 바로 삭제 가능) ── */
 function _buildEquipGroupOptionRows(){
-  var groups=['SAT','IT'];
+  // SAT/IT를 항상 다시 채워넣던 고정 기본값을 없애서, 삭제하면 실제로 목록에서 완전히 사라지도록 함
+  var groups=[];
   S.equipItems.forEach(function(i){if(i.groupName&&groups.indexOf(i.groupName)<0)groups.push(i.groupName);});
   var rows='<div class="eq-group-opt" onclick="_selectEquipGroupOption(\'\')">없음</div>';
   groups.forEach(function(g){
