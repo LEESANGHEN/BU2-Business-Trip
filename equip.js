@@ -146,8 +146,68 @@ function _migrateEquipProjectManagers(){
   if(changed) saveData();
 }
 
+/* ── 그룹(단계) 기반 유형/진행율 자동 판정 ──
+   그룹(본사셋업/현장셋업 등)을 순서대로 보며, 호기별로 아직 안 끝난 첫 그룹을 "현재 단계"로 본다.
+   해당 호기에 해당사항 없는(N/A) 그룹은 건너뛰고, 모든 그룹이 끝났으면 마지막 해당 그룹을 유지한다. */
+function _equipGroupSeq(){
+  var items=_sortedEquipItemsGrouped();
+  var seq=[];
+  items.forEach(function(i){var g=i.groupName||'';if(g&&seq.indexOf(g)<0)seq.push(g);});
+  return seq;
+}
+function _equipGroupItems(groupName){
+  return S.equipItems.filter(function(i){return (i.groupName||'')===groupName;});
+}
+function _groupProgressForUnit(unit,groupName){
+  var items=_equipGroupItems(groupName);
+  if(!items.length) return 100;
+  var total=0,count=0;
+  items.forEach(function(item){
+    var cell=(unit.cells||{})[item.id];
+    if(!cell||cell.na) return;
+    count++;
+    total+=(parseFloat(cell.percent)||0);
+  });
+  if(!count) return 100;
+  return Math.round(total/count);
+}
+function calcUnitActivePhase(unit){
+  var seq=_equipGroupSeq();
+  if(!seq.length) return null;
+  var lastApplicable=null;
+  for(var idx=0;idx<seq.length;idx++){
+    var g=seq[idx];
+    var applicable=_equipGroupItems(g).filter(function(item){
+      var c=(unit.cells||{})[item.id];
+      return c&&!c.na;
+    });
+    if(!applicable.length) continue;
+    lastApplicable=g;
+    var allDone=applicable.every(function(item){
+      return (parseFloat(unit.cells[item.id].percent)||0)>=100;
+    });
+    if(!allDone) return g;
+  }
+  return lastApplicable;
+}
+function calcProjectActivePhase(projectId){
+  var units=S.equipUnits.filter(function(u){return u.equipProjectId===projectId;});
+  var seq=_equipGroupSeq();
+  if(!units.length||!seq.length) return null;
+  var minIdx=null;
+  units.forEach(function(u){
+    var phase=calcUnitActivePhase(u);
+    if(!phase) return;
+    var idx=seq.indexOf(phase);
+    if(minIdx===null||idx<minIdx) minIdx=idx;
+  });
+  return minIdx===null?null:seq[minIdx];
+}
+
 /* ── 진행율 계산 ── */
 function calcUnitProgress(unit){
+  var phase=calcUnitActivePhase(unit);
+  if(phase) return _groupProgressForUnit(unit,phase);
   var items=S.equipItems.slice().sort(function(a,b){return a.order-b.order;});
   if(!items.length) return 0;
   var total=0,count=0;
@@ -171,8 +231,9 @@ function calcSiteProgress(siteId){
 function calcProjectProgress(projectId){
   var units=S.equipUnits.filter(function(u){return u.equipProjectId===projectId;});
   if(!units.length) return null;
+  var phase=calcProjectActivePhase(projectId);
   var sum=0;
-  units.forEach(function(u){sum+=calcUnitProgress(u);});
+  units.forEach(function(u){sum+=(phase?_groupProgressForUnit(u,phase):calcUnitProgress(u));});
   return Math.round(sum/units.length);
 }
 
@@ -399,7 +460,7 @@ function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
     +(unit.lineName||'')+'</td>';
   // 프로젝트 없는 사이트 직속 호기에만 유형 배지 표시 (프로젝트 호기는 프로젝트 행에서 표시)
   var isNoProj=!(unit.equipProjectId&&(S.equipProjects||[]).find(function(p){return p.id===unit.equipProjectId;}));
-  var uType=isNoProj?(unit.unitType||'납품셋업'):null;
+  var uType=isNoProj?(calcUnitActivePhase(unit)||unit.unitType||'납품셋업'):null;
   var uTypeBadge=uType?'<span class="eq-type-badge" style="font-size:9px;padding:1px 5px;background:'+_typeColor(uType)+'">'+uType+'</span>':'';
   html+='<td class="eq-td-fix eq-col-unit'+(e?' editable':'')+'"'
     +' style="left:0;border-right:1px solid var(--bd-main);font-weight:500;'+unitBg+'"'
@@ -592,7 +653,7 @@ function renderEquipGrid(){
         var projUnits=siteUnits.filter(function(u){return u.equipProjectId===proj.id;});
         var projPct=calcProjectProgress(proj.id);
         var projPctStr=projPct!==null?projPct+'%':'—';
-        var pType=proj.projType||'납품셋업';
+        var pType=calcProjectActivePhase(proj.id)||proj.projType||'납품셋업';
         var pTypeColor=_typeColor(pType);
         var typeBadge='<span class="eq-type-badge" style="background:'+pTypeColor+'">'+pType+'</span>';
         bodyHtml+='<tr class="eq-project-row">'
