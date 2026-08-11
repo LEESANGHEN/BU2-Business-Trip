@@ -7,10 +7,11 @@ var _equipCollapsed={};
 var PROJ_TYPE_COLOR={'납품셋업':'#1a55bb','개조':'#aa6000','이설':'#1a7a3a','개발':'#7a1a99'};
 var PROJ_TYPES=['납품셋업','개조','이설','개발'];
 
-/* ── 프로젝트 담당자 (역할별 4종) ── */
+/* ── 프로젝트 담당자 (역할별 5종) ── */
 var EQUIP_MGR_ROLES=[
   ['mgrHq','본사 셋업'],
   ['mgrTravel','출장 셋업'],
+  ['mgrOutsource','외주 담당자'],
   ['mgrHost','Host 담당자'],
   ['mgrVision','Vision 담당자']
 ];
