@@ -534,6 +534,9 @@ function renderPersonBody(){
   rows.sort(function(a,b){
     var v;
     if(_pmSortKey==='name')            v=a.name.localeCompare(b.name,'ko')||a.trip.start.localeCompare(b.trip.start);
+    else if(_pmSortKey==='country')    v=(a.trip.region||'기타').localeCompare(b.trip.region||'기타','ko')||a.name.localeCompare(b.name,'ko');
+    else if(_pmSortKey==='city')       v=(a.trip.city||'').localeCompare(b.trip.city||'','ko')||a.name.localeCompare(b.name,'ko');
+    else if(_pmSortKey==='site')       v=(a.trip.siteName||'').localeCompare(b.trip.siteName||'','ko')||a.name.localeCompare(b.name,'ko');
     else if(_pmSortKey==='days')       v=a.trip.days-b.trip.days;
     else if(_pmSortKey==='grandTotal') v=a.grandTotal-b.grandTotal;
     else                                v=a.name.localeCompare(b.name,'ko');
@@ -552,7 +555,7 @@ function renderPersonTable(rows){
     return '<th class="'+(isOn?'on':'')+'" onclick="setPmSort(\''+key+'\')">'+lbl+arrow+'</th>';
   }
   html+=thS('name','이름');
-  html+='<th>국가</th><th>지역</th><th>사이트</th>';
+  html+=thS('country','국가')+thS('city','지역')+thS('site','사이트');
   html+=thS('days','최초 출장일수');
   html+='<th>1차 연장일수</th><th>2차 연장일수</th>';
   html+=thS('grandTotal','전체 출장일수');
