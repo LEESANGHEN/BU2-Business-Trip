@@ -378,9 +378,12 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .eq-memo-tooltip-fixed{display:none;position:fixed;z-index:9999;background:var(--bg-grp);color:var(--tx-primary);padding:7px 10px;border-radius:5px;font-size:12px;white-space:pre-wrap;max-width:260px;min-width:80px;border:1px solid var(--bd-main);box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:none;line-height:1.5}
 /* 프로젝트 구분 행 */
 .eq-project-row>td{border-top:1px solid var(--bd-light);border-bottom:1px solid var(--bd-light)}
-.eq-proj-sticky{padding:4px 10px 4px 20px;display:flex;align-items:center;gap:8px}
+.eq-proj-sticky{padding:4px 10px 4px 20px}
+.eq-proj-row1{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .eq-proj-name{font-size:12px;font-weight:600;color:var(--tx-second)}
 .eq-proj-pct{font-size:11px;color:var(--tx-dim);background:var(--bg-grp);border-radius:3px;padding:1px 6px;flex-shrink:0}
+.eq-proj-mgrs{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:3px}
+.eq-proj-mgr-grp{font-size:11px;color:var(--tx-muted);white-space:nowrap}
 .eq-project-row.unassigned>td{background:var(--bg-deep)}
 /* 요약 카드 프로젝트 소카드 */
 .eq-proj-sub-list{margin-top:7px;border-top:1px solid var(--bd-light);padding-top:6px;display:flex;flex-direction:column;gap:4px}

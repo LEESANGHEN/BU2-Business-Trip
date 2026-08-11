@@ -6,6 +6,41 @@ var _equipFilterSite='all';
 var _equipCollapsed={};
 var PROJ_TYPE_COLOR={'납품셋업':'#1a55bb','개조':'#aa6000','이설':'#1a7a3a','개발':'#7a1a99'};
 var PROJ_TYPES=['납품셋업','개조','이설','개발'];
+
+/* ── 프로젝트 담당자 (역할별 4종) ── */
+var EQUIP_MGR_ROLES=[
+  ['mgrHq','본사 셋업'],
+  ['mgrTravel','출장 셋업'],
+  ['mgrHost','Host 담당자'],
+  ['mgrVision','Vision 담당자']
+];
+function _equipMgrFieldsHtml(idPrefix,proj){
+  var html='';
+  EQUIP_MGR_ROLES.forEach(function(r){
+    var val=proj?(proj[r[0]]||''):'';
+    html+='<div class="fg"><label class="fl">'+r[1]+' (여러 명은 쉼표로 구분)</label>'
+      +'<input type="text" id="'+idPrefix+r[0]+'" value="'+val+'" placeholder="예: 홍길동, 김철수" autocorrect="off" autocomplete="off" spellcheck="false"></div>';
+  });
+  return html;
+}
+function _readEquipMgrFields(idPrefix,proj){
+  EQUIP_MGR_ROLES.forEach(function(r){
+    var el=document.getElementById(idPrefix+r[0]);
+    proj[r[0]]=el?el.value.trim():'';
+  });
+}
+// 프로젝트 행에 표시할 역할별 담당자 칩 HTML (값이 있는 역할만 표시)
+function _equipMgrDisplayHtml(proj){
+  var lines=[];
+  EQUIP_MGR_ROLES.forEach(function(r){
+    var names=(proj[r[0]]||'').split(',').map(function(n){return n.trim();}).filter(Boolean);
+    if(!names.length) return;
+    lines.push('<span class="eq-proj-mgr-grp">'+r[1]+': '
+      +names.map(function(n){return '<span class="eq-chip hq">'+n+'</span>';}).join('')
+      +'</span>');
+  });
+  return lines.length?'<div class="eq-proj-mgrs">'+lines.join('')+'</div>':'';
+}
 var _dragEquipSiteId=null;
 var _EQUIP_SITE_GROUPS=[
   {label:'LG (미국)',   ids:['ESHD','ESMI','ESHG','MILS','UC2','BOSK_TN']},
@@ -74,6 +109,19 @@ function _migrateEquipCells(){
       var c=u.cells[itemId];
       if(c&&c.na===undefined){ u.cells[itemId]=_migrateEquipCell(c); changed=true; _touch(u); }
     });
+  });
+  if(changed) saveData();
+}
+// 역할별 담당자로 나뉘기 전, 단일 "담당자" 필드에 넣었던 값은 '본사 셋업'으로 이전
+function _migrateEquipProjectManagers(){
+  var changed=false;
+  (S.equipProjects||[]).forEach(function(p){
+    if(p.manager&&!p.mgrHq&&!p.mgrTravel&&!p.mgrHost&&!p.mgrVision){
+      p.mgrHq=p.manager;
+      delete p.manager;
+      _touch(p);
+      changed=true;
+    }
   });
   if(changed) saveData();
 }
@@ -183,6 +231,7 @@ function fixEquipStickyOffsets(){
 /* ── 메인 렌더 진입점 ── */
 function renderEquipTab(){
   _migrateEquipCells();
+  _migrateEquipProjectManagers();
   renderEquipSidebar();
   renderEquipGrid();
 }
@@ -483,19 +532,17 @@ function renderEquipGrid(){
         var pType=proj.projType||'납품셋업';
         var pTypeColor=PROJ_TYPE_COLOR[pType]||'#1a55bb';
         var typeBadge='<span class="eq-type-badge" style="background:'+pTypeColor+'">'+pType+'</span>';
-        var managerNames=(proj.manager||'').split(',').map(function(n){return n.trim();}).filter(Boolean);
-        var managerHtml=managerNames.length
-          ?' <span class="eq-site-personnel">담당자: '+managerNames.map(function(n){return '<span class="eq-chip hq">'+n+'</span>';}).join('')+'</span>'
-          :'';
         bodyHtml+='<tr class="eq-project-row">'
           +'<td colspan="4" class="eq-proj-sticky" style="position:sticky;left:0;z-index:22;background:var(--bg-deep);'
           +'border-top:1px solid var(--bd-light);border-left:3px solid #4a4a6a;border-bottom:1px solid var(--bd-light);">'
+          +'<div class="eq-proj-row1">'
           +typeBadge
           +'<span class="eq-proj-name">'+proj.name+'</span>'
           +'<span class="eq-proj-pct">'+projPctStr+'</span>'
-          +managerHtml
           +(e?'<button class="eq-item-edit-btn" onclick="openEditEquipProject(\''+proj.id+'\')">수정</button>'
             +'<button class="eq-item-edit-btn" style="color:#c04040;border-color:#7a1010" onclick="delEquipProject(\''+proj.id+'\')">삭제</button>':'')
+          +'</div>'
+          +_equipMgrDisplayHtml(proj)
           +'</td>'
           +(scrollColCount>0?'<td colspan="'+scrollColCount+'" style="background:var(--bg-deep);border-top:1px solid var(--bd-light);border-bottom:1px solid var(--bd-light)"></td>':'')
           +'</tr>';
@@ -636,8 +683,7 @@ function openAddEquipProject(){
     +' onkeydown="if(event.key===\'Enter\')saveAddEquipProject()"></div>'
     +'<div class="fg"><label class="fl">유형</label>'
     +'<select id="eq_proj_type">'+_projTypeOpts()+'</select></div>'
-    +'<div class="fg"><label class="fl">담당자 (셋업/출장 담당, 여러 명은 쉼표로 구분)</label>'
-    +'<input type="text" id="eq_proj_manager" placeholder="예: 홍길동, 김철수" autocorrect="off" autocomplete="off" spellcheck="false"></div>'
+    +_equipMgrFieldsHtml('eq_proj_')
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
     +'<button class="btn sm pri" onclick="saveAddEquipProject()">추가</button>'
@@ -648,9 +694,10 @@ function saveAddEquipProject(){
   var siteId=document.getElementById('eq_proj_site').value;
   var name=document.getElementById('eq_proj_name').value.trim();
   var projType=document.getElementById('eq_proj_type').value||'납품셋업';
-  var manager=document.getElementById('eq_proj_manager').value.trim();
   if(!name){alert('프로젝트명을 입력해주세요.');return;}
-  S.equipProjects.push(_touch({id:genId('ep',S.equipProjects),siteId:siteId,name:name,projType:projType,manager:manager}));
+  var proj=_touch({id:genId('ep',S.equipProjects),siteId:siteId,name:name,projType:projType});
+  _readEquipMgrFields('eq_proj_',proj);
+  S.equipProjects.push(proj);
   saveData();cm();renderEquipGrid();
 }
 function openEditEquipProject(projectId){
@@ -662,8 +709,7 @@ function openEditEquipProject(projectId){
     +' onkeydown="if(event.key===\'Enter\')saveEditEquipProject(\''+projectId+'\')"></div>'
     +'<div class="fg"><label class="fl">유형</label>'
     +'<select id="eq_edit_proj_type">'+_projTypeOpts(proj.projType||'납품셋업')+'</select></div>'
-    +'<div class="fg"><label class="fl">담당자 (셋업/출장 담당, 여러 명은 쉼표로 구분)</label>'
-    +'<input type="text" id="eq_edit_proj_manager" value="'+(proj.manager||'')+'" placeholder="예: 홍길동, 김철수" autocorrect="off" autocomplete="off" spellcheck="false"></div>'
+    +_equipMgrFieldsHtml('eq_edit_proj_',proj)
     +'<div class="mfoot">'
     +'<button class="btn sm" onclick="cm()">취소</button>'
     +'<button class="btn sm pri" onclick="saveEditEquipProject(\''+projectId+'\')">저장</button>'
@@ -675,11 +721,10 @@ function saveEditEquipProject(projectId){
   if(!proj) return;
   var name=document.getElementById('eq_edit_proj_name').value.trim();
   var projType=document.getElementById('eq_edit_proj_type').value||'납품셋업';
-  var manager=document.getElementById('eq_edit_proj_manager').value.trim();
   if(!name){alert('프로젝트명을 입력해주세요.');return;}
   proj.name=name;
   proj.projType=projType;
-  proj.manager=manager;
+  _readEquipMgrFields('eq_edit_proj_',proj);
   _touch(proj);
   saveData();cm();renderEquipGrid();
 }
