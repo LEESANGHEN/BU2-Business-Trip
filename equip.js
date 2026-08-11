@@ -56,6 +56,21 @@ function getOnSitePersonnel(siteId){
   return result.filter(function(r){if(seen[r.name])return false;seen[r.name]=true;return true;});
 }
 
+// 그룹(MC/PO 등)별로 항목이 뭉쳐 보이도록 정렬: 그룹의 위치는 그룹 내 최소 order로 결정,
+// 그룹 안에서는 각 항목의 order로 정렬
+function _sortedEquipItemsGrouped(){
+  var groupPos={};
+  S.equipItems.forEach(function(i){
+    var g=i.groupName||'';
+    if(!(g in groupPos)||i.order<groupPos[g]) groupPos[g]=i.order;
+  });
+  return S.equipItems.slice().sort(function(a,b){
+    var ga=a.groupName||'', gb=b.groupName||'';
+    if(ga!==gb) return groupPos[ga]-groupPos[gb];
+    return a.order-b.order;
+  });
+}
+
 /* ── 진행율 계산 ── */
 function calcUnitProgress(unit){
   var items=S.equipItems.slice().sort(function(a,b){return a.order-b.order;});
@@ -315,7 +330,7 @@ function renderEquipGrid(){
   var el=document.getElementById('eqGrid');
   if(!el) return;
 
-  var items=S.equipItems.slice().sort(function(a,b){return a.order-b.order;});
+  var items=_sortedEquipItemsGrouped();
   // 양산시작(ei21)은 고정 열로 분리, 나머지가 스크롤 항목
   var msDateItem=items.find(function(i){return i.id==='ei21';});
   var scrollItems=items.filter(function(i){
@@ -951,10 +966,12 @@ function execDelEquipItem(itemId){
 
 /* ── 항목 순서 변경 ── */
 function moveEquipItem(itemId,dir){
-  var sorted=S.equipItems.slice().sort(function(a,b){return a.order-b.order;});
+  var sorted=_sortedEquipItemsGrouped();
   var idx=sorted.findIndex(function(i){return i.id===itemId;});
   var swapIdx=idx+dir;
   if(swapIdx<0||swapIdx>=sorted.length) return;
+  // MC는 MC끼리, PO는 PO끼리 묶여 있도록 — 그룹 경계를 넘어가는 이동은 막음
+  if((sorted[swapIdx].groupName||'')!==(sorted[idx].groupName||'')) return;
   // sorted[]는 S.equipItems와 같은 객체 참조를 담고 있으므로 order를 바로 바꾸면 실제 데이터도 바뀜.
   // 단, mt(수정시각)을 갱신해야 Sheets 동기화 시 이 변경이 "최신"으로 인식되어 되돌아가지 않음.
   var a=sorted[idx], b=sorted[swapIdx];
