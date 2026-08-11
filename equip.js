@@ -182,21 +182,41 @@ function renderEquipSidebar(){
   html+='</div><div class="sbody">';
   html+='<div class="sit-all'+(_equipFilterSite==='all'?' on':'')
     +'" onclick="setEquipFilter(\'all\')"><span class="sname">전체 보기</span></div>';
+
+  // 국가(지역)별로 묶어서 표시 — 간트 차트 사이드바와 동일한 형태
+  var countryMap={};
   sidebarSiteIds.forEach(function(siteId){
     var site=S.sites.find(function(s){return s.id===siteId;});
     if(!site) return;
-    var cnt=S.equipUnits.filter(function(u){return u.siteId===siteId;}).length;
-    var drag=_equipEditMode
-      ?' draggable="true"'
-       +' ondragstart="onEquipSiteDragStart(\''+siteId+'\')"'
-       +' ondragover="event.preventDefault()"'
-       +' ondrop="onEquipSiteDrop(\''+siteId+'\')"'
-       +' style="cursor:grab"'
-      :'';
-    html+='<div class="sit'+(_equipFilterSite===siteId?' on':'')+'"'
-      +drag+' onclick="setEquipFilter(\''+siteId+'\')">'
-      +'<div class="sdot" style="background:'+site.color+'"></div>'
-      +'<span class="sname">'+site.name+'</span><span class="scnt">'+cnt+'</span></div>';
+    var c=site.country||'기타';
+    if(!countryMap[c]) countryMap[c]=[];
+    countryMap[c].push(site);
+  });
+  var orderedCountries=[];
+  (typeof BASE_REGIONS!=='undefined'?BASE_REGIONS:[]).forEach(function(c){if(countryMap[c])orderedCountries.push(c);});
+  Object.keys(countryMap).forEach(function(c){if(orderedCountries.indexOf(c)<0)orderedCountries.push(c);});
+
+  orderedCountries.forEach(function(country){
+    var sites=countryMap[country];
+    var countryKey='c:'+country;
+    var grpCnt=sites.reduce(function(sum,s){return sum+S.equipUnits.filter(function(u){return u.siteId===s.id;}).length;},0);
+    html+='<div class="grplbl'+(_equipFilterSite===countryKey?' on':'')+'" onclick="setEquipFilter(\''+countryKey.replace(/'/g,"\\'")+'\')">'
+      +country+'<span class="scnt grp-cnt">'+grpCnt+'</span></div>';
+    sites.forEach(function(site){
+      var siteId=site.id;
+      var cnt=S.equipUnits.filter(function(u){return u.siteId===siteId;}).length;
+      var drag=_equipEditMode
+        ?' draggable="true"'
+         +' ondragstart="onEquipSiteDragStart(\''+siteId+'\')"'
+         +' ondragover="event.preventDefault()"'
+         +' ondrop="onEquipSiteDrop(\''+siteId+'\')"'
+         +' style="cursor:grab"'
+        :'';
+      html+='<div class="sit'+(_equipFilterSite===siteId?' on':'')+'"'
+        +drag+' onclick="setEquipFilter(\''+siteId+'\')">'
+        +'<div class="sdot" style="background:'+site.color+'"></div>'
+        +'<span class="sname">'+site.name+'</span><span class="scnt">'+cnt+'</span></div>';
+    });
   });
   html+='</div>';
   el.innerHTML=html;
@@ -205,6 +225,17 @@ function renderEquipSidebar(){
 function setEquipFilter(siteId){
   _equipFilterSite=siteId;
   renderEquipTab();
+}
+// _equipFilterSite 값이 특정 사이트(siteId) / 국가('c:국가명') / 'all' 중 무엇이든
+// 해당 사이트가 필터 조건에 맞는지 판정
+function _equipSiteMatchesFilter(siteId){
+  if(_equipFilterSite==='all') return true;
+  if(_equipFilterSite.indexOf('c:')===0){
+    var country=_equipFilterSite.slice(2);
+    var site=S.sites.find(function(s){return s.id===siteId;});
+    return !!site&&(site.country||'기타')===country;
+  }
+  return siteId===_equipFilterSite;
 }
 function toggleEquipCollapse(siteId){
   _equipCollapsed[siteId]=!_equipCollapsed[siteId];
@@ -395,14 +426,14 @@ function renderEquipGrid(){
   var msDateItem=items.find(function(i){return i.id==='ei21';});
   var scrollItems=items.filter(function(i){
     if(i.id==='ei21') return false;
-    if(_equipFilterSite==='all') return true;
     var s=i.siteIds;
-    return !s||s.length===0||s.indexOf(_equipFilterSite)>=0;
+    if(!s||s.length===0) return true;
+    return s.some(function(sid){return _equipSiteMatchesFilter(sid);});
   });
 
   // 필터링
   var allUnits=S.equipUnits.filter(function(u){
-    return _equipFilterSite==='all'||u.siteId===_equipFilterSite;
+    return _equipSiteMatchesFilter(u.siteId);
   });
 
   // 사이트 목록 — equipSiteOrder 기반
