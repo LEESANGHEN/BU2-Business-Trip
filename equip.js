@@ -955,14 +955,13 @@ function moveEquipItem(itemId,dir){
   var idx=sorted.findIndex(function(i){return i.id===itemId;});
   var swapIdx=idx+dir;
   if(swapIdx<0||swapIdx>=sorted.length) return;
-  var tmp=sorted[idx].order;
-  sorted[idx].order=sorted[swapIdx].order;
-  sorted[swapIdx].order=tmp;
-  S.equipItems.forEach(function(item){
-    var s=sorted.find(function(i){return i.id===item.id;});
-    if(s&&item.order!==s.order){item.order=s.order;_touch(item);}
-    else if(s)item.order=s.order;
-  });
+  // sorted[]는 S.equipItems와 같은 객체 참조를 담고 있으므로 order를 바로 바꾸면 실제 데이터도 바뀜.
+  // 단, mt(수정시각)을 갱신해야 Sheets 동기화 시 이 변경이 "최신"으로 인식되어 되돌아가지 않음.
+  var a=sorted[idx], b=sorted[swapIdx];
+  var tmp=a.order;
+  a.order=b.order;
+  b.order=tmp;
+  _touch(a);_touch(b);
   saveData();renderEquipGrid();
 }
 
