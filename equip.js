@@ -543,19 +543,18 @@ function renderEquipGrid(){
           +(e?'<button class="eq-item-edit-btn" onclick="openEditEquipProject(\''+proj.id+'\')">수정</button>'
             +'<button class="eq-item-edit-btn" style="color:#c04040;border-color:#7a1010" onclick="delEquipProject(\''+proj.id+'\')">삭제</button>':'')
           +'</div>'
-          +_equipMgrDisplayHtml(proj)
+          +(collapsed?'':_equipMgrDisplayHtml(proj))
           +'</td>'
           +(scrollColCount>0?'<td colspan="'+scrollColCount+'" style="background:var(--bg-deep);border-top:1px solid var(--bd-light);border-bottom:1px solid var(--bd-light)"></td>':'')
           +'</tr>';
-        if(!collapsed){
-          projUnits.forEach(function(unit,idx){bodyHtml+=_renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems);});
-        }
+        // ▼ 접기는 담당자 정보만 숨기고, 설비 일정/진행율 라인은 항상 표시
+        projUnits.forEach(function(unit,idx){bodyHtml+=_renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems);});
       });
       // 미지정 호기
       var unassigned=siteUnits.filter(function(u){
         return !u.equipProjectId||!siteProjects.find(function(p){return p.id===u.equipProjectId;});
       });
-      if(unassigned.length&&!collapsed){
+      if(unassigned.length){
         bodyHtml+='<tr class="eq-project-row unassigned">'
           +'<td colspan="'+(4+scrollColCount)+'" style="position:sticky;left:0;z-index:22;background:var(--bg-deep);'
           +'border-top:1px solid var(--bd-light);border-bottom:1px solid var(--bd-light);'
@@ -565,9 +564,7 @@ function renderEquipGrid(){
       }
     } else {
       // 기존 방식 (프로젝트 없음 - 납품셋업 기본 배지 표시)
-      if(!collapsed){
-        siteUnits.forEach(function(unit,idx){bodyHtml+=_renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems);});
-      }
+      siteUnits.forEach(function(unit,idx){bodyHtml+=_renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems);});
     }
   });
 
