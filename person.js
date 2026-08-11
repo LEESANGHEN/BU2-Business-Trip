@@ -94,6 +94,7 @@ function aggregatePersonTrips(){
     var siteName=site?site.name:siteId;
     var siteColor=site?site.color:'#555';
     var region=sc.domestic?'국내':getSiteRegion(siteId);
+    var city=sc.domestic?'':((site&&site.region)||'');
     var s=pd(sc.start),e=pd(sc.end);
     var status=TODAY>e?'done':(TODAY>=s?'going':'plan');
     var key=sc.name;
@@ -113,7 +114,7 @@ function aggregatePersonTrips(){
     persons[key].trips.push({
       scheduleId:sc.id,type:sc.type,
       siteId:siteId,siteName:siteName,siteColor:siteColor,
-      region:region,start:sc.start,end:sc.end,planEnd:planEnd,
+      region:region,city:city,start:sc.start,end:sc.end,planEnd:planEnd,
       days:planDays,ext1Days:ext1Days,ext2Days:ext2Days,
       tripTotal:planDays+ext1Days+ext2Days,
       status:status,task:sc.task,note:sc.note,
@@ -551,7 +552,7 @@ function renderPersonTable(rows){
     return '<th class="'+(isOn?'on':'')+'" onclick="setPmSort(\''+key+'\')">'+lbl+arrow+'</th>';
   }
   html+=thS('name','이름');
-  html+='<th>지역</th><th>사이트</th>';
+  html+='<th>국가</th><th>지역</th><th>사이트</th>';
   html+=thS('days','최초 출장일수');
   html+='<th>1차 연장일수</th><th>2차 연장일수</th>';
   html+=thS('grandTotal','전체 출장일수');
@@ -570,14 +571,16 @@ function renderPersonRow(r){
   var t=r.trip;
   var tc=TYPE_COLOR[t.type]||'#555';
   var tl=TYPE_LBL[t.type]||t.type;
-  var regionLbl=t.region||'기타';
+  var countryLbl=t.region||'기타';
+  var cityLbl=t.city||'-';
 
   var html='<tr class="pm-person-row">';
   html+='<td><div style="display:flex;align-items:center;gap:6px">'
     +'<span class="pm-name">'+r.name+'</span>'
     +'<span class="pm-type" style="background:'+tc+'">'+tl+'</span>'
     +'</div></td>';
-  html+='<td>'+regionLbl+'</td>';
+  html+='<td>'+countryLbl+'</td>';
+  html+='<td>'+cityLbl+'</td>';
   html+='<td><span class="pm-site-chip" style="background:'+t.siteColor+'"></span>'+t.siteName+'</td>';
   html+='<td style="text-align:center"><span class="pm-days-big" style="font-size:15px">'+t.days+'</span><span class="pm-days-unit"> 일</span></td>';
   html+='<td style="text-align:center">'+(t.ext1Days>0?'<span style="color:#e0972e;font-weight:600">'+t.ext1Days+'일</span>':'<span style="color:var(--tx-muted)">-</span>')+'</td>';
