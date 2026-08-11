@@ -3,7 +3,13 @@
 ════════════════════════════════════════════ */
 var _equipEditMode=false;
 var _equipFilterSite='all';
-var _equipCollapsed={};
+var _EQUIP_COLLAPSED_LS_KEY='bu2_equip_collapsed';
+var _equipCollapsed=(function(){
+  try{return JSON.parse(localStorage.getItem(_EQUIP_COLLAPSED_LS_KEY)||'{}')||{};}catch(e){return {};}
+})();
+function _saveEquipCollapsed(){
+  try{localStorage.setItem(_EQUIP_COLLAPSED_LS_KEY,JSON.stringify(_equipCollapsed));}catch(e){}
+}
 var PROJ_TYPE_COLOR={'납품셋업':'#1a55bb','개조':'#aa6000','이설':'#1a7a3a','개발':'#7a1a99'};
 var PROJ_TYPES=['납품셋업','개조','이설','개발'];
 
@@ -202,16 +208,19 @@ function setEquipFilter(siteId){
 }
 function toggleEquipCollapse(siteId){
   _equipCollapsed[siteId]=!_equipCollapsed[siteId];
+  _saveEquipCollapsed();
   renderEquipTab();
 }
 function collapseAllEquip(){
   ensureEquipSiteOrder();
   S.equipSiteOrder.forEach(function(id){_equipCollapsed[id]=true;});
   S.equipUnits.forEach(function(u){_equipCollapsed[u.siteId]=true;});
+  _saveEquipCollapsed();
   renderEquipTab();
 }
 function expandAllEquip(){
   _equipCollapsed={};
+  _saveEquipCollapsed();
   renderEquipTab();
 }
 
