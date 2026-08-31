@@ -140,6 +140,10 @@ function _tripTotalDays(sched){
 function _occSiblings(sched){
   return S.schedules.filter(function(s){return s.name===sched.name&&s.projectId===sched.projectId;});
 }
+// 업무 유형 라벨: 쉼표로 구분된 항목을 한 줄씩 나눠 보여준다(좁은 열 안에서 단어 중간이 잘려 보이는 것 방지)
+function _taskLinesHtml(task){
+  return (task||'').split(',').map(function(t){return _esc(t.trim());}).filter(Boolean).join('<br>');
+}
 // 연장이 있으면 "1차 24일+연장 31일/총 55일"처럼 구간별 일수를 풀어서 보여준다(연장이 2번이면 "1차연장/2차연장"으로 구분)
 function _daysLabel(sched){
   var exts=sched.extensions||[];
@@ -374,7 +378,7 @@ function renderGantt(){
         var tc=TYPE_COLOR[sched.type]||'#555';var tl=TYPE_LBL[sched.type]||sched.type;
         var occSiblings2=_occSiblings(sched);
         var occTag2=occSiblings2.length>1?('_'+(sched.occSeq||1)+'회차'):'';
-        gf2.innerHTML='<div class="gtask">'+_esc(task)+'</div>'
+        gf2.innerHTML='<div class="gtask">'+_taskLinesHtml(task)+'</div>'
           +'<div class="gperson">'+_esc(sched.name)
           +'<span class="type-badge" style="background:'+tc+'">'+_esc(tl+occTag2)+'</span>'
           +(isDone?'<span class="done-badge">완료</span>':'')
