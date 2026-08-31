@@ -127,11 +127,15 @@
     </div>
     <div class="tab-bar">
       <div class="tab-nav">
+        <button class="tab-btn" id="tab_projects" onclick="switchTab('projects')">🗂️ 프로젝트 관리</button>
         <button class="tab-btn on" id="tab_gantt" onclick="switchTab('gantt')">📅 간트 차트</button>
         <button class="tab-btn" id="tab_person" onclick="switchTab('person')">👤 인원 출장일</button>
         <button class="tab-btn" id="tab_equip" onclick="switchTab('equip')">🏭 설비 진행율</button>
-        <button class="tab-btn" id="tab_vision" onclick="switchTab('vision')">📋 이력관리</button>
+        <button class="tab-btn" id="tab_vision" onclick="switchTab('vision')">📊 월별 집계</button>
       </div>
+    </div>
+    <div class="content" id="view_projects" style="display:none">
+      <div class="pm-wrap" id="mpWrap"></div>
     </div>
     <div class="content" id="view_gantt">
       <div class="sidebar" id="ganttSidebar">
@@ -183,9 +187,10 @@
   <div id="mc"></div>
 
   <script src="data.js?v=20260723b"></script>
-  <script src="app.js?v=20260810b"></script>
+  <script src="app.js?v=20260831a"></script>
   <script src="gantt.js?v=20260810b"></script>
   <script src="modals.js?v=20260810g"></script>
+  <script src="projects.js?v=20260831a"></script>
   <script src="person.js?v=20260810g"></script>
   <script src="equip.js?v=20260810w"></script>
   <script src="vision.js?v=20260807a"></script>

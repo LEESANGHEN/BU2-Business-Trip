@@ -3,14 +3,14 @@ var TYPE_LBL={hq:'본사',outsource:'외주',tech:'기술',vision:'비전',host:
 var TYPE_COLOR={hq:'#1a5a9a',outsource:'#8a5a00',tech:'#2a7a5a',vision:'#6a3a9a',host:'#7a2a2a',localOutsource:'#1a8ca0'};
 
 /* ── 상태 ── */
-var S={filterSite:'all',filterSites:[],showHidden:false,groups:[],sites:[],projects:[],schedules:[],events:[],workTasks:[],equipItems:[],equipUnits:[],equipSiteOrder:[],equipProjects:[],visionTemplate:{categories:[]},visionEquips:[]};
+var S={filterSite:'all',filterSites:[],showHidden:false,groups:[],sites:[],projects:[],schedules:[],events:[],workTasks:[],equipItems:[],equipUnits:[],equipSiteOrder:[],equipProjects:[],visionTemplate:{categories:[]},visionEquips:[],masterProjects:[]};
 /* ══════════════════════════════════════════
    통합 Tombstone(삭제 기록) 모듈 — 모든 엔티티 타입의 삭제 ID 추적
    - merge/pull 시 삭제 레코드 재복원(부활) 방지
    - POST로 Sheets에 전파(deletedIds) → 다른 PC에서도 삭제 반영
    - localStorage 영속화, 30일 후 자동 정리
    - type = 엔티티 배열명: schedules, events, workTasks, sites, groups,
-     projects, equipItems, equipUnits, equipProjects, visionEquips
+     projects, equipItems, equipUnits, equipProjects, visionEquips, masterProjects
 ══════════════════════════════════════════ */
 var _TOMB_LS_KEY='bu2_tomb_v1';
 var _tombMap=(function(){
@@ -160,7 +160,7 @@ function _mergeArr(type,localArr,sheetArr,opts){
 }
 /* 모든 엔티티 배열에서 tombstone 레코드 일괄 제거 — deletedIds 흡수 직후 호출 */
 function _purgeTombstoned(){
-  ['schedules','events','workTasks','sites','groups','projects','equipItems','equipUnits','equipProjects','visionEquips'].forEach(function(type){
+  ['schedules','events','workTasks','sites','groups','projects','equipItems','equipUnits','equipProjects','visionEquips','masterProjects'].forEach(function(type){
     if(!S[type]||!S[type].length||!_tombMap[type])return;
     S[type]=S[type].filter(function(r){return !r||!r.id||!_isDeleted(type,r.id);});
   });
@@ -452,6 +452,7 @@ function loadData(){
         S.equipProjects=d.equipProjects||[];
         S.visionTemplate=(d.visionTemplate&&d.visionTemplate.categories&&d.visionTemplate.categories.length)?d.visionTemplate:deepCopy(DEF.visionTemplate);
         S.visionEquips=d.visionEquips||[];
+        S.masterProjects=d.masterProjects||[];
         _migrateVisionTemplate();
         _migrateVisionEquips();
         try{var cv=JSON.parse(localStorage.getItem('viColVis')||'{}');S.visionColVis=cv;}catch(e){S.visionColVis={};}
@@ -492,7 +493,7 @@ function _saveLocalBackup(){
       equipProjects:S.equipProjects, equipSiteOrder:S.equipSiteOrder,
       visionTemplate:S.visionTemplate, visionEquips:S.visionEquips,
       schedules:S.schedules, events:S.events, workTasks:S.workTasks,
-      sites:S.sites, groups:S.groups, projects:S.projects};
+      sites:S.sites, groups:S.groups, projects:S.projects, masterProjects:S.masterProjects};
     localStorage.setItem(BACKUP_KEY, JSON.stringify(snap));
   }catch(e){}
 }
@@ -510,7 +511,7 @@ function downloadDataBackup(){
       schedules:S.schedules,events:S.events,workTasks:S.workTasks,
       equipItems:S.equipItems,equipUnits:S.equipUnits,
       equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,
-      visionTemplate:S.visionTemplate,visionEquips:S.visionEquips};
+      visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects};
     var json=JSON.stringify(data,null,2);
     var blob=new Blob([json],{type:'application/json'});
     var url=URL.createObjectURL(blob);
@@ -547,10 +548,11 @@ function restoreFromBackupFile(){
         if(d.equipProjects)S.equipProjects=d.equipProjects;
         if(d.visionTemplate&&d.visionTemplate.categories&&d.visionTemplate.categories.length)S.visionTemplate=d.visionTemplate;
         if(d.visionEquips)S.visionEquips=d.visionEquips;
+        if(d.masterProjects)S.masterProjects=d.masterProjects;
         // 복원 데이터가 병합에서 항상 이기도록 처리:
         // ① 복원된 레코드의 tombstone 해제 (삭제됐던 레코드도 복원 의도대로 살림)
         // ② 전 레코드 mt 갱신 (Sheets의 기존 버전이 복원본을 덮어쓰지 못하게)
-        ['schedules','events','workTasks','sites','groups','projects','equipItems','equipUnits','equipProjects','visionEquips'].forEach(function(type){
+        ['schedules','events','workTasks','sites','groups','projects','equipItems','equipUnits','equipProjects','visionEquips','masterProjects'].forEach(function(type){
           (S[type]||[]).forEach(function(r){
             if(!r||!r.id)return;
             if(_isDeleted(type,r.id))_unmarkDeleted(type,r.id);
@@ -574,7 +576,7 @@ var _saveRetryTimer=null;    // GET 실패로 이번 저장을 건너뛴 뒤 재
 
 function saveData(){
   // 1. 즉시 localStorage 캐시 업데이트 (새로고침·오프라인 시 최신 상태 보장)
-  var snapshot={groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips};
+  var snapshot={groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects};
   saveCache(snapshot);
   try{localStorage.setItem(CACHE_DIRTY_KEY,'1');}catch(e){}
 
@@ -631,6 +633,8 @@ function _flushToSheets(){
       S.equipUnits=_mergeArr('equipUnits',S.equipUnits,sheetsData.equipUnits,{protectField:'cells'});
     if(sheetsData.equipProjects&&sheetsData.equipProjects.length)
       S.equipProjects=_mergeArr('equipProjects',S.equipProjects,sheetsData.equipProjects);
+    if(sheetsData.masterProjects&&sheetsData.masterProjects.length)
+      S.masterProjects=_mergeArr('masterProjects',S.masterProjects,sheetsData.masterProjects);
     if(sheetsData.visionEquips&&sheetsData.visionEquips.length)
       S.visionEquips=_mergeArr('visionEquips',S.visionEquips,sheetsData.visionEquips,{protectField:'data',postMerge:_viPostMerge});
     // ── visionTemplate: 단일 JSON 블롭 — Sheets가 더 최신(mt)일 때만 교체
@@ -640,7 +644,7 @@ function _flushToSheets(){
         _migrateVisionTemplate();
       }
     }
-    saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips});
+    saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects});
   }
 
   // 5. 저장 완료 처리 (성공/실패 공통)
@@ -684,7 +688,7 @@ function _flushToSheets(){
         body:JSON.stringify({action:'save',groups:S.groups,sites:S.sites,
           projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,
           equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,
-          visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,
+          visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects,
           deletedIds:_tombList(),
           clearDeletedIds:_tombClearQueue,
           deletedScheduleIds:_deletedScIds(),
@@ -770,6 +774,7 @@ function _entityLabel(type,id){
     case 'equipUnits': return '설비 호기: '+(r.lineName?r.lineName+' - ':'')+(r.unitName||id);
     case 'equipProjects': return '설비 프로젝트: '+(r.name||id);
     case 'visionEquips': return 'Vision 설비: '+((r.data&&r.data['vi_unit'])||id);
+    case 'masterProjects': return '프로젝트 관리: '+(r.customer||'')+' '+(r.projectName||id);
     default: return type+' / '+id;
   }
 }
@@ -934,9 +939,10 @@ function forceLoadFromSheets(){
       if(data.equipUnits&&data.equipUnits.length)S.equipUnits=data.equipUnits.map(function(u){if(u.cells&&typeof u.cells!=='object')u.cells={};return u;});
       if(data.equipSiteOrder&&data.equipSiteOrder.length)S.equipSiteOrder=data.equipSiteOrder;
       if(data.equipProjects)S.equipProjects=data.equipProjects;
+      if(data.masterProjects)S.masterProjects=data.masterProjects;
       if(data.visionTemplate&&data.visionTemplate.categories&&data.visionTemplate.categories.length){S.visionTemplate=data.visionTemplate;_migrateVisionTemplate();}
       if(data.visionEquips&&data.visionEquips.length)S.visionEquips=data.visionEquips.filter(function(ve){return !_isDeletedVi(ve.id);});
-      saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips});
+      saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects});
       renderAll();
       alert('강제 초기화 완료. 일정 '+S.schedules.length+'개 로드.');
     })
@@ -986,7 +992,7 @@ function loadFromSheets(callback){
       body:JSON.stringify({action:'save',groups:S.groups,sites:S.sites,
         projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,
         equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,
-        visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,
+        visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects,
         deletedIds:_tombList(),
         clearDeletedIds:_tombClearQueue,
         deletedScheduleIds:_deletedScIds(),
@@ -1016,13 +1022,14 @@ function loadFromSheets(callback){
               if(pulled.equipItems&&pulled.equipItems.length)S.equipItems=_mergeArr('equipItems',S.equipItems,pulled.equipItems);
               if(pulled.equipUnits&&pulled.equipUnits.length)S.equipUnits=_mergeArr('equipUnits',S.equipUnits,pulled.equipUnits,{protectField:'cells'});
               if(pulled.equipProjects&&pulled.equipProjects.length)S.equipProjects=_mergeArr('equipProjects',S.equipProjects,pulled.equipProjects);
+              if(pulled.masterProjects&&pulled.masterProjects.length)S.masterProjects=_mergeArr('masterProjects',S.masterProjects,pulled.masterProjects);
               if(pulled.visionEquips&&pulled.visionEquips.length)S.visionEquips=_mergeArr('visionEquips',S.visionEquips,pulled.visionEquips,{protectField:'data',postMerge:_viPostMerge});
               if(pulled.visionTemplate&&pulled.visionTemplate.categories&&pulled.visionTemplate.categories.length){
                 if(Number(pulled.visionTemplate.mt||0)>Number((S.visionTemplate||{}).mt||0)){
                   S.visionTemplate=pulled.visionTemplate;_migrateVisionTemplate();
                 }
               }
-              saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips});
+              saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects});
             }
             if(led){led.className='conn-led ok';txt.textContent='동기화 완료';}
             if(callback)callback();
@@ -1096,9 +1103,10 @@ function loadFromSheets(callback){
         console.warn('[보호] Sheets equipUnits 비어있음 — 로컬 데이터 유지');
       }
 
-      // ── equipSiteOrder / equipProjects ──
+      // ── equipSiteOrder / equipProjects / masterProjects ──
       if(data.equipSiteOrder&&data.equipSiteOrder.length)S.equipSiteOrder=data.equipSiteOrder;
       if(data.equipProjects&&data.equipProjects.length)S.equipProjects=_mergeArr('equipProjects',S.equipProjects,data.equipProjects);
+      if(data.masterProjects&&data.masterProjects.length)S.masterProjects=_mergeArr('masterProjects',S.masterProjects,data.masterProjects);
 
       // ── visionTemplate: Sheets가 더 최신(mt)일 때만 교체 → 마이그레이션도 함께 적용 ──
       if(data.visionTemplate&&data.visionTemplate.categories&&data.visionTemplate.categories.length){
@@ -1116,7 +1124,7 @@ function loadFromSheets(callback){
         });
       }
 
-      var _cacheSnap={groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips};
+      var _cacheSnap={groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects};
       saveCache(_cacheSnap);
       // saveData()의 30초 merge 캐시도 갱신 (로드 직후 저장 시 추가 GET 방지)
       S._schCache={data:_cacheSnap,ts:Date.now()};
@@ -1236,34 +1244,25 @@ document.addEventListener('DOMContentLoaded', function(){
    탭 전환
 ════════════════════════════════════════════ */
 var _activeTab='gantt';
-var _viSyncTimer=null; // 이력관리 자동 동기화 타이머
 
 function switchTab(tab){
   _activeTab=tab;
+  document.getElementById('view_projects').style.display=tab==='projects'?'flex':'none';
   document.getElementById('view_gantt').style.display=tab==='gantt'?'flex':'none';
   document.getElementById('view_person').style.display=tab==='person'?'flex':'none';
   document.getElementById('view_equip').style.display=tab==='equip'?'flex':'none';
   document.getElementById('view_vision').style.display=tab==='vision'?'flex':'none';
+  document.getElementById('tab_projects').className='tab-btn'+(tab==='projects'?' on':'');
   document.getElementById('tab_gantt').className='tab-btn'+(tab==='gantt'?' on':'');
   document.getElementById('tab_person').className='tab-btn'+(tab==='person'?' on':'');
   document.getElementById('tab_equip').className='tab-btn'+(tab==='equip'?' on':'');
   document.getElementById('tab_vision').className='tab-btn'+(tab==='vision'?' on':'');
   document.getElementById('ganttTools').style.display=tab==='gantt'?'flex':'none';
   document.getElementById('equipTools').style.display=tab==='equip'?'flex':'none';
-  document.getElementById('visionTools').style.display=tab==='vision'?'flex':'none';
+  if(tab==='projects') renderProjectsTab();
   if(tab==='person') renderPersonTab();
   if(tab==='equip') renderEquipTab();
-  if(tab==='vision'){
-    renderVisionTab();
-    // 탭 진입 시 Sheets에서 최신 이력관리 데이터 자동 Pull
-    refreshVisionFromSheets(true);
-    // 2분마다 자동 갱신
-    if(_viSyncTimer) clearInterval(_viSyncTimer);
-    _viSyncTimer=setInterval(function(){refreshVisionFromSheets(true);},2*60*1000);
-  } else {
-    // Vision 탭 벗어나면 타이머 중지
-    if(_viSyncTimer){clearInterval(_viSyncTimer);_viSyncTimer=null;}
-  }
+  if(tab==='vision') renderMonthlyAggTab();
 }
 
 /* 이력관리 전용 Sheets Pull (visionEquips/visionTemplate 중심 갱신)
@@ -1335,7 +1334,7 @@ function refreshVisionFromSheets(silent){
         if(localOnly.length>0){
           saveData(); // read-before-write merge 후 Sheets 저장
         } else {
-          saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips});
+          saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects});
         }
         // Vision 탭 렌더링: 모달이 열려 있지 않을 때만 갱신 (입력 중 초기화 방지)
         var _mc=document.getElementById('mc');
