@@ -1,8 +1,9 @@
 ﻿/* ══════════════════════════════════════════
    프로젝트 관리 (마스터 프로젝트 목록) — projects.js
    BU2 "프로젝트 입력" 엑셀을 대체하는 탭.
-   1차 출장 일정이 채워지면 간트 차트에 자동 등록된다(최초 1회, 이후 간트 차트에서 자유롭게
-   추가/수정 가능 — 마스터 행을 다시 고쳐도 이미 연동된 일정을 되돌려 덮어쓰지 않는다).
+   간트 차트(S.schedules)와는 완전히 독립된 별도 데이터(S.masterProjects)다.
+   여기서 프로젝트를 등록/수정해도 간트 차트에는 자동으로 반영되지 않는다 —
+   간트 차트는 이 탭과 무관하게 별도로 직접 관리한다.
 ══════════════════════════════════════════ */
 
 var _mpSearch='';
@@ -37,7 +38,6 @@ function renderProjectsTab(){
   if(!S.masterProjects.length){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
   }
-  html+='<button class="btn red sm" onclick="resetGanttFromMasterProjects()" title="간트 차트의 모든 출장 일정을 삭제하고 프로젝트 관리 데이터로 다시 만듭니다">⚠ 간트 차트 초기화·재생성</button>';
   html+='<button class="btn pri sm" onclick="openAddMasterProject()">+ 프로젝트 등록</button>';
   html+='</div>';
   html+='</div>';
@@ -106,8 +106,9 @@ function renderProjectsTable(rows){
   var html='<table class="pm-person-table"><thead><tr>';
   html+=thS('category','구분')+thS('region','지역')+thS('customer','고객사')+thS('projectName','프로젝트');
   html+='<th>생산/고객사 호기</th>';
-  html+=thS('setupStart','셋업 기간');
-  html+='<th>출장(간트)</th>';
+  html+=thS('setupStart','생산 셋업 기간');
+  html+=thS('shipDate','설비 출하 일정');
+  html+='<th>고객사 출장 기간</th>';
   html+=thS('status','상태');
   html+='<th>관리</th>';
   html+='</tr></thead><tbody>';
@@ -119,13 +120,12 @@ function renderProjectsTable(rows){
 function _mpTripSummary(mp){
   if(!mp.trip1Start||!mp.trip1End) return '<span style="color:#707080">미등록</span>';
   var lastEnd=mp.trip3End||mp.trip2End||mp.trip1End;
-  var lbl=fmtFull(mp.trip1Start)+' ~ '+fmtFull(lastEnd);
-  var badge=mp.scheduleId?' <span class="eq-type-badge" style="background:#1a7a3a">간트 연동됨</span>':'';
-  return '<span'+(mp.scheduleId?' onclick="event.stopPropagation();gotoMasterProjectSchedule(\''+mp.id+'\')" style="cursor:pointer;text-decoration:underline"':'')+'>'+lbl+'</span>'+badge;
+  return fmtFull(mp.trip1Start)+' ~ '+fmtFull(lastEnd);
 }
 
 function renderProjectRow(mp){
   var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)):'-';
+  var shipLbl=mp.shipDate?fmtFull(mp.shipDate):'-';
   var unitLbl=[mp.prodUnit,mp.customerUnit].filter(Boolean).join(' / ');
   return '<tr class="pm-person-row" style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')">'
     +'<td>'+_esc(mp.category||'')+'</td>'
@@ -134,6 +134,7 @@ function renderProjectRow(mp){
     +'<td>'+_esc(mp.projectName||'')+'</td>'
     +'<td>'+_esc(unitLbl)+'</td>'
     +'<td>'+setupLbl+'</td>'
+    +'<td>'+shipLbl+'</td>'
     +'<td>'+_mpTripSummary(mp)+'</td>'
     +'<td>'+_esc(mp.status||'')+'</td>'
     +'<td onclick="event.stopPropagation()">'
@@ -141,16 +142,6 @@ function renderProjectRow(mp){
     +'<button class="eq-item-edit-btn" onclick="delMasterProject(\''+mp.id+'\')" style="color:#c04040">삭제</button>'
     +'</td>'
     +'</tr>';
-}
-
-function gotoMasterProjectSchedule(mpId){
-  var mp=S.masterProjects.find(function(m){return m.id===mpId;});
-  if(!mp||!mp.scheduleId)return;
-  var sc=S.schedules.find(function(s){return s.id===mp.scheduleId;});
-  if(!sc){alert('연동된 간트 일정을 찾을 수 없습니다(간트 차트에서 삭제되었을 수 있음).');return;}
-  var proj=S.projects.find(function(p){return p.id===sc.projectId;});
-  switchTab('gantt');
-  if(proj){S.filterSite=proj.siteId;S.filterSites=[];renderAll();}
 }
 
 /* ── 지역 입력: 기존 국가 목록 + 직접 입력 ── */
@@ -185,10 +176,9 @@ function openEditMasterProject(id){
 function _mpFormHtml(mp){
   var ie=!!mp;
   function v(f){return ie?_esc(mp[f]||''):'';}
-  var locked=ie&&mp.scheduleId;
-  function dateFld(id,label,val,disabled){
+  function dateFld(id,label,val){
     return '<div class="fg" style="flex:1"><label class="fl">'+label+'</label>'
-      +'<input type="text" id="'+id+'" value="'+_esc(val||'')+'" maxlength="10" placeholder="YYYY-MM-DD" oninput="fmtDateInput(this)" autocomplete="off"'+(disabled?' disabled':'')+'></div>';
+      +'<input type="text" id="'+id+'" value="'+_esc(val||'')+'" maxlength="10" placeholder="YYYY-MM-DD" oninput="fmtDateInput(this)" autocomplete="off"></div>';
   }
   var html='<div class="mtit">'+(ie?'프로젝트 수정':'프로젝트 등록')+'</div>';
   html+='<div style="display:flex;gap:8px">'
@@ -215,14 +205,11 @@ function _mpFormHtml(mp){
   [1,2,3].forEach(function(n){
     html+='<div style="font-size:11px;color:var(--tx-muted);margin:10px 0 4px;font-weight:600">'+n+'차 출장</div>';
     html+='<div style="display:flex;gap:8px">'
-      +dateFld('mp_trip'+n+'Start','시작',ie?mp['trip'+n+'Start']:'',locked)
-      +dateFld('mp_trip'+n+'End','종료',ie?mp['trip'+n+'End']:'',locked)
-      +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_trip'+n+'Manager" value="'+v('trip'+n+'Manager')+'" autocomplete="off"'+(locked?' disabled':'')+'></div>'
+      +dateFld('mp_trip'+n+'Start','시작',ie?mp['trip'+n+'Start']:'')
+      +dateFld('mp_trip'+n+'End','종료',ie?mp['trip'+n+'End']:'')
+      +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_trip'+n+'Manager" value="'+v('trip'+n+'Manager')+'" autocomplete="off"></div>'
       +'</div>';
   });
-  if(locked){
-    html+='<div style="font-size:11px;color:#1a7a3a;margin-bottom:8px">✓ 간트 차트에 일정이 이미 연동되어 있습니다. 출장 날짜/담당자 수정은 간트 차트에서 해주세요.</div>';
-  }
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="완료"><option value="발주 대기"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
@@ -233,102 +220,46 @@ function _mpFormHtml(mp){
   return html;
 }
 
-function _mpReadForm(locked){
+function _mpReadForm(){
   function v(id){var el=document.getElementById(id);return el?el.value.trim():'';}
-  var f={
+  return {
     category:v('mp_category'), region:_mpReadRegionField(), customer:v('mp_customer'), projectName:v('mp_projectName'),
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
     setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'),
     shipDate:v('mp_shipDate'),
+    trip1Start:v('mp_trip1Start'), trip1End:v('mp_trip1End'), trip1Manager:v('mp_trip1Manager'),
+    trip2Start:v('mp_trip2Start'), trip2End:v('mp_trip2End'), trip2Manager:v('mp_trip2Manager'),
+    trip3Start:v('mp_trip3Start'), trip3End:v('mp_trip3End'), trip3Manager:v('mp_trip3Manager'),
     status:v('mp_status')
   };
-  if(!locked){
-    f.trip1Start=v('mp_trip1Start');f.trip1End=v('mp_trip1End');f.trip1Manager=v('mp_trip1Manager');
-    f.trip2Start=v('mp_trip2Start');f.trip2End=v('mp_trip2End');f.trip2Manager=v('mp_trip2Manager');
-    f.trip3Start=v('mp_trip3Start');f.trip3End=v('mp_trip3End');f.trip3Manager=v('mp_trip3Manager');
-  }
-  return f;
 }
 function saveAddMasterProject(){
-  var f=_mpReadForm(false);
+  var f=_mpReadForm();
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   var mp=_touch(f);
   mp.id=_mpId();
-  mp.scheduleId=null;
   S.masterProjects.push(mp);
-  _syncMasterProjectToGantt(mp);
   saveData();cm();renderProjectsTab();
 }
 function saveEditMasterProject(id){
   var mp=S.masterProjects.find(function(m){return m.id===id;});
   if(!mp)return;
-  var f=_mpReadForm(!!mp.scheduleId);
+  var f=_mpReadForm();
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   Object.keys(f).forEach(function(k){mp[k]=f[k];});
   _touch(mp);
-  _syncMasterProjectToGantt(mp);
   saveData();cm();renderProjectsTab();
 }
 function delMasterProject(id){
-  if(!confirm('이 프로젝트 항목을 삭제하시겠습니까?\n(간트 차트에 이미 연동된 일정은 함께 삭제되지 않습니다)'))return;
+  if(!confirm('이 프로젝트 항목을 삭제하시겠습니까?'))return;
   S.masterProjects=S.masterProjects.filter(function(m){return m.id!==id;});
   _markDeleted('masterProjects',id);
   saveData();cm();renderProjectsTab();
 }
 
-/* ── 간트 차트 자동 연동 (최초 1회만) ── */
-var _MP_SITE_PALETTE=['#5a7ac9','#c98a5a','#5ac98f','#c95a8a','#8a5ac9','#c9c05a','#5ac9c0','#c95a5a'];
-function _mpFindOrCreateGroup(){
-  var g=S.groups.find(function(g){return g.name==='BU2 프로젝트';});
-  if(g)return g;
-  g=_touch({id:genId('g',S.groups),name:'BU2 프로젝트'});
-  S.groups.push(g);
-  return g;
-}
-function _mpFindOrCreateSite(mp){
-  var name=mp.customer;
-  var site=S.sites.find(function(s){return s.name===name;});
-  if(site)return site;
-  var baseId=name.replace(/[^a-zA-Z0-9가-힣]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')||'site';
-  var newId=baseId,n=2;while(S.sites.find(function(s){return s.id===newId;}))newId=baseId+'_'+n++;
-  var grp=_mpFindOrCreateGroup();
-  site=_touch({id:newId,name:name,color:_MP_SITE_PALETTE[S.sites.length%_MP_SITE_PALETTE.length],groupId:grp.id,country:mp.region||'기타'});
-  S.sites.push(site);
-  return site;
-}
-function _mpFindOrCreateProject(siteId,name){
-  var p=S.projects.find(function(p){return p.siteId===siteId&&p.name===name;});
-  if(p)return p;
-  p=_touch({id:genId('pj',S.projects),siteId:siteId,name:name});
-  S.projects.push(p);
-  return p;
-}
-function _syncMasterProjectToGantt(mp){
-  if(mp.scheduleId)return; // 이미 연동됨 — 재동기화 안 함(간트 차트에서 자유 편집 가능하도록)
-  if(!mp.trip1Start||!mp.trip1End)return;
-  var site=_mpFindOrCreateSite(mp);
-  var proj=_mpFindOrCreateProject(site.id,mp.projectName||mp.customer||'프로젝트');
-  var managerText=mp.trip1Manager||mp.setupManager||'미정';
-  var type=/외주/.test(managerText)?'outsource':'hq';
-  var task=mp.prodUnit||mp.customerUnit||mp.projectName||'';
-  var sc=_touch({id:genId('s',S.schedules),projectId:proj.id,task:task,name:managerText,type:type,
-    start:mp.trip1Start,end:mp.trip1End,note:'',hidden:false,domestic:(mp.region==='국내')});
-  S.schedules.push(sc);
-  if(mp.trip2Start&&mp.trip2End){
-    sc.origEnd=sc.end;
-    sc.extensions=[{seq:1,end:mp.trip2End,note:''}];
-    sc.end=mp.trip2End;
-    if(mp.trip3Start&&mp.trip3End){
-      sc.extensions.push({seq:2,end:mp.trip3End,note:''});
-      sc.end=mp.trip3End;
-    }
-    _touch(sc);
-  }
-  mp.scheduleId=sc.id;
-  _touch(mp);
-}
-
-/* ── 엑셀 데이터 1회성 가져오기 ── */
+/* ── 엑셀 데이터 1회성 가져오기 ──
+   간트 차트와는 별개다. 여기서 들여온 데이터는 프로젝트 관리 탭 안에서만 관리되며,
+   간트 차트(S.schedules)에는 어떤 경우에도 자동 반영되지 않는다. */
 function _mpCloneSeed(seed){
   return {
     category:seed.category,region:seed.region,customer:seed.customer,projectName:seed.projectName,
@@ -338,35 +269,19 @@ function _mpCloneSeed(seed){
     trip1Start:seed.trip1Start,trip1End:seed.trip1End,trip1Manager:seed.trip1Manager,
     trip2Start:seed.trip2Start,trip2End:seed.trip2End,trip2Manager:seed.trip2Manager,
     trip3Start:seed.trip3Start,trip3End:seed.trip3End,trip3Manager:seed.trip3Manager,
-    status:seed.status, id:_mpId(), scheduleId:null
+    status:seed.status, id:_mpId()
   };
 }
 function importExcelSeedMasterProjects(){
   if(S.masterProjects.length){alert('이미 프로젝트 데이터가 있어 가져오기를 실행할 수 없습니다.');return;}
-  if(!confirm('엑셀 "프로젝트 입력" 시트의 데이터 '+_EXCEL_SEED_MASTER_PROJECTS.length+'건을 가져옵니다.\n1차 출장 일정이 있는 항목은 간트 차트에도 자동 등록됩니다.\n계속할까요?'))return;
+  if(!confirm('엑셀 "프로젝트 입력" 시트의 데이터 '+_EXCEL_SEED_MASTER_PROJECTS.length+'건을 가져옵니다.\n간트 차트에는 반영되지 않습니다.\n계속할까요?'))return;
   _EXCEL_SEED_MASTER_PROJECTS.forEach(function(seed){
     var mp=_touch(_mpCloneSeed(seed));
     S.masterProjects.push(mp);
-    _syncMasterProjectToGantt(mp);
   });
   saveData();
   renderProjectsTab();
   alert('가져오기가 완료되었습니다.');
-}
-
-/* ── 간트 차트 전체 초기화 후 프로젝트 관리 데이터로 재생성 ──
-   사이트(S.sites)/그룹(S.projects)은 건드리지 않고 출장 일정(S.schedules)만 전부 삭제한다. */
-function resetGanttFromMasterProjects(){
-  if(!confirm('간트 차트의 모든 출장 일정을 삭제하고, 프로젝트 관리 데이터로 다시 생성합니다.\n간트에서 직접 등록/수정했던 일정도 모두 사라지며 되돌릴 수 없습니다.\n계속할까요?'))return;
-  if(!confirm('정말 진행할까요? 이 작업은 취소할 수 없습니다.'))return;
-  S.schedules.forEach(function(sc){_markDeletedSc(sc.id);});
-  S.schedules=[];
-  S.masterProjects.forEach(function(mp){mp.scheduleId=null;});
-  S.masterProjects.forEach(function(mp){_syncMasterProjectToGantt(mp);_touch(mp);});
-  saveData();
-  renderProjectsTab();
-  if(typeof renderAll==='function')renderAll();
-  alert('간트 차트를 프로젝트 관리 데이터로 재생성했습니다.');
 }
 
 /* ══════════════════════════════════════════

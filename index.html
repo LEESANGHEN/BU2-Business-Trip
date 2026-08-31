@@ -23,7 +23,7 @@
         <button class="sidebar-toggle" id="themeToggle" onclick="toggleTheme()" title="다크/라이트 모드 전환">🌙</button>
       </div>
       <div class="tright" id="topbarRight">
-        <div id="ganttTools" style="display:flex;gap:5px;align-items:center;flex-wrap:nowrap">
+        <div id="ganttTools" style="display:none;gap:5px;align-items:center;flex-wrap:nowrap">
           <button class="mobile-only sidebar-toggle" onclick="openSidebar('gantt')" title="사이트 필터">☰</button>
           <div class="leg">
             <div class="legg">
@@ -127,17 +127,17 @@
     </div>
     <div class="tab-bar">
       <div class="tab-nav">
-        <button class="tab-btn" id="tab_projects" onclick="switchTab('projects')">🗂️ 프로젝트 관리</button>
-        <button class="tab-btn on" id="tab_gantt" onclick="switchTab('gantt')">📅 간트 차트</button>
+        <button class="tab-btn on" id="tab_projects" onclick="switchTab('projects')">🗂️ 프로젝트 관리</button>
+        <button class="tab-btn" id="tab_gantt" onclick="switchTab('gantt')">📅 간트 차트</button>
         <button class="tab-btn" id="tab_person" onclick="switchTab('person')">👤 인원 출장일</button>
         <button class="tab-btn" id="tab_equip" onclick="switchTab('equip')">🏭 설비 진행율</button>
         <button class="tab-btn" id="tab_vision" onclick="switchTab('vision')">📊 월별 집계</button>
       </div>
     </div>
-    <div class="content" id="view_projects" style="display:none">
+    <div class="content" id="view_projects">
       <div class="pm-wrap" id="mpWrap"></div>
     </div>
-    <div class="content" id="view_gantt">
+    <div class="content" id="view_gantt" style="display:none">
       <div class="sidebar" id="ganttSidebar">
         <div class="sbhead" style="display:flex;align-items:center;justify-content:space-between">
           <span class="slbl">사이트 필터</span>
@@ -187,10 +187,10 @@
   <div id="mc"></div>
 
   <script src="data.js?v=20260723b"></script>
-  <script src="app.js?v=20260831a"></script>
-  <script src="gantt.js?v=20260810b"></script>
+  <script src="app.js?v=20260831b"></script>
+  <script src="gantt.js?v=20260831a"></script>
   <script src="modals.js?v=20260831a"></script>
-  <script src="projects.js?v=20260831b"></script>
+  <script src="projects.js?v=20260831c"></script>
   <script src="person.js?v=20260810g"></script>
   <script src="equip.js?v=20260810w"></script>
   <script src="vision.js?v=20260807a"></script>

@@ -1243,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', function(){
 /* ════════════════════════════════════════════
    탭 전환
 ════════════════════════════════════════════ */
-var _activeTab='gantt';
+var _activeTab='projects';
 
 function switchTab(tab){
   _activeTab=tab;
