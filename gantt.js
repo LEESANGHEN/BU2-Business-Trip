@@ -5,7 +5,7 @@ var _ganttSearch='';   // 담당자명 검색
 var _typeShow={sched:true,event:true,work:true}; // 출장일정/이벤트/작업 표시 토글
 function toggleTypeShow(k,v){_typeShow[k]=v;renderGantt();}
 var WPX_MAP={'week':42,'biweek':22,'month':12};
-function ganttFixedW(){var el=document.querySelector('.ghfixed');return (el&&el.offsetWidth)||300;} // 좌측 고정컬럼 실측 폭(반응형 CSS 추종)
+function ganttFixedW(){var el=document.querySelector('.ghfixed');return (el&&el.offsetWidth)||455;} // 좌측 고정컬럼 실측 폭(반응형 CSS 추종)
 function calcRange(){
   var minD=new Date(TODAY.getFullYear(),TODAY.getMonth()-1,1),maxD=new Date(TODAY.getFullYear(),TODAY.getMonth()+3,0);
   var all=[];S.schedules.forEach(function(s){all.push(s.start);all.push(s.end);});S.events.forEach(function(e){all.push(e.date);});
@@ -142,7 +142,7 @@ function _occSiblings(sched){
 }
 // 업무 유형 라벨: '/'로 구분된 항목들을 한 줄에 최대 20자까지 채워서 보여주고,
 // 그 이상이면 '/' 위치에서 다음 줄로 넘긴다(단어 중간이 잘리지 않게).
-var TASK_LINE_MAX=20;
+var TASK_LINE_MAX=30;
 function _taskLinesHtml(task){
   var parts=(task||'').split('/').map(function(t){return t.trim();}).filter(Boolean);
   if(!parts.length) return '';
