@@ -140,16 +140,28 @@ function _tripTotalDays(sched){
 function _occSiblings(sched){
   return S.schedules.filter(function(s){return s.name===sched.name&&s.projectId===sched.projectId;});
 }
+// 연장이 있으면 "1차 24일+연장 31일/총 55일"처럼 구간별 일수를 풀어서 보여준다(연장이 2번이면 "1차연장/2차연장"으로 구분)
+function _daysLabel(sched){
+  var exts=sched.extensions||[];
+  if(!exts.length) return _tripTotalDays(sched)+'일';
+  var parts=['1차 '+dd(sched.start,sched.origEnd||sched.end)+'일'];
+  var prevEnd=sched.origEnd||sched.end;
+  exts.forEach(function(e,i){
+    var lbl=exts.length>1?(i+1)+'차연장':'연장';
+    parts.push(lbl+' '+dd(_addDaysStr(prevEnd,1),e.end)+'일');
+    prevEnd=e.end;
+  });
+  return parts.join('+')+'/총 '+_tripTotalDays(sched)+'일';
+}
 function addBar(el,sched){
   var exts=sched.extensions||[];
   var extCount=exts.length;
-  var days=_tripTotalDays(sched),dr=fmt(sched.start)+'~'+fmt(sched.end);
+  var daysLbl=_daysLabel(sched),dr=fmt(sched.start)+'~'+fmt(sched.end);
   var tl=TYPE_LBL[sched.type]||sched.type;
   var occSiblings=_occSiblings(sched);
   var occTag=occSiblings.length>1?('_'+(sched.occSeq||1)+'회차'):'';
   var domesticTag=sched.domestic?' [국내]':'';
-  var extTag=extCount?' 🔺연장'+extCount:'';
-  var txt=dr+' · '+sched.name+' ['+tl+occTag+']'+domesticTag+extTag+' ('+days+'일)'+(sched.note?' · '+sched.note:'');
+  var txt=dr+' · '+sched.name+' ['+tl+occTag+']'+domesticTag+' ('+daysLbl+')'+(sched.note?' · '+sched.note:'');
   var tooltip=txt;
   if(extCount){
     tooltip+='\n[연장 이력] 최초 복귀일: '+fmtFull(sched.origEnd||sched.end);
@@ -353,8 +365,8 @@ function renderGantt(){
     tasks.forEach(function(task){
       scheds.filter(function(s){return s.task===task;}).sort(function(a,b){
         return (a.occSeq||1)-(b.occSeq||1)||(a.start<b.start?-1:(a.start>b.start?1:0));
-      }).forEach(function(sched,idx){
-        var days=_tripTotalDays(sched),dr=fmt(sched.start)+'~'+fmt(sched.end);
+      }).forEach(function(sched){
+        var daysLbl2=_daysLabel(sched),dr=fmt(sched.start)+'~'+fmt(sched.end);
         var isDone=TODAY>pd(sched.end);var isEven=(ri%2===0);ri++;
         var row=document.createElement('div');
         row.className='grow '+(isEven?'even':'odd')+(isDone?' done':'')+(sched.hidden?' hidden-row':'');
@@ -362,12 +374,12 @@ function renderGantt(){
         var tc=TYPE_COLOR[sched.type]||'#555';var tl=TYPE_LBL[sched.type]||sched.type;
         var occSiblings2=_occSiblings(sched);
         var occTag2=occSiblings2.length>1?('_'+(sched.occSeq||1)+'회차'):'';
-        gf2.innerHTML='<div class="gtask">'+(idx===0?_esc(task):'')+'</div>'
+        gf2.innerHTML='<div class="gtask">'+_esc(task)+'</div>'
           +'<div class="gperson">'+_esc(sched.name)
           +'<span class="type-badge" style="background:'+tc+'">'+_esc(tl+occTag2)+'</span>'
           +(isDone?'<span class="done-badge">완료</span>':'')
           +(sched.hidden?'<span class="hidden-badge">숨김</span>':'')
-          +'<span class="gbadge">'+dr+' · '+days+'일</span></div>';
+          +'<span class="gbadge">'+dr+' · '+daysLbl2+'</span></div>';
         var rtl=makeTL(28,'gtl',evts,false);addBar(rtl,sched);row.appendChild(gf2);row.appendChild(rtl);body.appendChild(row);
       });
     });

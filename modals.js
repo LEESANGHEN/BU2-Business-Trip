@@ -166,13 +166,15 @@ function _extSectionHtml(ex){
   var exts=ex.extensions||[];
   var html='<div class="fg" style="border-top:1px solid var(--bd-light);padding-top:8px;margin-top:2px">';
   html+='<label class="fl">현장 연장 (진행 중인 이 출장을 이어서 더 머무는 경우)</label>';
+  var prevEnd=ex.origEnd||ex.end;
   if(exts.length){
-    html+='<div style="font-size:11px;color:var(--tx-muted);margin-bottom:4px">최초 계획 복귀일: '+fmtFull(ex.origEnd||ex.end)+'</div>';
+    html+='<div style="font-size:11px;color:var(--tx-muted);margin-bottom:4px">최초 계획 복귀일: '+fmtFull(prevEnd)+'</div>';
     exts.forEach(function(e){
+      var minEnd=_addDaysStr(prevEnd,1);
       if(_editExtSeq===e.seq){
         html+='<div style="display:flex;gap:5px;margin-bottom:4px;align-items:center">'
           +'<span style="font-size:12px;flex-shrink:0">'+e.seq+'차 연장</span>'
-          +'<input type="text" id="f_extEditEnd_'+e.seq+'" value="'+e.end+'" maxlength="10" oninput="fmtDateInput(this)" style="font-family:monospace;width:110px">'
+          +'<input type="date" id="f_extEditEnd_'+e.seq+'" value="'+e.end+'" min="'+minEnd+'" style="width:150px">'
           +'<input type="text" id="f_extEditNote_'+e.seq+'" value="'+_esc(e.note||'')+'" placeholder="사유(선택)" style="flex:1">'
           +'<button class="btn sm pri" type="button" onclick="saveEditExtension(\''+ex.id+'\','+e.seq+')">저장</button>'
           +'<button class="btn sm" type="button" onclick="cancelEditExtension(\''+ex.id+'\')">취소</button>'
@@ -184,11 +186,12 @@ function _extSectionHtml(ex){
           +'<button class="btn sm red" type="button" onclick="deleteExtension(\''+ex.id+'\','+e.seq+')">삭제</button>'
           +'</div>';
       }
+      prevEnd=e.end;
     });
   }
   if(exts.length<2&&_editExtSeq===null){
     html+='<div style="display:flex;gap:5px;margin-top:6px">'
-      +'<input type="text" id="f_extEnd" placeholder="연장 복귀일" maxlength="10" oninput="fmtDateInput(this)" style="font-family:monospace;width:110px">'
+      +'<input type="date" id="f_extEnd" min="'+_addDaysStr(ex.end,1)+'" style="width:150px">'
       +'<input type="text" id="f_extNote" placeholder="사유(선택)" style="flex:1">'
       +'<button class="btn sm" id="f_extAdd" type="button">'+(exts.length+1)+'차 연장 등록</button>'
       +'</div>';
@@ -221,7 +224,7 @@ function showSM(ex){
   html+='<div class="fg"><label class="fl">회차</label><select id="f_occSeq">'+_occSeqOptsHtml(ie?(ex.occSeq||1):1)+'</select>'
     +'<div style="font-size:10px;color:var(--tx-muted);margin-top:3px">같은 사람이 같은 프로젝트로 기간을 두고 다시 출장 가는 경우 2회차/3회차를 선택해 별도로 등록하세요.</div></div>';
   html+='<div class="fg"><label class="fl">인원 구분</label><select id="f_type">'+typeOpts+'</select></div>';
-  html+='<div class="fr"><div class="fg"><label class="fl">출발일 (YYYY-MM-DD)</label><input type="text" id="f_start" value="'+(ie?ex.start:'2026-03-01')+'" placeholder="2026-04-01" maxlength="10" oninput="fmtDateInput(this);calcD()" style="font-family:monospace;letter-spacing:1px"></div><div class="fg"><label class="fl">복귀일 (YYYY-MM-DD)</label><input type="text" id="f_end" value="'+(ie?ex.end:'2026-03-30')+'" placeholder="2026-06-30" maxlength="10" oninput="fmtDateInput(this);calcD()" style="font-family:monospace;letter-spacing:1px"></div></div>';
+  html+='<div class="fr"><div class="fg"><label class="fl">출발일</label><input type="date" id="f_start" value="'+(ie?ex.start:'2026-03-01')+'"></div><div class="fg"><label class="fl">복귀일</label><input type="date" id="f_end" value="'+(ie?ex.end:'2026-03-30')+'" min="'+(ie?ex.start:'2026-03-01')+'"></div></div>';
   html+='<div class="dbox"><span id="f_datebox" style="color:#ccc">'+dateInfo+'</span>'+(dateInfo?' &nbsp; ':'')+'체류: <span id="f_days" style="font-weight:500">'+days+'</span></div>';
   if(ie){
     html+=_extSectionHtml(ex);
@@ -239,7 +242,7 @@ function showSM(ex){
   function _updDomWarn(){var sid=document.getElementById('f_site').value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');var warn=document.getElementById('f_dom_warn');if(warn)warn.style.display=(domCb&&domCb.checked&&reg!=='국내'&&reg!=='기타')?'inline':'none';}
   document.getElementById('f_site').onchange=function(){upP();var sid=this.value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');if(domCb&&reg!=='국내'&&reg!=='기타'){domCb.checked=false;}_updDomWarn();};
   document.getElementById('f_domestic').onchange=function(){_updDomWarn();};
-  document.getElementById('f_start').onchange=function(){calcD();};
+  document.getElementById('f_start').onchange=function(){document.getElementById('f_end').min=this.value;calcD();};
   document.getElementById('f_end').onchange=function(){calcD();};
   document.getElementById('f_name').onblur=function(){_prefillFromExisting();};
   document.getElementById('f_occSeq').onchange=function(){_prefillFromExisting();};
