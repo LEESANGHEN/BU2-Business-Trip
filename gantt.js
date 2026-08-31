@@ -140,9 +140,19 @@ function _tripTotalDays(sched){
 function _occSiblings(sched){
   return S.schedules.filter(function(s){return s.name===sched.name&&s.projectId===sched.projectId;});
 }
-// 업무 유형 라벨: 쉼표로 구분된 항목을 한 줄씩 나눠 보여준다(좁은 열 안에서 단어 중간이 잘려 보이는 것 방지)
+// 업무 유형 라벨: '/'로 구분된 항목들을 한 줄에 최대 20자까지 채워서 보여주고,
+// 그 이상이면 '/' 위치에서 다음 줄로 넘긴다(단어 중간이 잘리지 않게).
+var TASK_LINE_MAX=20;
 function _taskLinesHtml(task){
-  return (task||'').split(',').map(function(t){return _esc(t.trim());}).filter(Boolean).join('<br>');
+  var parts=(task||'').split('/').map(function(t){return t.trim();}).filter(Boolean);
+  if(!parts.length) return '';
+  var lines=[parts[0]];
+  for(var i=1;i<parts.length;i++){
+    var candidate=lines[lines.length-1]+'/'+parts[i];
+    if(candidate.length<=TASK_LINE_MAX) lines[lines.length-1]=candidate;
+    else lines.push(parts[i]);
+  }
+  return lines.map(_esc).join('<br>');
 }
 // 연장이 있으면 "1차 24일+연장 31일/총 55일"처럼 구간별 일수를 풀어서 보여준다(연장이 2번이면 "1차연장/2차연장"으로 구분)
 function _daysLabel(sched){
