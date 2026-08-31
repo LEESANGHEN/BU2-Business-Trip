@@ -1,6 +1,7 @@
 ﻿/* ── 모달 ── */
 var _selCol='purple',_dragIdx=null;
 var _editExtSeq=null; // 현재 인라인 수정 중인 연장 회차 (null이면 없음)
+var _smIsEdit=false; // 출장 모달이 수정 모드인지(신규 등록 모드에서만 기존 회차 값 자동 채움을 시도)
 function openModal(t){if(t==='schedule'){_editExtSeq=null;showSM(null);}else if(t==='event')showEM(null);else showSiteM();}
 function openEditSc(id){var s=S.schedules.find(function(x){return x.id===id;});if(s){_editExtSeq=null;showSM(s);}}
 function openEditEv(id){var e=S.events.find(function(x){return x.id===id;});if(e)showEM(e);}
@@ -233,12 +234,15 @@ function showSM(ex){
   html+='<button class="btn sm pri" id="f_save">'+(ie?'수정 완료':'등록')+'</button>';
   html+='</div>';
   mw(html);
+  _smIsEdit=ie;
   // 이벤트 등록
   function _updDomWarn(){var sid=document.getElementById('f_site').value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');var warn=document.getElementById('f_dom_warn');if(warn)warn.style.display=(domCb&&domCb.checked&&reg!=='국내'&&reg!=='기타')?'inline':'none';}
   document.getElementById('f_site').onchange=function(){upP();var sid=this.value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');if(domCb&&reg!=='국내'&&reg!=='기타'){domCb.checked=false;}_updDomWarn();};
   document.getElementById('f_domestic').onchange=function(){_updDomWarn();};
   document.getElementById('f_start').onchange=function(){calcD();};
   document.getElementById('f_end').onchange=function(){calcD();};
+  document.getElementById('f_name').onblur=function(){_prefillFromExisting();};
+  document.getElementById('f_occSeq').onchange=function(){_prefillFromExisting();};
   document.getElementById('f_cancel').onclick=function(){cm();};
   document.getElementById('f_save').onclick=function(){saveSc(ie?ex.id:null);};
   if(ie){
@@ -275,11 +279,33 @@ function upP(checkedIds){
   list.innerHTML=ps.map(function(p){
     return '<label class="chkrow" style="margin:0"><input type="checkbox" value="'+p.id+'"'+(checked.indexOf(p.id)>=0?' checked':'')+'>'+p.name+'</label>';
   }).join('');
+  Array.prototype.slice.call(list.querySelectorAll('input')).forEach(function(cb){
+    cb.onchange=function(){_prefillFromExisting();};
+  });
 }
 function _readCheckedProjIds(){
   var list=document.getElementById('f_proj_list');
   if(!list)return[];
   return Array.prototype.slice.call(list.querySelectorAll('input:checked')).map(function(cb){return cb.value;});
+}
+// 신규 등록 모드에서 이름+프로젝트가 기존 출장(다른 회차)과 일치하면 업무 유형/인원 구분/국내 여부를
+// 그 기존 기록에서 자동으로 가져와 채운다 — 회차마다 값이 제각각 입력되는 것을 방지한다.
+function _prefillFromExisting(){
+  if(_smIsEdit) return;
+  var nameEl=document.getElementById('f_name');
+  if(!nameEl) return;
+  var name=nameEl.value.trim();
+  if(!name) return;
+  var projIds=_readCheckedProjIds();
+  if(!projIds.length) return;
+  var match=S.schedules.find(function(s){return s.name===name&&projIds.indexOf(s.projectId)>=0;});
+  if(!match) return;
+  var taskEl=document.getElementById('f_task');
+  if(taskEl&&!taskEl.value.trim()) taskEl.value=match.task||'';
+  var typeEl=document.getElementById('f_type');
+  if(typeEl) typeEl.value=match.type||typeEl.value;
+  var domEl=document.getElementById('f_domestic');
+  if(domEl&&!domEl.checked) domEl.checked=!!match.domestic;
 }
 function fmtDateInput(el){
   // 숫자만 남기고 자동으로 - 삽입: 20260401 → 2026-04-01

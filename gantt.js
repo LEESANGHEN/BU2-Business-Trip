@@ -351,7 +351,9 @@ function renderGantt(){
     // 출장 행
     var tasks=[];scheds.forEach(function(s){if(tasks.indexOf(s.task)<0)tasks.push(s.task);});
     tasks.forEach(function(task){
-      scheds.filter(function(s){return s.task===task;}).forEach(function(sched,idx){
+      scheds.filter(function(s){return s.task===task;}).sort(function(a,b){
+        return (a.occSeq||1)-(b.occSeq||1)||(a.start<b.start?-1:(a.start>b.start?1:0));
+      }).forEach(function(sched,idx){
         var days=_tripTotalDays(sched),dr=fmt(sched.start)+'~'+fmt(sched.end);
         var isDone=TODAY>pd(sched.end);var isEven=(ri%2===0);ri++;
         var row=document.createElement('div');
