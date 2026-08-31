@@ -109,8 +109,8 @@ function aggregatePersonTrips(){
     var planDays=dd(sc.start,planEnd);
     var ext1=sc.extensions&&sc.extensions[0];
     var ext2=sc.extensions&&sc.extensions[1];
-    var ext1Days=ext1?dd(_addDaysStr(planEnd,1),ext1.end):0;
-    var ext2Days=ext2?dd(_addDaysStr(ext1.end,1),ext2.end):0;
+    var ext1Days=ext1?dd(ext1.start||_addDaysStr(planEnd,1),ext1.end):0;
+    var ext2Days=ext2?dd(ext2.start||_addDaysStr(ext1.end,1),ext2.end):0;
     persons[key].trips.push({
       scheduleId:sc.id,type:sc.type,
       siteId:siteId,siteName:siteName,siteColor:siteColor,

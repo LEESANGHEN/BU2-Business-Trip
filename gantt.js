@@ -120,19 +120,33 @@ function addEv(el,evts,chips){
 
 function makeTL(h,cls,evts,chips){var el=document.createElement('div');el.className=cls;el.style.cssText='flex:1;position:relative;min-height:'+h+'px;height:'+h+'px';addGrid(el);addTodayLine(el);if(evts)addEv(el,evts,chips);return el;}
 function _addDaysStr(ds,n){var d=pd(ds);d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function _tripTotalDays(sched){
+  var exts=sched.extensions||[];
+  if(!exts.length) return dd(sched.start,sched.end);
+  var total=dd(sched.start,sched.origEnd||sched.end);
+  var prevEnd=sched.origEnd||sched.end;
+  exts.forEach(function(e){
+    total+=dd(e.start||_addDaysStr(prevEnd,1),e.end);
+    prevEnd=e.end;
+  });
+  return total;
+}
 function addBar(el,sched){
   var exts=sched.extensions||[];
   var extCount=exts.length;
-  var days=dd(sched.start,sched.end),dr=fmt(sched.start)+'~'+fmt(sched.end);
+  var days=_tripTotalDays(sched),dr=fmt(sched.start)+'~'+fmt(sched.end);
   var tl=TYPE_LBL[sched.type]||sched.type;
   var domesticTag=sched.domestic?' [국내]':'';
   var extTag=extCount?' 🔺연장'+extCount:'';
   var txt=dr+' · '+sched.name+' ['+tl+']'+domesticTag+extTag+' ('+days+'일)'+(sched.note?' · '+sched.note:'');
   var tooltip=txt;
   if(extCount){
-    tooltip+='\n[연장 이력] 최초 복귀일: '+fmtFull(sched.origEnd||sched.end);
+    tooltip+='\n[연장/재출장 이력] 최초: '+fmtFull(sched.start)+' ~ '+fmtFull(sched.origEnd||sched.end);
+    var prevEndForTip=sched.origEnd||sched.end;
     exts.forEach(function(e){
-      tooltip+='\n'+e.seq+'차 연장 → '+fmtFull(e.end)+(e.note?' ('+e.note+')':'');
+      var segStart=e.start||_addDaysStr(prevEndForTip,1);
+      tooltip+='\n'+e.seq+'차 → '+fmtFull(segStart)+' ~ '+fmtFull(e.end)+(e.note?' ('+e.note+')':'');
+      prevEndForTip=e.end;
     });
   }
   var sp=d2px(sched.start),ep=d2px(sched.end)+Math.round(WPX/7),wp=Math.max(ep-sp,8);
@@ -153,7 +167,7 @@ function addBar(el,sched){
   segments.push({s:sched.start,e:origEnd,cls:pfx+'going'});
   var prevEnd=origEnd;
   exts.forEach(function(e,i){
-    segments.push({s:_addDaysStr(prevEnd,1),e:e.end,cls:pfx+'ext'+(i+1)});
+    segments.push({s:e.start||_addDaysStr(prevEnd,1),e:e.end,cls:pfx+'ext'+(i+1)});
     prevEnd=e.end;
   });
 
