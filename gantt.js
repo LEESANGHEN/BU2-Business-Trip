@@ -38,7 +38,7 @@ function renderSidebar(){
   var el=document.getElementById('siteList');el.innerHTML='';
   // 전체 보기
   var _today=TODAY;var _tiso=_today.getFullYear()+'-'+String(_today.getMonth()+1).padStart(2,'0')+'-'+String(_today.getDate()).padStart(2,'0');
-  function _sVisible(s){var eff=_effectiveEnd(s);var isPast=eff&&eff<_tiso;return (!s.hidden&&!isPast)||S.showHidden;}
+  function _sVisible(s){var isPast=s.end&&s.end<_tiso;return (!s.hidden&&!isPast)||S.showHidden;}
   var allDiv=document.createElement('div');
   allDiv.className='sit-all'+(S.filterSite==='all'?' on':'');
   var totalCnt=S.schedules.filter(_sVisible).length;
@@ -121,101 +121,66 @@ function addEv(el,evts,chips){
 function makeTL(h,cls,evts,chips){var el=document.createElement('div');el.className=cls;el.style.cssText='flex:1;position:relative;min-height:'+h+'px;height:'+h+'px';addGrid(el);addTodayLine(el);if(evts)addEv(el,evts,chips);return el;}
 function _addDaysStr(ds,n){var d=pd(ds);d.setDate(d.getDate()+n);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 /* ══════════════════════════════════════════
-   회차(occurrence)/연장(extension) 공용 헬퍼
-   - "N회차"(재출장): 공백 기간을 두고 다시 떠나는 완전히 별개의 출장. sc.occurrences[]에 저장.
-   - "연장": 같은 회차 안에서 이어서 더 머무는 것(공백 없음). 각 회차(또는 1회차인 sc 자신)의
-     .extensions[]에 저장되며, 항상 직전 종료일 다음날부터 이어진다고 가정한다(시작일 별도 저장 안 함).
-   - sc.overallEnd: 마지막 회차의 최종 복귀일 캐시(회차가 없으면 미설정 → sc.end가 곧 전체 종료일).
-     간트 필터링/상태 계산 등 "이 일정이 현재 진행 중/종료됐는지" 판단에는 항상 이 값을 써야 한다.
+   연장(extension) 헬퍼 — 같은 출장(회차) 안에서 이어서 더 머무는 것(최대 2회, 공백 없이 연속).
+   "N회차"(같은 사람이 같은 프로젝트로 별도 기간에 다시 출장가는 것)는 완전히 별개의
+   S.schedules 레코드로 등록하고 sched.occSeq(1/2/3)로 순번만 표시한다 — _occSiblings() 참고.
 ══════════════════════════════════════════ */
-function _occGetTarget(sc,occSeq){
-  if(!occSeq) return sc;
-  return (sc.occurrences||[]).find(function(o){return o.seq===occSeq;});
-}
-function _occFinalEnd(occOrSc){
-  var exts=occOrSc.extensions||[];
-  return exts.length?exts[exts.length-1].end:occOrSc.end;
-}
-function _occTotalDays(occOrSc){
-  var exts=occOrSc.extensions||[];
-  var origEnd=occOrSc.origEnd||occOrSc.end;
-  var total=dd(occOrSc.start,origEnd);
-  var prevEnd=origEnd;
-  exts.forEach(function(e){total+=dd(_addDaysStr(prevEnd,1),e.end);prevEnd=e.end;});
-  return total;
-}
 function _tripTotalDays(sched){
-  var total=_occTotalDays(sched);
-  (sched.occurrences||[]).forEach(function(occ){total+=_occTotalDays(occ);});
+  var exts=sched.extensions||[];
+  if(!exts.length) return dd(sched.start,sched.end);
+  var total=dd(sched.start,sched.origEnd||sched.end);
+  var prevEnd=sched.origEnd||sched.end;
+  exts.forEach(function(e){
+    total+=dd(_addDaysStr(prevEnd,1),e.end);
+    prevEnd=e.end;
+  });
   return total;
 }
-function _effectiveEnd(sched){ return sched.overallEnd||sched.end; }
-function _recomputeOverallEnd(sc){
-  var occs=sc.occurrences||[];
-  if(occs.length) sc.overallEnd=_occFinalEnd(occs[occs.length-1]);
-  else delete sc.overallEnd;
+// 같은 사람 + 같은 프로젝트로 등록된 모든 출장(회차) — 2건 이상일 때만 간트 라벨에 "N회차"를 표시한다
+function _occSiblings(sched){
+  return S.schedules.filter(function(s){return s.name===sched.name&&s.projectId===sched.projectId;});
 }
-function _nextOccurrenceAfter(sc,occSeq){
-  var occs=sc.occurrences||[];
-  if(!occSeq) return occs[0]||null;
-  var idx=occs.findIndex(function(o){return o.seq===occSeq;});
-  if(idx<0) return null;
-  return occs[idx+1]||null;
-}
-
 function addBar(el,sched){
-  var occs=sched.occurrences||[];
-  var extCount=(sched.extensions||[]).length;
-  var overallEnd=_effectiveEnd(sched);
-  var days=_tripTotalDays(sched),dr=fmt(sched.start)+'~'+fmt(overallEnd);
+  var exts=sched.extensions||[];
+  var extCount=exts.length;
+  var days=_tripTotalDays(sched),dr=fmt(sched.start)+'~'+fmt(sched.end);
   var tl=TYPE_LBL[sched.type]||sched.type;
+  var occSiblings=_occSiblings(sched);
+  var occTag=occSiblings.length>1?('_'+(sched.occSeq||1)+'회차'):'';
   var domesticTag=sched.domestic?' [국내]':'';
-  var occTag=occs.length?' 🔁'+(occs.length+1)+'회차':(extCount?' 🔺연장'+extCount:'');
-  var txt=dr+' · '+sched.name+' ['+tl+']'+domesticTag+occTag+' ('+days+'일)'+(sched.note?' · '+sched.note:'');
-  var hasMulti=extCount>0||occs.length>0;
+  var extTag=extCount?' 🔺연장'+extCount:'';
+  var txt=dr+' · '+sched.name+' ['+tl+occTag+']'+domesticTag+extTag+' ('+days+'일)'+(sched.note?' · '+sched.note:'');
   var tooltip=txt;
-  if(hasMulti){
-    function _tipBlock(label,occOrSc){
-      var t='\n['+label+'] '+fmtFull(occOrSc.start)+' ~ '+fmtFull(occOrSc.origEnd||occOrSc.end);
-      var prevEnd=occOrSc.origEnd||occOrSc.end;
-      (occOrSc.extensions||[]).forEach(function(e){
-        t+='\n  '+e.seq+'차 연장 → '+fmtFull(e.end)+(e.note?' ('+e.note+')':'');
-        prevEnd=e.end;
-      });
-      return t;
-    }
-    tooltip+=_tipBlock('1회차',sched);
-    occs.forEach(function(occ,i){tooltip+=_tipBlock((i+2)+'회차',occ);});
+  if(extCount){
+    tooltip+='\n[연장 이력] 최초 복귀일: '+fmtFull(sched.origEnd||sched.end);
+    exts.forEach(function(e){
+      tooltip+='\n'+e.seq+'차 연장 → '+fmtFull(e.end)+(e.note?' ('+e.note+')':'');
+    });
   }
-  var sp=d2px(sched.start),ep=d2px(overallEnd)+Math.round(WPX/7),wp=Math.max(ep-sp,8);
+  var sp=d2px(sched.start),ep=d2px(sched.end)+Math.round(WPX/7),wp=Math.max(ep-sp,8);
 
-  if(!hasMulti){
-    // 회차/연장 없는 일반 일정: 기존 단일 색상(완료/출장중/예정)
+  if(!extCount){
+    // 연장 없는 일반 일정: 기존 단일 색상(완료/출장중/예정)
     var bar=document.createElement('div');bar.className='bar '+barCls(sched);bar.style.cssText='left:'+sp+'px;width:'+wp+'px';bar.title=tooltip;
     bar.onclick=(function(id){return function(){openEditSc(id);};})(sched.id);
     var lbl=document.createElement('span');lbl.className='barlbl';lbl.textContent=txt;bar.appendChild(lbl);el.appendChild(bar);
     return;
   }
 
-  // 회차/연장이 있는 일정: 각 회차의 최초 구간/연장 구간을 색으로 분할 표시.
-  // 회차 사이에 공백이 있으면(재출장) 실제 날짜로 좌표를 계산하므로 막대 안에 자연스럽게 빈 틈이 생긴다.
+  // 연장 있는 일정: 최초 계획/1차 연장/2차 연장 구간을 각각 다른 색으로 분할 표시
   var isHq=(sched.type==='hq'||sched.type==='tech'||sched.type==='vision'||sched.type==='host');
   var pfx=isHq?'bar-hq-':'bar-out-';
   var segments=[];
-  function pushSegments(occOrSc){
-    var origEnd=occOrSc.origEnd||occOrSc.end;
-    segments.push({s:occOrSc.start,e:origEnd,cls:pfx+'going'});
-    var prevEnd=origEnd;
-    (occOrSc.extensions||[]).forEach(function(e,i){
-      segments.push({s:_addDaysStr(prevEnd,1),e:e.end,cls:pfx+'ext'+(i+1)});
-      prevEnd=e.end;
-    });
-  }
-  pushSegments(sched);
-  occs.forEach(function(occ){pushSegments(occ);});
+  var origEnd=sched.origEnd||sched.end;
+  segments.push({s:sched.start,e:origEnd,cls:pfx+'going'});
+  var prevEnd=origEnd;
+  exts.forEach(function(e,i){
+    segments.push({s:_addDaysStr(prevEnd,1),e:e.end,cls:pfx+'ext'+(i+1)});
+    prevEnd=e.end;
+  });
 
   var wrap=document.createElement('div');
-  wrap.className='bar-seg-wrap'+(TODAY>pd(overallEnd)?' bar-seg-done':'');
+  wrap.className='bar-seg-wrap'+(TODAY>pd(sched.end)?' bar-seg-done':'');
   wrap.style.cssText='left:'+sp+'px;width:'+wp+'px';
   wrap.title=tooltip;
   wrap.onclick=(function(id){return function(){openEditSc(id);};})(sched.id);
@@ -312,7 +277,7 @@ function renderGantt(){
     // 과거 일정도 숨김 처리 (종료일 < 오늘) + 출장일정/이벤트/작업 표시 토글
     var hasVisible=_typeShow.sched&&S.schedules.some(function(s){
       if(s.projectId!==p.id)return false;
-      var isPast=_effectiveEnd(s)&&_effectiveEnd(s)<todayISO;
+      var isPast=s.end&&s.end<todayISO;
       if(!((!s.hidden&&!isPast)||S.showHidden))return false;
       if(_ganttSearch&&s.name.toLowerCase().indexOf(_ganttSearch)<0)return false;
       return true;
@@ -333,7 +298,7 @@ function renderGantt(){
     var site=S.sites.find(function(s){return s.id===proj.siteId;});var sc=site?site.color:'#666';
     var scheds=!_typeShow.sched?[]:S.schedules.filter(function(s){
       if(s.projectId!==proj.id)return false;
-      var isPast=_effectiveEnd(s)&&_effectiveEnd(s)<todayISO;
+      var isPast=s.end&&s.end<todayISO;
       if(!((!s.hidden&&!isPast)||S.showHidden))return false;
       if(_ganttSearch&&s.name.toLowerCase().indexOf(_ganttSearch)<0)return false;
       return true;
@@ -387,16 +352,17 @@ function renderGantt(){
     var tasks=[];scheds.forEach(function(s){if(tasks.indexOf(s.task)<0)tasks.push(s.task);});
     tasks.forEach(function(task){
       scheds.filter(function(s){return s.task===task;}).forEach(function(sched,idx){
-        var effEnd=_effectiveEnd(sched);
-        var days=_tripTotalDays(sched),dr=fmt(sched.start)+'~'+fmt(effEnd);
-        var isDone=TODAY>pd(effEnd);var isEven=(ri%2===0);ri++;
+        var days=_tripTotalDays(sched),dr=fmt(sched.start)+'~'+fmt(sched.end);
+        var isDone=TODAY>pd(sched.end);var isEven=(ri%2===0);ri++;
         var row=document.createElement('div');
         row.className='grow '+(isEven?'even':'odd')+(isDone?' done':'')+(sched.hidden?' hidden-row':'');
         var gf2=document.createElement('div');gf2.className='gfix';
         var tc=TYPE_COLOR[sched.type]||'#555';var tl=TYPE_LBL[sched.type]||sched.type;
+        var occSiblings2=_occSiblings(sched);
+        var occTag2=occSiblings2.length>1?('_'+(sched.occSeq||1)+'회차'):'';
         gf2.innerHTML='<div class="gtask">'+(idx===0?_esc(task):'')+'</div>'
           +'<div class="gperson">'+_esc(sched.name)
-          +'<span class="type-badge" style="background:'+tc+'">'+_esc(tl)+'</span>'
+          +'<span class="type-badge" style="background:'+tc+'">'+_esc(tl+occTag2)+'</span>'
           +(isDone?'<span class="done-badge">완료</span>':'')
           +(sched.hidden?'<span class="hidden-badge">숨김</span>':'')
           +'<span class="gbadge">'+dr+' · '+days+'일</span></div>';

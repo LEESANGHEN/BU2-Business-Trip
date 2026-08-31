@@ -66,10 +66,9 @@ function _doExportSiteRosterExcel(siteId){
   S.schedules.forEach(function(sc){
     var proj=S.projects.find(function(p){return p.id===sc.projectId;});
     if(!proj||proj.siteId!==siteId) return;
-    var effEnd=_effectiveEnd(sc);
     var days=_tripTotalDays(sc);
     if(days<=0) return;
-    rows.push({name:sc.name,type:sc.type,task:sc.task||'',start:sc.start,end:effEnd,days:days});
+    rows.push({name:sc.name,type:sc.type,task:sc.task||'',start:sc.start,end:sc.end,days:days});
   });
   rows.sort(function(a,b){return a.start>b.start?1:(a.start<b.start?-1:a.name.localeCompare(b.name,'ko'));});
 
@@ -158,7 +157,7 @@ function _buildGanttSheet(wb){
       typeLabel:typeLabel[sc.type]||sc.type||'',
       typeRaw:sc.type||'hq',
       start:sc.start,
-      end:_effectiveEnd(sc),
+      end:sc.end,
       days:_tripTotalDays(sc),
       note:sc.note||''
     });

@@ -95,8 +95,7 @@ function aggregatePersonTrips(){
     var siteColor=site?site.color:'#555';
     var region=sc.domestic?'국내':getSiteRegion(siteId);
     var city=sc.domestic?'':((site&&site.region)||'');
-    var effEnd=_effectiveEnd(sc);
-    var s=pd(sc.start),e=pd(effEnd);
+    var s=pd(sc.start),e=pd(sc.end);
     var status=TODAY>e?'done':(TODAY>=s?'going':'plan');
     var key=sc.name;
     if(!persons[key]) persons[key]={name:sc.name,type:sc.type,trips:[]};
@@ -105,7 +104,7 @@ function aggregatePersonTrips(){
     // 출장 원래 type 기록 (인원에 복수 타입 있을 수 있음)
     if(!persons[key].types) persons[key].types={};
     persons[key].types[sc.type]=true;
-    // 1회차의 최초 계획/1차 연장/2차 연장 구간별 일수 (2회차 이상은 tripTotal에만 합산 반영)
+    // 최초 계획/1차 연장/2차 연장 구간별 일수를 각각 계산
     var planEnd=sc.origEnd||sc.end;
     var planDays=dd(sc.start,planEnd);
     var ext1=sc.extensions&&sc.extensions[0];
@@ -113,9 +112,9 @@ function aggregatePersonTrips(){
     var ext1Days=ext1?dd(_addDaysStr(planEnd,1),ext1.end):0;
     var ext2Days=ext2?dd(_addDaysStr(ext1.end,1),ext2.end):0;
     persons[key].trips.push({
-      scheduleId:sc.id,type:sc.type,
+      scheduleId:sc.id,type:sc.type,occSeq:sc.occSeq||1,
       siteId:siteId,siteName:siteName,siteColor:siteColor,
-      region:region,city:city,start:sc.start,end:effEnd,planEnd:planEnd,
+      region:region,city:city,start:sc.start,end:sc.end,planEnd:planEnd,
       days:planDays,ext1Days:ext1Days,ext2Days:ext2Days,
       tripTotal:_tripTotalDays(sc),
       status:status,task:sc.task,note:sc.note,
