@@ -288,8 +288,9 @@ function _readCheckedProjIds(){
   if(!list)return[];
   return Array.prototype.slice.call(list.querySelectorAll('input:checked')).map(function(cb){return cb.value;});
 }
-// 신규 등록 모드에서 이름+프로젝트가 기존 출장(다른 회차)과 일치하면 업무 유형/인원 구분/국내 여부를
-// 그 기존 기록에서 자동으로 가져와 채운다 — 회차마다 값이 제각각 입력되는 것을 방지한다.
+// 신규 등록 모드에서 이름+프로젝트가 기존 출장(다른 회차)과 일치하면 인원 구분/국내 여부만
+// 그 기존 기록에서 자동으로 가져와 채운다. 업무 유형은 회차마다 실제로 다를 수 있어서
+// (예: 1회차 셋업 설치 → 2회차 점검/보수) 자동으로 채우지 않고 매번 직접 입력하게 둔다.
 function _prefillFromExisting(){
   if(_smIsEdit) return;
   var nameEl=document.getElementById('f_name');
@@ -300,8 +301,6 @@ function _prefillFromExisting(){
   if(!projIds.length) return;
   var match=S.schedules.find(function(s){return s.name===name&&projIds.indexOf(s.projectId)>=0;});
   if(!match) return;
-  var taskEl=document.getElementById('f_task');
-  if(taskEl&&!taskEl.value.trim()) taskEl.value=match.task||'';
   var typeEl=document.getElementById('f_type');
   if(typeEl) typeEl.value=match.type||typeEl.value;
   var domEl=document.getElementById('f_domestic');
