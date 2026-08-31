@@ -37,6 +37,7 @@ function renderProjectsTab(){
   if(!S.masterProjects.length){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
   }
+  html+='<button class="btn red sm" onclick="resetGanttFromMasterProjects()" title="간트 차트의 모든 출장 일정을 삭제하고 프로젝트 관리 데이터로 다시 만듭니다">⚠ 간트 차트 초기화·재생성</button>';
   html+='<button class="btn pri sm" onclick="openAddMasterProject()">+ 프로젝트 등록</button>';
   html+='</div>';
   html+='</div>';
@@ -351,6 +352,21 @@ function importExcelSeedMasterProjects(){
   saveData();
   renderProjectsTab();
   alert('가져오기가 완료되었습니다.');
+}
+
+/* ── 간트 차트 전체 초기화 후 프로젝트 관리 데이터로 재생성 ──
+   사이트(S.sites)/그룹(S.projects)은 건드리지 않고 출장 일정(S.schedules)만 전부 삭제한다. */
+function resetGanttFromMasterProjects(){
+  if(!confirm('간트 차트의 모든 출장 일정을 삭제하고, 프로젝트 관리 데이터로 다시 생성합니다.\n간트에서 직접 등록/수정했던 일정도 모두 사라지며 되돌릴 수 없습니다.\n계속할까요?'))return;
+  if(!confirm('정말 진행할까요? 이 작업은 취소할 수 없습니다.'))return;
+  S.schedules.forEach(function(sc){_markDeletedSc(sc.id);});
+  S.schedules=[];
+  S.masterProjects.forEach(function(mp){mp.scheduleId=null;});
+  S.masterProjects.forEach(function(mp){_syncMasterProjectToGantt(mp);_touch(mp);});
+  saveData();
+  renderProjectsTab();
+  if(typeof renderAll==='function')renderAll();
+  alert('간트 차트를 프로젝트 관리 데이터로 재생성했습니다.');
 }
 
 /* ══════════════════════════════════════════

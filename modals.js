@@ -154,11 +154,15 @@ function delWt(id){if(!confirm('작업을 삭제할까요?'))return;S.workTasks=
 function openEditWt(id){var w=S.workTasks.find(function(x){return x.id===id;});if(w)showEM(null,w);}
 
 /* 출장 모달 */
+function _scheduleSiblings(sc){
+  if(!sc)return[];
+  if(!sc.batchId)return[sc];
+  return S.schedules.filter(function(s){return s.batchId===sc.batchId;});
+}
 function showSM(ex){
   var ie=!!ex;
   var so=_sitesWithProjects().map(function(s){return '<option value="'+s.id+'">'+s.name+'</option>';}).join('');
-  var po='<option value="">사이트를 먼저 선택하세요</option>';
-  if(ie){var pr=S.projects.find(function(p){return p.id===ex.projectId;});if(pr)po=S.projects.filter(function(p){return p.siteId===pr.siteId;}).map(function(p){return '<option value="'+p.id+'"'+(p.id===ex.projectId?' selected':'')+'>'+p.name+'</option>';}).join('');}
+  var initialCheckedIds=ie?_scheduleSiblings(ex).map(function(s){return s.projectId;}):[];
   var curType=ie?(ex.type||'hq'):'hq';
   var typeOpts=[['hq','본사'],['outsource','외주'],['localOutsource','현지외주'],['tech','기술'],['vision','비전'],['host','호스트']].map(function(t){return '<option value="'+t[0]+'"'+(curType===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('');
   var days=ie?dd(ex.start,ex.end)+' 일':'-';
@@ -168,7 +172,8 @@ function showSM(ex){
   var html='<div class="mtit">'+(ie?'출장 일정 수정':'출장 일정 등록')+'</div>';
   html+='<div class="fg"><label class="fl">사이트</label><select id="f_site">'+so+'</select></div>';
   html+='<div class="fg"><label class="fl">국내 여부</label><label class="chkrow" style="margin:0"><input type="checkbox" id="f_domestic"'+(isDomestic?' checked':'')+'>국내 출장 (현장이 아닌 국내에서 진행)</label><span id="f_dom_warn" style="display:none;font-size:10px;color:#d08020;margin-left:6px">⚠ 해외 사이트 — 출장일이 국내로 집계됩니다</span></div>';
-  html+='<div class="fg"><label class="fl">프로젝트</label><select id="f_proj">'+po+'</select></div>';
+  html+='<div class="fg"><label class="fl">프로젝트 (여러 개 선택 가능 — 한 사이트에서 여러 설비를 함께 셋업하는 경우)</label>'
+    +'<div id="f_proj_list" style="display:flex;flex-direction:column;gap:2px;max-height:150px;overflow-y:auto;padding:4px 0"></div></div>';
   html+='<div class="fg"><label class="fl">업무 유형</label><input type="text" id="f_task" value="'+(ie?ex.task:'')+'" placeholder="예: 셋업, 대응, 개조"></div>';
   html+='<div class="fg"><label class="fl">출장자 이름</label><input type="text" id="f_name" value="'+(ie?ex.name:'')+'" placeholder="이름 입력"></div>';
   html+='<div class="fg"><label class="fl">인원 구분</label><select id="f_type">'+typeOpts+'</select></div>';
@@ -231,9 +236,8 @@ function showSM(ex){
     if(extBtn) extBtn.onclick=function(){addExtension(ex.id);};
     var pr2=S.projects.find(function(p){return p.id===ex.projectId;});
     if(pr2) document.getElementById('f_site').value=pr2.siteId;
-    upP();
+    upP(initialCheckedIds);
     setTimeout(function(){
-      document.getElementById('f_proj').value=ex.projectId;
       calcD(); // 수정 모드에서 초기 날짜 표시
       _updDomWarn(); // 해외 사이트 + 국내 체크 시 경고 표시
     },0);
@@ -250,7 +254,22 @@ function _populateProjSelect(siteSelId,projSelId,curProjId){
   var ps=S.projects.filter(function(p){return p.siteId===sid;}).sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
   document.getElementById(projSelId).innerHTML=ps.length?ps.map(function(p){return '<option value="'+p.id+'"'+(curProjId&&p.id===curProjId?' selected':'')+'>'+p.name+'</option>';}).join(''):'<option value="">해당 사이트에 프로젝트 없음</option>';
 }
-function upP(){_populateProjSelect('f_site','f_proj');}
+function upP(checkedIds){
+  var sid=document.getElementById('f_site').value;
+  var list=document.getElementById('f_proj_list');
+  if(!list)return;
+  var ps=S.projects.filter(function(p){return p.siteId===sid;}).sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
+  if(!ps.length){list.innerHTML='<div style="font-size:11px;color:var(--tx-muted)">해당 사이트에 프로젝트 없음</div>';return;}
+  var checked=checkedIds||[];
+  list.innerHTML=ps.map(function(p){
+    return '<label class="chkrow" style="margin:0"><input type="checkbox" value="'+p.id+'"'+(checked.indexOf(p.id)>=0?' checked':'')+'>'+p.name+'</label>';
+  }).join('');
+}
+function _readCheckedProjIds(){
+  var list=document.getElementById('f_proj_list');
+  if(!list)return[];
+  return Array.prototype.slice.call(list.querySelectorAll('input:checked')).map(function(cb){return cb.value;});
+}
 function fmtDateInput(el){
   // 숫자만 남기고 자동으로 - 삽입: 20260401 → 2026-04-01
   var v=el.value.replace(/[^0-9]/g,'');
@@ -279,7 +298,7 @@ function calcD(){
   }
 }
 function saveSc(exId){
-  var projId=document.getElementById('f_proj').value;
+  var projIds=_readCheckedProjIds();
   var task=document.getElementById('f_task').value.trim();
   var name=document.getElementById('f_name').value.trim();
   var type=document.getElementById('f_type').value;
@@ -289,15 +308,43 @@ function saveSc(exId){
   var hidden=document.getElementById('f_hidden').checked;
   var domestic=document.getElementById('f_domestic').checked;
   var dateRe=/^\d{4}-\d{2}-\d{2}$/;
-  if(!projId||!task||!name||!start||!end){alert('필수 항목을 모두 입력하세요.');return;}
+  if(!projIds.length||!task||!name||!start||!end){alert('필수 항목을 모두 입력하세요(프로젝트를 최소 1개 선택하세요).');return;}
   if(!dateRe.test(start)||!dateRe.test(end)){alert('날짜 형식이 올바르지 않아요.\n예: 2026-04-01');return;}
   if(start>end){alert('복귀일이 출발일보다 빠릅니다.');return;}
   if(exId){
-    var i=S.schedules.findIndex(function(s){return s.id===exId;});
-    var prev=S.schedules[i];
-    S.schedules[i]=_touch({id:exId,projectId:projId,task:task,name:name,type:type,start:start,end:end,note:note,hidden:hidden,domestic:domestic,extensions:prev.extensions,origEnd:prev.origEnd});
+    var ex=S.schedules.find(function(s){return s.id===exId;});
+    if(!ex)return;
+    var siblings=_scheduleSiblings(ex);
+    var batchId=ex.batchId;
+    if(!batchId&&projIds.length>1) batchId=genId('sb');
+    var keepIds=[];
+    siblings.forEach(function(sib){
+      if(projIds.indexOf(sib.projectId)>=0){
+        sib.task=task;sib.name=name;sib.type=type;sib.start=start;sib.end=end;sib.note=note;sib.hidden=hidden;sib.domestic=domestic;
+        if(batchId)sib.batchId=batchId;
+        _touch(sib);
+        keepIds.push(sib.projectId);
+      }
+    });
+    projIds.forEach(function(pid){
+      if(keepIds.indexOf(pid)>=0)return;
+      var rec={id:genId('s',S.schedules),projectId:pid,task:task,name:name,type:type,start:start,end:end,note:note,hidden:hidden,domestic:domestic};
+      if(batchId)rec.batchId=batchId;
+      S.schedules.push(_touch(rec));
+    });
+    siblings.forEach(function(sib){
+      if(projIds.indexOf(sib.projectId)<0){
+        S.schedules=S.schedules.filter(function(s){return s.id!==sib.id;});
+        _markDeletedSc(sib.id);
+      }
+    });
   } else {
-    S.schedules.push(_touch({id:genId('s',S.schedules),projectId:projId,task:task,name:name,type:type,start:start,end:end,note:note,hidden:hidden,domestic:domestic}));
+    var newBatchId=projIds.length>1?genId('sb'):null;
+    projIds.forEach(function(pid){
+      var rec={id:genId('s',S.schedules),projectId:pid,task:task,name:name,type:type,start:start,end:end,note:note,hidden:hidden,domestic:domestic};
+      if(newBatchId)rec.batchId=newBatchId;
+      S.schedules.push(_touch(rec));
+    });
   }
   saveData();cm();renderAll();
 }
