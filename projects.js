@@ -211,7 +211,7 @@ function _mpFormHtml(mp){
   function v(f){return ie?_esc(mp[f]||''):'';}
   function dateFld(id,label,val){
     return '<div class="fg" style="flex:1"><label class="fl">'+label+'</label>'
-      +'<input type="text" id="'+id+'" value="'+_esc(val||'')+'" maxlength="10" placeholder="YYYY-MM-DD" oninput="fmtDateInput(this)" autocomplete="off"></div>';
+      +'<input type="date" id="'+id+'" value="'+_esc(val||'')+'"></div>';
   }
   var html='<div class="mtit">'+(ie?'프로젝트 수정':'프로젝트 등록')+'</div>';
   html+='<div style="display:flex;gap:8px">'

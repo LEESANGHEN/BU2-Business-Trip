@@ -227,7 +227,7 @@ var _pmTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localO
 var _pmSitePeriod='all';      // 사이트별 출장일 집계 기간: all | year | r12
 var _pmSiteCollapsed=true;    // 사이트별 출장일 요약 접기 상태 (기본 접힘)
 var _pmSiteTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localOutsource:true}; // 사이트별 요약 인원유형 체크
-var _pmHideDone=false;        // 완료된 출장(간트 기준 종료일 지남) 숨기기
+var _pmHideDone=true;         // 완료된 출장(간트 기준 종료일 지남) 숨기기 — 기본 On
 
 function setPmFilter(f){ _pmFilter=f; renderPersonTab(); }
 function setPmSearch(v){
