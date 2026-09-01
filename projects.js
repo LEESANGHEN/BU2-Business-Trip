@@ -138,7 +138,17 @@ function renderProjectsBody(){
   rows.sort(function(a,b){
     var k=_mpSortKey,v;
     v=String(a[k]||'').localeCompare(String(b[k]||''),'ko');
-    return _mpSortAsc?v:-v;
+    if(!_mpSortAsc) v=-v;
+    if(v!==0) return v;
+    // 정렬 기준이 같으면 구분→지역→고객사→프로젝트→생산/고객사 호기 순으로 세부 배치
+    // (새로 등록한 프로젝트도 이 순서에 맞는 자리에 자동으로 놓인다)
+    var tieFields=['category','region','customer','projectName','prodUnit','customerUnit'];
+    for(var i=0;i<tieFields.length;i++){
+      var f=tieFields[i];
+      var tv=String(a[f]||'').localeCompare(String(b[f]||''),'ko');
+      if(tv!==0) return tv;
+    }
+    return 0;
   });
   body.innerHTML=renderProjectsTable(rows);
 }
@@ -241,7 +251,7 @@ function _mpFormHtml(mp){
     +'</div>';
   html+='<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>';
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
-  html+='<datalist id="mp_status_list"><option value="완료"><option value="발주 대기"><option value="LOI 접수"></datalist>';
+  html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="발주 대기"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
   if(ie) html+='<button class="btn red sm" onclick="delMasterProject(\''+mp.id+'\')">삭제</button>';
   html+='<button class="btn sm" onclick="cm()">취소</button>';
