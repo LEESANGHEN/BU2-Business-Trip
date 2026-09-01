@@ -16,6 +16,17 @@ var _mpSortAsc=false;
 var _mpHideInactive=true;     // 완료/LOI 접수/발주 대기 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
 var _MP_HIDDEN_STATUSES=['완료','LOI 접수','발주 대기'];
 
+// "생산 98호기"처럼 숫자가 섞인 호기 텍스트를 숫자 크기로 비교 (둘 다 숫자면 숫자 비교, 아니면 문자열 비교)
+function _mpUnitNum(v){
+  var m=String(v||'').match(/(\d+)/);
+  return m?parseInt(m[1],10):null;
+}
+function _mpUnitCompare(a,b){
+  var an=_mpUnitNum(a), bn=_mpUnitNum(b);
+  if(an!==null&&bn!==null&&an!==bn) return an-bn;
+  return String(a||'').localeCompare(String(b||''),'ko');
+}
+
 function _mpId(){ return genId('mp',S.masterProjects); }
 
 /* ── 목록 탭 렌더 ── */
@@ -142,13 +153,17 @@ function renderProjectsBody(){
     if(v!==0) return v;
     // 정렬 기준이 같으면 구분→지역→고객사→프로젝트→생산/고객사 호기 순으로 세부 배치
     // (새로 등록한 프로젝트도 이 순서에 맞는 자리에 자동으로 놓인다)
-    var tieFields=['category','region','customer','projectName','prodUnit','customerUnit'];
+    var tieFields=['category','region','customer','projectName'];
     for(var i=0;i<tieFields.length;i++){
       var f=tieFields[i];
       var tv=String(a[f]||'').localeCompare(String(b[f]||''),'ko');
       if(tv!==0) return tv;
     }
-    return 0;
+    // 생산/고객사 호기는 "98호기"처럼 숫자가 포함된 텍스트라 문자열 비교로는 순서가 뒤틀린다
+    // (예: "108호기"가 "70호기"보다 앞으로 옴) — 숫자를 뽑아 숫자 크기로 비교한다
+    var uv=_mpUnitCompare(a.prodUnit,b.prodUnit);
+    if(uv!==0) return uv;
+    return _mpUnitCompare(a.customerUnit,b.customerUnit);
   });
   body.innerHTML=renderProjectsTable(rows);
 }
@@ -165,7 +180,7 @@ function renderProjectsTable(rows){
   html+=thS('setupStart','생산 셋업 기간');
   html+=thS('shipDate','설비 출하 일정');
   html+=thS('status','상태');
-  html+='<th>관리</th>';
+  if(_isAdminMode()) html+='<th>관리</th>';
   html+='</tr></thead><tbody>';
   rows.forEach(function(mp){html+=renderProjectRow(mp);});
   html+='</tbody></table>';
@@ -176,7 +191,8 @@ function renderProjectRow(mp){
   var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)):'-';
   var shipLbl=mp.shipDate?fmtFull(mp.shipDate):'-';
   var unitLbl=[mp.prodUnit,mp.customerUnit].filter(Boolean).join(' / ');
-  return '<tr class="pm-person-row" style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')">'
+  var admin=_isAdminMode();
+  return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
     +'<td>'+_esc(mp.category||'')+'</td>'
     +'<td>'+_esc(mp.region||'')+'</td>'
     +'<td>'+_esc(mp.customer||'')+'</td>'
@@ -185,10 +201,10 @@ function renderProjectRow(mp){
     +'<td>'+setupLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
     +'<td>'+_esc(mp.status||'')+'</td>'
-    +'<td onclick="event.stopPropagation()">'
-    +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">수정</button> '
-    +'<button class="eq-item-edit-btn" onclick="delMasterProject(\''+mp.id+'\')" style="color:#c04040">삭제</button>'
-    +'</td>'
+    +(admin?('<td onclick="event.stopPropagation()">'
+      +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">수정</button> '
+      +'<button class="eq-item-edit-btn" onclick="delMasterProject(\''+mp.id+'\')" style="color:#c04040">삭제</button>'
+      +'</td>'):'')
     +'</tr>';
 }
 
