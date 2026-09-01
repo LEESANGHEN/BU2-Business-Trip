@@ -37,37 +37,37 @@ function renderProjectsTab(){
   html+='<div class="pm-ctrl-bar" id="mpCtrlBar">';
   html+='<div class="pm-ctrl-group">';
   html+='<span style="font-size:11px;color:#666">🔍</span>';
-  html+='<input class="pm-search" id="mpSearchInp" type="text" placeholder="고객사/프로젝트 검색..." autocomplete="off" oninput="setMpSearch(this.value)" value="'+_esc(_mpSearch)+'">';
+  html+='<input class="pm-search" id="mpSearchInp" type="text" placeholder="'+t('mpSearchPh')+'" autocomplete="off" oninput="setMpSearch(this.value)" value="'+_esc(_mpSearch)+'">';
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">지역</span>';
+  html+='<span style="font-size:10px;color:#555">'+t('mpRegion')+'</span>';
   html+='<select id="mpRegionSel" onchange="setMpRegionFilter(this.value)">'+_mpRegionFilterOpts()+'</select>';
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">상태</span>';
+  html+='<span style="font-size:10px;color:#555">'+t('mpStatus')+'</span>';
   html+='<select id="mpStatusSel" onchange="setMpStatusFilter(this.value)">'+_mpStatusFilterOpts()+'</select>';
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">고객사</span>';
+  html+='<span style="font-size:10px;color:#555">'+t('mpCustomer')+'</span>';
   html+='<select id="mpCustomerSel" onchange="setMpCustomerFilter(this.value)">'+_mpCustomerFilterOpts()+'</select>';
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">출하월</span>';
+  html+='<span style="font-size:10px;color:#555">'+t('mpShipMonth')+'</span>';
   html+='<select id="mpShipMonthSel" onchange="setMpShipMonthFilter(this.value)">'+_mpShipMonthFilterOpts()+'</select>';
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
-  html+='<button class="pm-filter-btn'+(_mpHideInactive?' on':'')+'" id="mpHideInactiveBtn" onclick="togglePmHideInactive()">진행중만 보기</button>';
+  html+='<button class="pm-filter-btn'+(_mpHideInactive?' on':'')+'" id="mpHideInactiveBtn" onclick="togglePmHideInactive()">'+t('mpHideInactive')+'</button>';
   html+='</div>';
   html+='<div style="flex:1"></div>';
   if(!S.masterProjects.length){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
   }
-  if(_isAdminMode()) html+='<button class="btn pri sm" onclick="openAddMasterProject()">+ 프로젝트 등록</button>';
+  if(_isAdminMode()) html+='<button class="btn pri sm" onclick="openAddMasterProject()">'+t('mpAddProject')+'</button>';
   html+='</div>';
   html+='</div>';
   html+='<div class="pm-body-scroll"><div id="mpBody"></div></div>';
@@ -96,14 +96,14 @@ function _mpRegionFilterOpts(){
   var regions=[];
   S.masterProjects.forEach(function(mp){if(mp.region&&regions.indexOf(mp.region)<0)regions.push(mp.region);});
   (typeof BASE_REGIONS!=='undefined'?BASE_REGIONS:[]).forEach(function(r){if(regions.indexOf(r)<0)regions.push(r);});
-  var html='<option value="all"'+(_mpFilterRegion==='all'?' selected':'')+'>전체</option>';
+  var html='<option value="all"'+(_mpFilterRegion==='all'?' selected':'')+'>'+t('optAll')+'</option>';
   regions.forEach(function(r){html+='<option value="'+_esc(r)+'"'+(_mpFilterRegion===r?' selected':'')+'>'+_esc(r)+'</option>';});
   return html;
 }
 function _mpStatusFilterOpts(){
   var statuses=[];
   S.masterProjects.forEach(function(mp){if(mp.status&&statuses.indexOf(mp.status)<0)statuses.push(mp.status);});
-  var html='<option value="all"'+(_mpFilterStatus==='all'?' selected':'')+'>전체</option>';
+  var html='<option value="all"'+(_mpFilterStatus==='all'?' selected':'')+'>'+t('optAll')+'</option>';
   statuses.forEach(function(s){html+='<option value="'+_esc(s)+'"'+(_mpFilterStatus===s?' selected':'')+'>'+_esc(s)+'</option>';});
   return html;
 }
@@ -111,7 +111,7 @@ function _mpCustomerFilterOpts(){
   var customers=[];
   S.masterProjects.forEach(function(mp){if(mp.customer&&customers.indexOf(mp.customer)<0)customers.push(mp.customer);});
   customers.sort(function(a,b){return a.localeCompare(b,'ko');});
-  var html='<option value="all"'+(_mpFilterCustomer==='all'?' selected':'')+'>전체</option>';
+  var html='<option value="all"'+(_mpFilterCustomer==='all'?' selected':'')+'>'+t('optAll')+'</option>';
   customers.forEach(function(c){html+='<option value="'+_esc(c)+'"'+(_mpFilterCustomer===c?' selected':'')+'>'+_esc(c)+'</option>';});
   return html;
 }
@@ -120,7 +120,7 @@ function _mpShipMonthFilterOpts(){
   var months=[];
   S.masterProjects.forEach(function(mp){var m=_mpShipMonth(mp);if(m&&months.indexOf(m)<0)months.push(m);});
   months.sort();
-  var html='<option value="all"'+(_mpFilterShipMonth==='all'?' selected':'')+'>전체</option>';
+  var html='<option value="all"'+(_mpFilterShipMonth==='all'?' selected':'')+'>'+t('optAll')+'</option>';
   months.forEach(function(m){html+='<option value="'+m+'"'+(_mpFilterShipMonth===m?' selected':'')+'>'+m+'</option>';});
   return html;
 }
@@ -175,13 +175,13 @@ function renderProjectsTable(rows){
     return '<th class="'+(isOn?'on':'')+'" onclick="setMpSort(\''+key+'\')">'+lbl+arrow+'</th>';
   }
   var html='<table class="pm-person-table"><thead><tr>';
-  html+=thS('category','구분')+thS('region','지역')+thS('customer','고객사')+thS('projectName','프로젝트');
-  html+='<th>프로젝트 시리얼</th>';
-  html+='<th>생산/고객사 호기</th>';
-  html+=thS('setupStart','생산 셋업 기간');
-  html+=thS('shipDate','설비 출하 일정');
-  html+=thS('status','상태');
-  if(_isAdminMode()) html+='<th>관리</th>';
+  html+=thS('category',t('colCategory'))+thS('region',t('mpRegion'))+thS('customer',t('mpCustomer'))+thS('projectName',t('colProject'));
+  html+='<th>'+t('colSerial')+'</th>';
+  html+='<th>'+t('colUnitCombined')+'</th>';
+  html+=thS('setupStart',t('colSetupPeriod'));
+  html+=thS('shipDate',t('colShipDate'));
+  html+=thS('status',t('mpStatus'));
+  if(_isAdminMode()) html+='<th>'+t('colManage')+'</th>';
   html+='</tr></thead><tbody>';
   rows.forEach(function(mp){html+=renderProjectRow(mp);});
   html+='</tbody></table>';
@@ -204,8 +204,8 @@ function renderProjectRow(mp){
     +'<td>'+shipLbl+'</td>'
     +'<td>'+_esc(mp.status||'')+'</td>'
     +(admin?('<td onclick="event.stopPropagation()">'
-      +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">수정</button> '
-      +'<button class="eq-item-edit-btn" onclick="delMasterProject(\''+mp.id+'\')" style="color:#c04040">삭제</button>'
+      +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">'+t('btnEdit')+'</button> '
+      +'<button class="eq-item-edit-btn" onclick="delMasterProject(\''+mp.id+'\')" style="color:#c04040">'+t('btnDelete')+'</button>'
       +'</td>'):'')
     +'</tr>';
 }
@@ -354,9 +354,9 @@ function renderMonthlyAggTab(){
   }
   var html='<div style="overflow:auto;flex:1;padding:12px">';
   html+='<table class="pm-person-table"><thead><tr>'
-    +'<th>월</th><th>본사 셋업 설비 수</th><th>본사 셋업 설비군</th>'
-    +'<th>현장 셋업 설비 수</th><th>현장 셋업 설비군</th>'
-    +'<th>출장 인원</th><th>출장 인원 명단</th></tr></thead><tbody>';
+    +'<th>'+t('maMonth')+'</th><th>'+t('maHqCount')+'</th><th>'+t('maHqList')+'</th>'
+    +'<th>'+t('maSiteCount')+'</th><th>'+t('maSiteList')+'</th>'
+    +'<th>'+t('maPeople')+'</th><th>'+t('maPeopleList')+'</th></tr></thead><tbody>';
   months.forEach(function(ym){
     var hq=_mpMonthGroup(ym,'hq');
     var site=_mpMonthGroup(ym,'site');

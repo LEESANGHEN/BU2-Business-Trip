@@ -426,8 +426,8 @@ function renderPersonTab(){
 
   // 통계 카드
   html+='<div class="pm-stats-row">';
-  html+='<div class="pm-stat-card"><div class="pm-stat-val">'+totalPersons+'</div><div class="pm-stat-lbl">등록 인원</div><div class="pm-stat-sub">전체 출장자</div><div class="pm-stat-breakdown"><span class="pm-bd-hq">본사계열 '+totalHq+'</span><span class="pm-bd-out">외주 '+totalOut+'</span></div></div>';
-  html+='<div class="pm-stat-card"><div class="pm-stat-val" style="color:#2176cc">'+onTripNow+'</div><div class="pm-stat-lbl">현재 출장 중</div><div class="pm-stat-sub">오늘 기준</div><div class="pm-stat-breakdown"><span class="pm-bd-hq">본사계열 '+onTripHq+'</span><span class="pm-bd-out">외주 '+onTripOut+'</span></div></div>';
+  html+='<div class="pm-stat-card"><div class="pm-stat-val">'+totalPersons+'</div><div class="pm-stat-lbl">'+t('statRegisteredPersons')+'</div><div class="pm-stat-sub">'+t('statAllTravelers')+'</div><div class="pm-stat-breakdown"><span class="pm-bd-hq">'+t('legendHq')+' '+totalHq+'</span><span class="pm-bd-out">'+t('pmBdOutsource')+' '+totalOut+'</span></div></div>';
+  html+='<div class="pm-stat-card"><div class="pm-stat-val" style="color:#2176cc">'+onTripNow+'</div><div class="pm-stat-lbl">'+t('statOnTripNow')+'</div><div class="pm-stat-sub">'+t('statTodayBasis')+'</div><div class="pm-stat-breakdown"><span class="pm-bd-hq">'+t('legendHq')+' '+onTripHq+'</span><span class="pm-bd-out">'+t('pmBdOutsource')+' '+onTripOut+'</span></div></div>';
   html+='</div>';
 
   // ── 사이트별 Total 출장일수 요약
@@ -437,22 +437,22 @@ function renderPersonTab(){
   html+='<div class="pm-ctrl-bar" id="pmCtrlBar">';
   html+='<div class="pm-ctrl-group">';
   html+='<span style="font-size:11px;color:#666">🔍</span>';
-  html+='<input class="pm-search" id="pmSearchInp" type="text" placeholder="이름 검색..." autocomplete="off" oninput="setPmSearch(this.value)">';
+  html+='<input class="pm-search" id="pmSearchInp" type="text" placeholder="'+t('pmSearchPh')+'" autocomplete="off" oninput="setPmSearch(this.value)">';
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">상태</span>';
-  [{v:'all',l:'전체'},{v:'going',l:'출장중'},{v:'home',l:'국내'}].forEach(function(f){
+  html+='<span style="font-size:10px;color:#555">'+t('mpStatus')+'</span>';
+  [{v:'all',l:t('pmStatusAll')},{v:'going',l:t('pmStatusGoing')},{v:'home',l:t('pmStatusHome')}].forEach(function(f){
     html+='<button class="pm-filter-btn'+((_pmFilter===f.v)?' on':'')+'" onclick="setPmFilter(\''+f.v+'\')">'+f.l+'</button>';
   });
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group" style="flex-wrap:wrap;gap:4px">';
-  html+='<span style="font-size:10px;color:#555">인원</span>';
-  var typeList=[['hq','본사',TYPE_COLOR.hq],['outsource','외주',TYPE_COLOR.outsource],['localOutsource','현지외주',TYPE_COLOR.localOutsource],['tech','기술',TYPE_COLOR.tech],['vision','비전',TYPE_COLOR.vision],['host','호스트',TYPE_COLOR.host]];
-  typeList.forEach(function(t){
-    var isOn=_pmTypeFilter[t[0]];
-    html+='<label class="pm-type-ck'+(isOn?' on':'')+'" style="--tc:'+t[2]+';'+(isOn?'background:'+t[2]+'22;border-color:'+t[2]:'')+'"><input type="checkbox"'+(isOn?' checked':'')+' onchange="togglePmType(\''+t[0]+'\')">'+t[1]+'</label>';
+  html+='<span style="font-size:10px;color:#555">'+t('pmPersonTypeLabel')+'</span>';
+  var typeList=[['hq',t('pmTypeHq'),TYPE_COLOR.hq],['outsource',t('pmTypeOutsource'),TYPE_COLOR.outsource],['localOutsource',t('pmTypeLocalOutsource'),TYPE_COLOR.localOutsource],['tech',t('pmTypeTech'),TYPE_COLOR.tech],['vision',t('pmTypeVision'),TYPE_COLOR.vision],['host',t('pmTypeHost'),TYPE_COLOR.host]];
+  typeList.forEach(function(tp){
+    var isOn=_pmTypeFilter[tp[0]];
+    html+='<label class="pm-type-ck'+(isOn?' on':'')+'" style="--tc:'+tp[2]+';'+(isOn?'background:'+tp[2]+'22;border-color:'+tp[2]:'')+'"><input type="checkbox"'+(isOn?' checked':'')+' onchange="togglePmType(\''+tp[0]+'\')">'+tp[1]+'</label>';
   });
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
@@ -461,7 +461,7 @@ function renderPersonTab(){
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
-  html+='<button class="pm-filter-btn'+(_pmHideDone?' on':'')+'" id="pmHideDoneBtn" onclick="togglePmHideDone()">완료 숨기기</button>';
+  html+='<button class="pm-filter-btn'+(_pmHideDone?' on':'')+'" id="pmHideDoneBtn" onclick="togglePmHideDone()">'+t('pmHideDone')+'</button>';
   html+='</div>';
   html+='</div>';
 
@@ -476,8 +476,8 @@ function renderPersonTab(){
 
 // 정렬 버튼 HTML 조각 생성 (컨트롤바 내 정렬 버튼 업데이트에 재사용)
 function buildSortBtnsHtml(){
-  var sortBtns=[['name','이름'],['days','최초 출장일수'],['grandTotal','전체 출장일수']];
-  var h='<span style="font-size:10px;color:#555">정렬</span>';
+  var sortBtns=[['name',t('pmSortName')],['days',t('pmSortDays')],['grandTotal',t('pmSortGrandTotal')]];
+  var h='<span style="font-size:10px;color:#555">'+t('pmSortLabel')+'</span>';
   sortBtns.forEach(function(b){
     var isOn=_pmSortKey===b[0];
     var arrow=isOn?(_pmSortAsc?'▲':'▼'):'';
@@ -608,12 +608,12 @@ function renderPersonTable(rows){
     var arrow=isOn?(_pmSortAsc?' ▲':' ▼'):'';
     return '<th class="'+(isOn?'on':'')+'" onclick="setPmSort(\''+key+'\')">'+lbl+arrow+'</th>';
   }
-  html+=thS('name','이름');
-  html+=thS('country','국가')+thS('city','지역')+thS('site','사이트');
-  html+=thS('days','최초 출장일수');
-  html+='<th>1차 연장일수</th><th>2차 연장일수</th>';
-  html+='<th>상태</th>';
-  html+=thS('grandTotal','전체 출장일수');
+  html+=thS('name',t('colName'));
+  html+=thS('country',t('colCountry'))+thS('city',t('colCity'))+thS('site',t('colSite'));
+  html+=thS('days',t('colFirstDays'));
+  html+='<th>'+t('colExt1Days')+'</th><th>'+t('colExt2Days')+'</th>';
+  html+='<th>'+t('colStatusBadge')+'</th>';
+  html+=thS('grandTotal',t('colGrandTotal'));
   html+='</tr></thead><tbody>';
 
   rows.forEach(function(r){ html+=renderPersonRow(r); });

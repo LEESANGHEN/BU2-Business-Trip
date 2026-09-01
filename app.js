@@ -1233,6 +1233,7 @@ function _handleTitleClick(e){
 // 모든 스크립트 로드 후 실행 (renderAll 등이 gantt.js에 정의되므로 DOMContentLoaded 사용)
 document.addEventListener('DOMContentLoaded', function(){
   initTheme();
+  applyLanguage();
   _applyAdminVisibility();
   loadData();
   renderAll(); // 캐시/DEF 데이터로 즉시 표시

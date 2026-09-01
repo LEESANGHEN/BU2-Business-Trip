@@ -15,50 +15,51 @@
   <div class="app">
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:8px">
-        <span class="ttl" onclick="_handleTitleClick(event)">출장 일정 관리</span>
+        <span class="ttl" data-i18n="appTitle" onclick="_handleTitleClick(event)">출장 일정 관리</span>
         <div class="conn-dot" id="connStatus" onclick="checkConn()" title="클릭하면 연결 상태 확인">
           <div class="conn-led" id="connLed"></div>
           <span id="connTxt">연결 확인</span>
         </div>
-        <button class="sidebar-toggle" id="themeToggle" onclick="toggleTheme()" title="다크/라이트 모드 전환">🌙</button>
+        <button class="sidebar-toggle" id="themeToggle" onclick="toggleTheme()" data-i18n-title="themeToggleTitle" title="다크/라이트 모드 전환">🌙</button>
+        <select id="langSelect" class="sidebar-toggle" data-i18n-title="langSelectTitle" title="언어 선택" onchange="setLanguage(this.value)" style="width:auto;padding:2px 4px;cursor:pointer"></select>
       </div>
       <div class="tright" id="topbarRight">
         <div id="ganttTools" style="display:none;gap:5px;align-items:center;flex-wrap:nowrap">
           <button class="mobile-only sidebar-toggle" onclick="openSidebar('gantt')" title="사이트 필터">☰</button>
           <div class="leg">
             <div class="legg">
-              <span class="legl">본사계열</span>
-              <div class="legi"><div class="legd" style="background:#4a4a6a"></div>완료</div>
-              <div class="legi"><div class="legd" style="background:#2176cc"></div>출장중</div>
-              <div class="legi"><div class="legd" style="background:#b5642e"></div>1차 연장</div>
-              <div class="legi"><div class="legd" style="background:#c23636"></div>2차 연장</div>
-              <div class="legi"><div class="legd" style="background:#0f9e6e"></div>예정</div>
+              <span class="legl" data-i18n="legendHq">본사계열</span>
+              <div class="legi"><div class="legd" style="background:#4a4a6a"></div><span data-i18n="legendDone">완료</span></div>
+              <div class="legi"><div class="legd" style="background:#2176cc"></div><span data-i18n="legendGoing">출장중</span></div>
+              <div class="legi"><div class="legd" style="background:#b5642e"></div><span data-i18n="legendExt1">1차 연장</span></div>
+              <div class="legi"><div class="legd" style="background:#c23636"></div><span data-i18n="legendExt2">2차 연장</span></div>
+              <div class="legi"><div class="legd" style="background:#0f9e6e"></div><span data-i18n="legendPlan">예정</span></div>
             </div>
             <div class="legs"></div>
             <div class="legg">
-              <span class="legl">외주계열</span>
-              <div class="legi"><div class="legd" style="background:#5a4a2a"></div>완료</div>
-              <div class="legi"><div class="legd" style="background:#cc8010"></div>출장중</div>
-              <div class="legi"><div class="legd" style="background:#8a4a1e"></div>1차 연장</div>
-              <div class="legi"><div class="legd" style="background:#8f2020"></div>2차 연장</div>
-              <div class="legi" style="border-right:none"><div class="legd" style="background:#8a6e00"></div>예정</div>
+              <span class="legl" data-i18n="legendOutsource">외주계열</span>
+              <div class="legi"><div class="legd" style="background:#5a4a2a"></div><span data-i18n="legendDone">완료</span></div>
+              <div class="legi"><div class="legd" style="background:#cc8010"></div><span data-i18n="legendGoing">출장중</span></div>
+              <div class="legi"><div class="legd" style="background:#8a4a1e"></div><span data-i18n="legendExt1">1차 연장</span></div>
+              <div class="legi"><div class="legd" style="background:#8f2020"></div><span data-i18n="legendExt2">2차 연장</span></div>
+              <div class="legi" style="border-right:none"><div class="legd" style="background:#8a6e00"></div><span data-i18n="legendPlan">예정</span></div>
             </div>
           </div>
-          <input type="text" id="ganttSearchInput" class="gantt-search" placeholder="검색" oninput="ganttSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+          <input type="text" id="ganttSearchInput" class="gantt-search" data-i18n-ph="searchPh" placeholder="검색" oninput="ganttSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
           <div style="display:flex;gap:2px">
-            <button class="btn active" id="zoomBtn_week" onclick="setGanttZoom('week')">주</button>
-            <button class="btn" id="zoomBtn_biweek" onclick="setGanttZoom('biweek')">격주</button>
-            <button class="btn" id="zoomBtn_month" onclick="setGanttZoom('month')">월</button>
+            <button class="btn active" id="zoomBtn_week" data-i18n="zoomWeek" onclick="setGanttZoom('week')">주</button>
+            <button class="btn" id="zoomBtn_biweek" data-i18n="zoomBiweek" onclick="setGanttZoom('biweek')">격주</button>
+            <button class="btn" id="zoomBtn_month" data-i18n="zoomMonth" onclick="setGanttZoom('month')">월</button>
           </div>
           <div style="display:flex;gap:8px;align-items:center">
-            <label class="chkrow"><input type="checkbox" id="tf_sched" checked onchange="toggleTypeShow('sched',this.checked)">출장일정</label>
-            <label class="chkrow"><input type="checkbox" id="tf_event" checked onchange="toggleTypeShow('event',this.checked)">이벤트</label>
-            <label class="chkrow"><input type="checkbox" id="tf_work" checked onchange="toggleTypeShow('work',this.checked)">작업</label>
+            <label class="chkrow"><input type="checkbox" id="tf_sched" checked onchange="toggleTypeShow('sched',this.checked)"><span data-i18n="filterSchedule">출장일정</span></label>
+            <label class="chkrow"><input type="checkbox" id="tf_event" checked onchange="toggleTypeShow('event',this.checked)"><span data-i18n="filterEvent">이벤트</span></label>
+            <label class="chkrow"><input type="checkbox" id="tf_work" checked onchange="toggleTypeShow('work',this.checked)"><span data-i18n="filterWork">작업</span></label>
           </div>
-          <button class="btn" id="btnHidden" onclick="toggleShowHidden()">숨김 보기</button>
-          <button class="btn" id="btnSiteMgr" onclick="openModal('site')">사이트 관리</button>
-          <button class="btn ev" id="btnAddEvent" onclick="openModal('event')">★ 이벤트 등록</button>
-          <button class="btn pri" id="btnAddSchedule" onclick="openModal('schedule')">+ 출장 등록</button>
+          <button class="btn" id="btnHidden" data-i18n="btnHidden" onclick="toggleShowHidden()">숨김 보기</button>
+          <button class="btn" id="btnSiteMgr" data-i18n="btnSiteMgr" onclick="openModal('site')">사이트 관리</button>
+          <button class="btn ev" id="btnAddEvent" data-i18n="btnAddEvent" onclick="openModal('event')">★ 이벤트 등록</button>
+          <button class="btn pri" id="btnAddSchedule" data-i18n="btnAddSchedule" onclick="openModal('schedule')">+ 출장 등록</button>
         </div>
         <div id="visionTools" style="display:none;gap:5px;align-items:center;flex-wrap:wrap">
           <button class="mobile-only sidebar-toggle" onclick="openSidebar('vision')" title="사이트 필터">☰</button>
@@ -82,17 +83,17 @@
           <button class="btn" id="btnAddEquipUnit" onclick="openAddEquipUnit()" style="display:none">+ 호기</button>
           <button class="btn warn" id="btnAddEquipItem" onclick="openAddEquipItem()" style="display:none">+ 항목</button>
         </div>
-        <button class="btn" onclick="downloadExcel()">⬇ 엑셀</button>
-        <button class="btn" id="btnSheetsSettings" onclick="openSheetsSettings()">⚙ Sheets 설정</button>
+        <button class="btn" data-i18n="btnExcel" onclick="downloadExcel()">⬇ 엑셀</button>
+        <button class="btn" id="btnSheetsSettings" data-i18n="btnSheetsSettings" onclick="openSheetsSettings()">⚙ Sheets 설정</button>
       </div>
     </div>
     <div class="tab-bar">
       <div class="tab-nav">
-        <button class="tab-btn on" id="tab_projects" onclick="switchTab('projects')">🗂️ 프로젝트 관리</button>
-        <button class="tab-btn" id="tab_gantt" onclick="switchTab('gantt')">📅 간트 차트</button>
-        <button class="tab-btn" id="tab_person" onclick="switchTab('person')">👤 인원 출장일</button>
+        <button class="tab-btn on" id="tab_projects" data-i18n="tabProjects" onclick="switchTab('projects')">🗂️ 프로젝트 관리</button>
+        <button class="tab-btn" id="tab_gantt" data-i18n="tabGantt" onclick="switchTab('gantt')">📅 간트 차트</button>
+        <button class="tab-btn" id="tab_person" data-i18n="tabPerson" onclick="switchTab('person')">👤 인원 출장일</button>
         <button class="tab-btn" id="tab_equip" onclick="switchTab('equip')" style="display:none">🏭 설비 진행율</button>
-        <button class="tab-btn" id="tab_vision" onclick="switchTab('vision')">📊 월별 집계</button>
+        <button class="tab-btn" id="tab_vision" data-i18n="tabVision" onclick="switchTab('vision')">📊 월별 집계</button>
       </div>
     </div>
     <div class="content" id="view_projects">
@@ -101,7 +102,7 @@
     <div class="content" id="view_gantt" style="display:none">
       <div class="sidebar" id="ganttSidebar">
         <div class="sbhead" style="display:flex;align-items:center;justify-content:space-between">
-          <span class="slbl">사이트 필터</span>
+          <span class="slbl" data-i18n="siteFilter">사이트 필터</span>
           <button class="mobile-only sidebar-toggle" onclick="closeSidebar('gantt')" title="닫기" style="font-size:11px;padding:2px 6px">✕</button>
         </div>
         <div class="sbody" id="siteList"></div>
@@ -112,8 +113,8 @@
             <div class="ghrow">
               <div class="ghinner">
                 <div class="ghfixed">
-                  <div class="ghc" style="width:68px;min-width:68px;max-width:68px">업무</div>
-                  <div class="ghc">출장자</div>
+                  <div class="ghc" style="width:68px;min-width:68px;max-width:68px" data-i18n="ghTask">업무</div>
+                  <div class="ghc" data-i18n="ghTraveler">출장자</div>
                 </div>
                 <div class="ghtl" id="ghTl"></div>
               </div>
@@ -148,11 +149,12 @@
   <div id="mc"></div>
 
   <script src="data.js?v=20260723b"></script>
-  <script src="app.js?v=20260901b"></script>
+  <script src="i18n.js?v=20260901a"></script>
+  <script src="app.js?v=20260901c"></script>
   <script src="gantt.js?v=20260901a"></script>
   <script src="modals.js?v=20260901a"></script>
-  <script src="projects.js?v=20260901p"></script>
-  <script src="person.js?v=20260901d"></script>
+  <script src="projects.js?v=20260901q"></script>
+  <script src="person.js?v=20260901e"></script>
   <script src="equip.js?v=20260810w"></script>
   <script src="vision.js?v=20260807a"></script>
   <script src="export.js?v=20260901a"></script>
