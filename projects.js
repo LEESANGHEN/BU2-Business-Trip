@@ -152,8 +152,7 @@ function renderProjectsTable(rows){
 
 function _mpTripSummary(mp){
   if(!mp.trip1Start||!mp.trip1End) return '<span style="color:#707080">미등록</span>';
-  var lastEnd=mp.trip3End||mp.trip2End||mp.trip1End;
-  return fmtFull(mp.trip1Start)+' ~ '+fmtFull(lastEnd);
+  return fmtFull(mp.trip1Start)+' ~ '+fmtFull(mp.trip1End);
 }
 
 function renderProjectRow(mp){
@@ -235,14 +234,12 @@ function _mpFormHtml(mp){
     +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_setupManager" value="'+v('setupManager')+'" autocomplete="off"></div>'
     +'</div>';
   html+='<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>';
-  [1,2,3].forEach(function(n){
-    html+='<div style="font-size:11px;color:var(--tx-muted);margin:10px 0 4px;font-weight:600">'+n+'차 출장</div>';
-    html+='<div style="display:flex;gap:8px">'
-      +dateFld('mp_trip'+n+'Start','시작',ie?mp['trip'+n+'Start']:'')
-      +dateFld('mp_trip'+n+'End','종료',ie?mp['trip'+n+'End']:'')
-      +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_trip'+n+'Manager" value="'+v('trip'+n+'Manager')+'" autocomplete="off"></div>'
-      +'</div>';
-  });
+  html+='<div style="font-size:11px;color:var(--tx-muted);margin:10px 0 4px;font-weight:600">출장 일정</div>';
+  html+='<div style="display:flex;gap:8px">'
+    +dateFld('mp_trip1Start','시작',ie?mp.trip1Start:'')
+    +dateFld('mp_trip1End','종료',ie?mp.trip1End:'')
+    +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_trip1Manager" value="'+v('trip1Manager')+'" autocomplete="off"></div>'
+    +'</div>';
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="완료"><option value="발주 대기"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
@@ -261,8 +258,6 @@ function _mpReadForm(){
     setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'),
     shipDate:v('mp_shipDate'),
     trip1Start:v('mp_trip1Start'), trip1End:v('mp_trip1End'), trip1Manager:v('mp_trip1Manager'),
-    trip2Start:v('mp_trip2Start'), trip2End:v('mp_trip2End'), trip2Manager:v('mp_trip2Manager'),
-    trip3Start:v('mp_trip3Start'), trip3End:v('mp_trip3End'), trip3Manager:v('mp_trip3Manager'),
     status:v('mp_status')
   };
 }
@@ -352,7 +347,7 @@ function renderMonthlyAggTab(){
 function _mpAllMonths(){
   var min=null,max=null;
   S.masterProjects.forEach(function(mp){
-    [mp.setupStart,mp.setupEnd,mp.trip1Start,mp.trip1End,mp.trip2Start,mp.trip2End,mp.trip3Start,mp.trip3End].forEach(function(d){
+    [mp.setupStart,mp.setupEnd,mp.trip1Start,mp.trip1End].forEach(function(d){
       if(!d)return;
       if(!min||d<min)min=d;
       if(!max||d>max)max=d;
@@ -381,7 +376,7 @@ function _mpMonthGroup(ym,phase){
   S.masterProjects.forEach(function(mp){
     var overlap;
     if(phase==='hq') overlap=_mpMonthOverlap(ym,mp.setupStart,mp.setupEnd);
-    else overlap=_mpMonthOverlap(ym,mp.trip1Start,mp.trip3End||mp.trip2End||mp.trip1End);
+    else overlap=_mpMonthOverlap(ym,mp.trip1Start,mp.trip1End);
     if(!overlap)return;
     var key=(mp.region||'기타')+'|'+(mp.customer||'')+'|'+(mp.projectName||'');
     groups[key]=(groups[key]||0)+1;
@@ -396,12 +391,9 @@ function _mpMonthGroup(ym,phase){
 function _mpMonthTravelers(ym){
   var names={};
   S.masterProjects.forEach(function(mp){
-    var tEnd=mp.trip3End||mp.trip2End||mp.trip1End;
-    if(!_mpMonthOverlap(ym,mp.trip1Start,tEnd))return;
-    [mp.trip1Manager,mp.trip2Manager,mp.trip3Manager].forEach(function(txt){
-      if(!txt)return;
-      txt.split(',').forEach(function(nm){nm=nm.trim();if(nm)names[nm]=true;});
-    });
+    if(!_mpMonthOverlap(ym,mp.trip1Start,mp.trip1End))return;
+    if(!mp.trip1Manager)return;
+    mp.trip1Manager.split(',').forEach(function(nm){nm=nm.trim();if(nm)names[nm]=true;});
   });
   return Object.keys(names);
 }
