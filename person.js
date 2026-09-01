@@ -227,6 +227,7 @@ var _pmTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localO
 var _pmSitePeriod='all';      // 사이트별 출장일 집계 기간: all | year | r12
 var _pmSiteCollapsed=true;    // 사이트별 출장일 요약 접기 상태 (기본 접힘)
 var _pmSiteTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localOutsource:true}; // 사이트별 요약 인원유형 체크
+var _pmHideDone=false;        // 완료된 출장(간트 기준 종료일 지남) 숨기기
 
 function setPmFilter(f){ _pmFilter=f; renderPersonTab(); }
 function setPmSearch(v){
@@ -240,6 +241,10 @@ function setPmSort(key){
 }
 function togglePmType(type){
   _pmTypeFilter[type]=!_pmTypeFilter[type];
+  renderPersonBody();
+}
+function togglePmHideDone(){
+  _pmHideDone=!_pmHideDone;
   renderPersonBody();
 }
 function setPmSitePeriod(p){
@@ -454,6 +459,10 @@ function renderPersonTab(){
   html+='<div class="pm-ctrl-group" id="pmSortBtns">';
   html+=buildSortBtnsHtml();
   html+='</div>';
+  html+='<div class="pm-ctrl-sep"></div>';
+  html+='<div class="pm-ctrl-group">';
+  html+='<button class="pm-filter-btn'+(_pmHideDone?' on':'')+'" id="pmHideDoneBtn" onclick="togglePmHideDone()">완료 숨기기</button>';
+  html+='</div>';
   html+='</div>';
 
   html+='</div>'; // .pm-fixed-header 닫기
@@ -498,6 +507,9 @@ function renderPersonBody(){
   var sortEl=document.getElementById('pmSortBtns');
   if(sortEl) sortEl.innerHTML=buildSortBtnsHtml();
 
+  var hideDoneBtn=document.getElementById('pmHideDoneBtn');
+  if(hideDoneBtn) hideDoneBtn.className='pm-filter-btn'+(_pmHideDone?' on':'');
+
   // 타입필터 버튼 상태 업데이트
   var ctrlBar=document.getElementById('pmCtrlBar');
   if(ctrlBar){
@@ -534,6 +546,7 @@ function renderPersonBody(){
     if(_pmSearch && r.name.toLowerCase().indexOf(_pmSearch)<0) return false;
     if(_pmFilter==='going' && r.trip.status!=='going') return false;
     if(_pmFilter==='home'  && !r.trip.domestic) return false;
+    if(_pmHideDone && r.trip.status==='done') return false;
     return true;
   });
 
@@ -570,6 +583,7 @@ function renderPersonTable(rows){
   html+=thS('country','국가')+thS('city','지역')+thS('site','사이트');
   html+=thS('days','최초 출장일수');
   html+='<th>1차 연장일수</th><th>2차 연장일수</th>';
+  html+='<th>상태</th>';
   html+=thS('grandTotal','전체 출장일수');
   html+='</tr></thead><tbody>';
 
@@ -580,6 +594,13 @@ function renderPersonTable(rows){
     +'* 전체 출장일수는 해당 인원의 모든 출장을 합산한 값입니다 (같은 인원의 각 행에 동일하게 표시).'
     +'</div>';
   return html;
+}
+
+// 간트와 동일한 날짜 기준 status(going/plan/done)를 뱃지로 표시
+function _pmStatusBadge(status){
+  if(status==='going') return '<span class="pm-trip-status status-going">진행중</span>';
+  if(status==='plan')  return '<span class="pm-trip-status status-plan">예정</span>';
+  return '<span class="pm-trip-status status-done">완료</span>';
 }
 
 function renderPersonRow(r){
@@ -600,6 +621,7 @@ function renderPersonRow(r){
   html+='<td style="text-align:center"><span class="pm-days-big" style="font-size:15px">'+t.days+'</span><span class="pm-days-unit"> 일</span></td>';
   html+='<td style="text-align:center">'+(t.ext1Days>0?'<span style="color:#e0972e;font-weight:600">'+t.ext1Days+'일</span>':'<span style="color:var(--tx-muted)">-</span>')+'</td>';
   html+='<td style="text-align:center">'+(t.ext2Days>0?'<span style="color:#e05050;font-weight:600">'+t.ext2Days+'일</span>':'<span style="color:var(--tx-muted)">-</span>')+'</td>';
+  html+='<td style="text-align:center">'+_pmStatusBadge(t.status)+'</td>';
   html+='<td style="text-align:center"><span class="pm-days-big" style="font-size:15px;font-weight:700">'+r.grandTotal+'</span><span class="pm-days-unit"> 일</span></td>';
   html+='</tr>';
   return html;
