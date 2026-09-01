@@ -415,6 +415,7 @@ function _mpMonthTravelers(ym){
   var bySite={}; // '지역|사이트' -> {이름:true,...}
   var allNames={};
   S.schedules.forEach(function(sc){
+    if(sc.type!=='tech')return; // 인원 구분이 "기술"인 인원만 명단에 반영
     if(!_mpMonthOverlap(ym,sc.start,sc.end))return;
     if(!sc.name)return;
     var proj=S.projects.find(function(p){return p.id===sc.projectId;});
