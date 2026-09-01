@@ -206,8 +206,8 @@ function _occSeqOptsHtml(sel){
 }
 function showSM(ex){
   var ie=!!ex;
-  var so=_sitesWithProjects().map(function(s){return '<option value="'+s.id+'">'+s.name+'</option>';}).join('');
-  var initialCheckedIds=ie?_scheduleSiblings(ex).map(function(s){return s.projectId;}):[];
+  var so=_sortedSites().map(function(s){return '<option value="'+s.id+'">'+s.name+'</option>';}).join('');
+  var initialProjNames=ie?_scheduleSiblings(ex).map(function(s){var p=S.projects.find(function(pp){return pp.id===s.projectId;});return p?p.name:'';}).filter(Boolean):[];
   var curType=ie?(ex.type||'hq'):'hq';
   var typeOpts=[['hq','본사'],['outsource','외주'],['localOutsource','현지외주'],['tech','기술'],['vision','비전'],['host','호스트']].map(function(t){return '<option value="'+t[0]+'"'+(curType===t[0]?' selected':'')+'>'+t[1]+'</option>';}).join('');
   var days=ie?dd(ex.start,ex.end)+' 일':'-';
@@ -217,8 +217,9 @@ function showSM(ex){
   var html='<div class="mtit">'+(ie?'출장 일정 수정':'출장 일정 등록')+'</div>';
   html+='<div class="fg"><label class="fl">사이트</label><select id="f_site">'+so+'</select></div>';
   html+='<div class="fg"><label class="fl">국내 여부</label><label class="chkrow" style="margin:0"><input type="checkbox" id="f_domestic"'+(isDomestic?' checked':'')+'>국내 출장 (현장이 아닌 국내에서 진행)</label><span id="f_dom_warn" style="display:none;font-size:10px;color:#d08020;margin-left:6px">⚠ 해외 사이트 — 출장일이 국내로 집계됩니다</span></div>';
-  html+='<div class="fg"><label class="fl">프로젝트 (여러 개 선택 가능 — 한 사이트에서 여러 설비를 함께 셋업하는 경우)</label>'
-    +'<div id="f_proj_list" style="display:flex;flex-direction:column;gap:2px;max-height:150px;overflow-y:auto;padding:4px 0"></div></div>';
+  html+='<div class="fg"><label class="fl">프로젝트 (한 출장에 설비를 여러 개 함께 진행하면 + 추가로 늘리세요)</label>'
+    +'<div id="f_proj_list" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;padding:4px 0"></div>'
+    +'<button type="button" class="btn sm" id="f_proj_add" style="margin-top:4px">+ 추가</button></div>';
   html+='<div class="fg"><label class="fl">업무 유형</label><input type="text" id="f_task" value="'+(ie?ex.task:'')+'" placeholder="예: 셋업, 대응, 개조"></div>';
   html+='<div class="fg"><label class="fl">출장자 이름</label><input type="text" id="f_name" value="'+(ie?ex.name:'')+'" placeholder="이름 입력"></div>';
   html+='<div class="fg"><label class="fl">회차</label><select id="f_occSeq">'+_occSeqOptsHtml(ie?(ex.occSeq||1):1)+'</select>'
@@ -240,12 +241,13 @@ function showSM(ex){
   _smIsEdit=ie;
   // 이벤트 등록
   function _updDomWarn(){var sid=document.getElementById('f_site').value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');var warn=document.getElementById('f_dom_warn');if(warn)warn.style.display=(domCb&&domCb.checked&&reg!=='국내'&&reg!=='기타')?'inline':'none';}
-  document.getElementById('f_site').onchange=function(){upP();var sid=this.value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');if(domCb&&reg!=='국내'&&reg!=='기타'){domCb.checked=false;}_updDomWarn();};
+  document.getElementById('f_site').onchange=function(){var sid=this.value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');if(domCb&&reg!=='국내'&&reg!=='기타'){domCb.checked=false;}_updDomWarn();};
   document.getElementById('f_domestic').onchange=function(){_updDomWarn();};
   document.getElementById('f_start').onchange=function(){document.getElementById('f_end').min=this.value;calcD();};
   document.getElementById('f_end').onchange=function(){calcD();};
   document.getElementById('f_name').onblur=function(){_prefillFromExisting();};
   document.getElementById('f_occSeq').onchange=function(){_prefillFromExisting();};
+  document.getElementById('f_proj_add').onclick=function(){_addProjRow();};
   document.getElementById('f_cancel').onclick=function(){cm();};
   document.getElementById('f_save').onclick=function(){saveSc(ie?ex.id:null);};
   if(ie){
@@ -254,7 +256,7 @@ function showSM(ex){
     if(extBtn) extBtn.onclick=function(){addExtension(ex.id);};
     var pr2=S.projects.find(function(p){return p.id===ex.projectId;});
     if(pr2) document.getElementById('f_site').value=pr2.siteId;
-    upP(initialCheckedIds);
+    upP(initialProjNames);
     setTimeout(function(){
       calcD(); // 수정 모드에서 초기 날짜 표시
       _updDomWarn(); // 해외 사이트 + 국내 체크 시 경고 표시
@@ -272,24 +274,55 @@ function _populateProjSelect(siteSelId,projSelId,curProjId){
   var ps=S.projects.filter(function(p){return p.siteId===sid;}).sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
   document.getElementById(projSelId).innerHTML=ps.length?ps.map(function(p){return '<option value="'+p.id+'"'+(curProjId&&p.id===curProjId?' selected':'')+'>'+p.name+'</option>';}).join(''):'<option value="">해당 사이트에 프로젝트 없음</option>';
 }
-function upP(checkedIds){
-  var sid=document.getElementById('f_site').value;
+// 프로젝트 입력 칸: 사이트에 미리 등록된 프로젝트 목록이 아니라, 출장 등록 시 이름을 직접 입력한다
+// (여러 설비를 함께 진행하면 + 추가로 칸을 늘림) — 저장 시 _resolveProjIds()가 이름으로 찾거나 새로 만든다.
+function upP(initialNames){
+  _renderProjRows(initialNames&&initialNames.length?initialNames:['']);
+}
+function _renderProjRows(names){
   var list=document.getElementById('f_proj_list');
   if(!list)return;
-  var ps=S.projects.filter(function(p){return p.siteId===sid;}).sort(function(a,b){return a.name.localeCompare(b.name,'ko');});
-  if(!ps.length){list.innerHTML='<div style="font-size:11px;color:var(--tx-muted)">해당 사이트에 프로젝트 없음</div>';return;}
-  var checked=checkedIds||[];
-  list.innerHTML=ps.map(function(p){
-    return '<label class="chkrow" style="margin:0"><input type="checkbox" value="'+p.id+'"'+(checked.indexOf(p.id)>=0?' checked':'')+'>'+p.name+'</label>';
+  list.innerHTML=names.map(function(nm,i){
+    return '<div class="mrow" style="margin:0;gap:4px">'
+      +'<input type="text" class="f_proj_inp" value="'+_esc(nm)+'" placeholder="프로젝트명 입력" style="flex:1">'
+      +(names.length>1?'<button type="button" class="btn sm red" onclick="_removeProjRow('+i+')">×</button>':'')
+      +'</div>';
   }).join('');
-  Array.prototype.slice.call(list.querySelectorAll('input')).forEach(function(cb){
-    cb.onchange=function(){_prefillFromExisting();};
+  Array.prototype.slice.call(list.querySelectorAll('.f_proj_inp')).forEach(function(inp){
+    inp.onblur=function(){_prefillFromExisting();};
   });
 }
-function _readCheckedProjIds(){
+function _allProjRowValues(){
   var list=document.getElementById('f_proj_list');
   if(!list)return[];
-  return Array.prototype.slice.call(list.querySelectorAll('input:checked')).map(function(cb){return cb.value;});
+  return Array.prototype.slice.call(list.querySelectorAll('.f_proj_inp')).map(function(inp){return inp.value;});
+}
+function _addProjRow(){
+  var vals=_allProjRowValues();
+  vals.push('');
+  _renderProjRows(vals);
+  var inputs=document.querySelectorAll('#f_proj_list .f_proj_inp');
+  if(inputs.length) inputs[inputs.length-1].focus();
+}
+function _removeProjRow(idx){
+  var vals=_allProjRowValues();
+  vals.splice(idx,1);
+  _renderProjRows(vals.length?vals:['']);
+}
+function _readProjectNamesFromForm(){
+  return _allProjRowValues().map(function(v){return v.trim();}).filter(Boolean);
+}
+// 저장 시점에만 호출: 입력한 이름으로 현재 사이트의 프로젝트를 찾고, 없으면 새로 만든다
+function _resolveProjIds(){
+  var siteId=document.getElementById('f_site').value;
+  var names=_readProjectNamesFromForm();
+  return names.map(function(nm){
+    var existing=S.projects.find(function(p){return p.siteId===siteId&&p.name===nm;});
+    if(existing)return existing.id;
+    var newId=_createProjectId(nm);
+    S.projects.push(_touch({id:newId,siteId:siteId,name:nm}));
+    return newId;
+  });
 }
 // 신규 등록 모드에서 이름+프로젝트가 기존 출장(다른 회차)과 일치하면 인원 구분/국내 여부만
 // 그 기존 기록에서 자동으로 가져와 채운다. 업무 유형은 회차마다 실제로 다를 수 있어서
@@ -300,9 +333,14 @@ function _prefillFromExisting(){
   if(!nameEl) return;
   var name=nameEl.value.trim();
   if(!name) return;
-  var projIds=_readCheckedProjIds();
-  if(!projIds.length) return;
-  var match=S.schedules.find(function(s){return s.name===name&&projIds.indexOf(s.projectId)>=0;});
+  var siteId=document.getElementById('f_site').value;
+  var projNames=_readProjectNamesFromForm();
+  if(!projNames.length) return;
+  var match=S.schedules.find(function(s){
+    if(s.name!==name) return false;
+    var proj=S.projects.find(function(p){return p.id===s.projectId;});
+    return proj&&proj.siteId===siteId&&projNames.indexOf(proj.name)>=0;
+  });
   if(!match) return;
   var typeEl=document.getElementById('f_type');
   if(typeEl) typeEl.value=match.type||typeEl.value;
@@ -337,7 +375,7 @@ function calcD(){
   }
 }
 function saveSc(exId){
-  var projIds=_readCheckedProjIds();
+  var projIds=_resolveProjIds();
   var task=document.getElementById('f_task').value.trim();
   var name=document.getElementById('f_name').value.trim();
   var occSeq=parseInt(document.getElementById('f_occSeq').value,10)||1;
@@ -348,7 +386,7 @@ function saveSc(exId){
   var hidden=document.getElementById('f_hidden').checked;
   var domestic=document.getElementById('f_domestic').checked;
   var dateRe=/^\d{4}-\d{2}-\d{2}$/;
-  if(!projIds.length||!task||!name||!start||!end){alert('필수 항목을 모두 입력하세요(프로젝트를 최소 1개 선택하세요).');return;}
+  if(!projIds.length||!task||!name||!start||!end){alert('필수 항목을 모두 입력하세요(프로젝트명을 최소 1개 입력하세요).');return;}
   if(!dateRe.test(start)||!dateRe.test(end)){alert('날짜 형식이 올바르지 않아요.\n예: 2026-04-01');return;}
   if(start>end){alert('복귀일이 출발일보다 빠릅니다.');return;}
   if(exId){
@@ -469,7 +507,7 @@ function deleteExtension(scheduleId,seq){
 
 /* ── 사이트 관리 모달 (좌우 분할) ── */
 function showSiteM(){
-  mw('<div class="mtit">사이트 / 프로젝트 관리</div>'
+  mw('<div class="mtit">사이트 관리</div>'
     +'<div class="sitemgr">'
     +'<div class="sitemgr-l">'
     +'<div class="smtit">그룹 관리 (간트차트 고객사 분류)</div><div id="grpListRows"></div>'
@@ -480,10 +518,9 @@ function showSiteM(){
     +'<div style="display:flex;gap:5px;margin-bottom:4px"><input type="text" id="ns_n" placeholder="사이트명" style="flex:1"><input type="color" id="ns_c" value="#1558a0" style="width:30px;padding:1px;border:1px solid #3a3a44;border-radius:4px;background:#1e1e26"></div>'
     +'<div style="display:flex;gap:5px"><select id="ns_grpsel" style="flex:1">'+S.groups.map(function(g){return '<option value="'+g.id+'">'+g.name+'</option>';}).join('')+'</select><button class="btn sm pri" onclick="addSite()">추가</button></div>'
     +'</div></div>'
-    +'<div class="sitemgr-r"><div class="smtit">프로젝트</div><div id="projRows"></div></div>'
     +'</div>'
     +'<div class="mfoot"><button class="btn sm" onclick="cm()">닫기</button></div>',true);
-  buildGrpListRows();buildGrpSiteRows();buildProjRows();
+  buildGrpListRows();buildGrpSiteRows();
 }
 
 function buildGrpListRows(){
@@ -601,30 +638,11 @@ function buildGrpSiteRows(){
         buildGrpSiteRows();
       };})(site.id);
 
-      var btnP=document.createElement('button');btnP.className='btn sm';btnP.textContent='PJT+';
-      btnP.onclick=(function(sid){return function(){addP(sid);};})(site.id);
       var btnD=document.createElement('button');btnD.className='btn sm red';btnD.textContent='삭제';
       btnD.onclick=(function(sid){return function(){delSite(sid);};})(site.id);
-      [ic,iname,gsel,rsel,btnP,btnD].forEach(function(el2){row.appendChild(el2);});
+      [ic,iname,gsel,rsel,btnD].forEach(function(el2){row.appendChild(el2);});
       el.appendChild(row);
     });
-  });
-}
-
-function buildProjRows(){
-  var el=document.getElementById('projRows');if(!el)return;el.innerHTML='';
-  S.projects.forEach(function(p){
-    var si=S.sites.find(function(s){return s.id===p.siteId;});
-    var row=document.createElement('div');row.className='mrow';
-    var chip=document.createElement('span');chip.className='grp-chip';
-    chip.style.cssText='background:'+(si?si.color:'#555')+';color:#fff';chip.textContent=si?si.name:p.siteId;
-    var ni=document.createElement('input');ni.type='text';ni.value=p.name;
-    ni.style.cssText='flex:1;min-width:80px;font-size:11px';
-    ni.onchange=(function(pid){return function(){updPN(pid,this.value);};})(p.id);
-    var btnD=document.createElement('button');btnD.className='btn sm red';btnD.textContent='삭제';
-    btnD.onclick=(function(pid){return function(){delPjt(pid);};})(p.id);
-    [chip,ni,btnD].forEach(function(el2){row.appendChild(el2);});
-    el.appendChild(row);
   });
 }
 
@@ -679,20 +697,9 @@ function delSite(id){
   saveData();showSiteM();renderAll();
 }
 
-/* 프로젝트 CRUD */
-function updPN(id,v){var p=S.projects.find(function(p){return p.id===id;});if(p){p.name=v.trim();_touch(p);saveData();renderGantt();}}
-function addP(sid){
-  var name=prompt('새 프로젝트 이름:');if(!name)return;
+/* 프로젝트 생성 — 출장 등록 시 입력한 이름으로 사이트별 자동 생성/재사용 (_resolveProjIds에서 사용) */
+function _createProjectId(name){
   var baseId=name.replace(/[^a-zA-Z0-9가-힣]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')||'pjt';
   var newId=baseId,n=2;while(S.projects.find(function(p){return p.id===newId;}))newId=baseId+'_'+n++;
-  S.projects.push(_touch({id:newId,siteId:sid,name:name}));saveData();showSiteM();renderAll();
-}
-function delPjt(id){
-  if(!confirm('프로젝트와 관련 일정을 모두 삭제합니까?'))return;
-  // 연쇄 삭제 대상 tombstone 마킹
-  S.schedules.forEach(function(s){if(s.projectId===id)_markDeleted('schedules',s.id);});
-  S.events.forEach(function(e){if(e.projectId===id)_markDeleted('events',e.id);});
-  _markDeleted('projects',id);
-  S.schedules=S.schedules.filter(function(s){return s.projectId!==id;});S.events=S.events.filter(function(e){return e.projectId!==id;});S.projects=S.projects.filter(function(p){return p.id!==id;});
-  saveData();showSiteM();renderAll();
+  return newId;
 }

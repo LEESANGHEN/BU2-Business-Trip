@@ -213,9 +213,8 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .csw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .12s}
 .csw.sel{border-color:var(--tx-primary);transform:scale(1.2)}
 /* 사이트 관리 모달 */
-.sitemgr{display:grid;grid-template-columns:3fr 2fr;gap:0;height:500px;max-height:70vh}
-.sitemgr-l{border-right:1px solid var(--bd-main);padding-right:14px;overflow-y:auto;display:flex;flex-direction:column}
-.sitemgr-r{padding-left:14px;overflow-y:auto}
+.sitemgr{display:grid;grid-template-columns:1fr;gap:0;height:500px;max-height:70vh}
+.sitemgr-l{overflow-y:auto;display:flex;flex-direction:column}
 .smtit{font-size:11px;font-weight:600;color:var(--tx-dim);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--bd-light)}
 .mrow{display:flex;align-items:center;gap:5px;padding:4px 0;border-bottom:1px solid var(--bd-subtle);flex-wrap:wrap}
 .mrow select,.mrow button,.mrow input[type=color]{flex-shrink:0}
@@ -912,8 +911,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
   .mover{align-items:flex-end}
   .modal{width:100vw!important;max-width:100vw!important;border-radius:12px 12px 0 0!important;max-height:88dvh;margin:0}
   .modal.wide{width:100vw!important}
-  .sitemgr{grid-template-columns:1fr;height:auto;max-height:60vh}
-  .sitemgr-l{border-right:none;border-bottom:1px solid var(--bd-main);padding-right:0;padding-bottom:10px;margin-bottom:10px;max-height:200px}
+  .sitemgr{height:auto;max-height:60vh}
 
   /* 폼 그리드 1열 */
   .fr{grid-template-columns:1fr!important}
