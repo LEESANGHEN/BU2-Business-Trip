@@ -141,18 +141,12 @@ function renderProjectsTable(rows){
   html+='<th>생산/고객사 호기</th>';
   html+=thS('setupStart','생산 셋업 기간');
   html+=thS('shipDate','설비 출하 일정');
-  html+='<th>고객사 출장 기간</th>';
   html+=thS('status','상태');
   html+='<th>관리</th>';
   html+='</tr></thead><tbody>';
   rows.forEach(function(mp){html+=renderProjectRow(mp);});
   html+='</tbody></table>';
   return html;
-}
-
-function _mpTripSummary(mp){
-  if(!mp.trip1Start||!mp.trip1End) return '<span style="color:#707080">미등록</span>';
-  return fmtFull(mp.trip1Start)+' ~ '+fmtFull(mp.trip1End);
 }
 
 function renderProjectRow(mp){
@@ -167,7 +161,6 @@ function renderProjectRow(mp){
     +'<td>'+_esc(unitLbl)+'</td>'
     +'<td>'+setupLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
-    +'<td>'+_mpTripSummary(mp)+'</td>'
     +'<td>'+_esc(mp.status||'')+'</td>'
     +'<td onclick="event.stopPropagation()">'
     +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">수정</button> '
@@ -234,12 +227,6 @@ function _mpFormHtml(mp){
     +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_setupManager" value="'+v('setupManager')+'" autocomplete="off"></div>'
     +'</div>';
   html+='<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>';
-  html+='<div style="font-size:11px;color:var(--tx-muted);margin:10px 0 4px;font-weight:600">출장 일정</div>';
-  html+='<div style="display:flex;gap:8px">'
-    +dateFld('mp_trip1Start','시작',ie?mp.trip1Start:'')
-    +dateFld('mp_trip1End','종료',ie?mp.trip1End:'')
-    +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_trip1Manager" value="'+v('trip1Manager')+'" autocomplete="off"></div>'
-    +'</div>';
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="완료"><option value="발주 대기"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
@@ -257,7 +244,6 @@ function _mpReadForm(){
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
     setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'),
     shipDate:v('mp_shipDate'),
-    trip1Start:v('mp_trip1Start'), trip1End:v('mp_trip1End'), trip1Manager:v('mp_trip1Manager'),
     status:v('mp_status')
   };
 }
@@ -381,14 +367,28 @@ function _mpMonthOverlap(ym,start,end){
 }
 function _mpMonthGroup(ym,phase){
   var groups={};
-  S.masterProjects.forEach(function(mp){
-    var overlap;
-    if(phase==='hq') overlap=_mpMonthOverlap(ym,mp.setupStart,mp.setupEnd);
-    else overlap=_mpMonthOverlap(ym,mp.trip1Start,mp.trip1End);
-    if(!overlap)return;
-    var key=(mp.region||'기타')+'|'+(mp.customer||'')+'|'+(mp.projectName||'');
-    groups[key]=(groups[key]||0)+1;
-  });
+  if(phase==='hq'){
+    S.masterProjects.forEach(function(mp){
+      if(!_mpMonthOverlap(ym,mp.setupStart,mp.setupEnd))return;
+      var key=(mp.region||'기타')+'|'+(mp.customer||'')+'|'+(mp.projectName||'');
+      groups[key]=(groups[key]||0)+1;
+    });
+  }else{
+    // 현장 셋업: 프로젝트 등록이 아니라 간트 차트(S.schedules) 기준 — 같은 프로젝트(설비)에
+    // 여러 인원이 겹쳐 출장 가도 설비 수는 프로젝트 단위로 한 번만 센다.
+    var seenProj={};
+    S.schedules.forEach(function(sc){
+      if(!_mpMonthOverlap(ym,sc.start,sc.end))return;
+      var proj=S.projects.find(function(p){return p.id===sc.projectId;});
+      if(!proj||seenProj[proj.id])return;
+      seenProj[proj.id]=true;
+      var site=S.sites.find(function(s){return s.id===proj.siteId;});
+      var region=(site&&site.country)||'기타';
+      var siteName=(site&&site.name)||proj.siteId;
+      var key=region+'|'+siteName+'|'+proj.name;
+      groups[key]=(groups[key]||0)+1;
+    });
+  }
   var keys=Object.keys(groups);
   var list=keys.map(function(k,i){
     var parts=k.split('|');
