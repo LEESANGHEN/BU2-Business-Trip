@@ -176,6 +176,7 @@ function renderProjectsTable(rows){
   }
   var html='<table class="pm-person-table"><thead><tr>';
   html+=thS('category','구분')+thS('region','지역')+thS('customer','고객사')+thS('projectName','프로젝트');
+  html+='<th>프로젝트 시리얼</th>';
   html+='<th>생산/고객사 호기</th>';
   html+=thS('setupStart','생산 셋업 기간');
   html+=thS('shipDate','설비 출하 일정');
@@ -197,6 +198,7 @@ function renderProjectRow(mp){
     +'<td>'+_esc(mp.region||'')+'</td>'
     +'<td>'+_esc(mp.customer||'')+'</td>'
     +'<td>'+_esc(mp.projectName||'')+'</td>'
+    +'<td>'+_esc(mp.serial||'')+'</td>'
     +'<td>'+_esc(unitLbl)+'</td>'
     +'<td>'+setupLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
