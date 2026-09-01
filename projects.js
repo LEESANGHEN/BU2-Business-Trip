@@ -11,8 +11,8 @@ var _mpFilterRegion='all';
 var _mpFilterStatus='all';
 var _mpFilterCustomer='all';
 var _mpFilterShipMonth='all';
-var _mpSortKey='customer';
-var _mpSortAsc=true;
+var _mpSortKey='category';
+var _mpSortAsc=false;
 
 function _mpId(){ return genId('mp',S.masterProjects); }
 
