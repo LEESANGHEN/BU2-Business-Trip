@@ -13,7 +13,7 @@ var _mpFilterCustomer='all';
 var _mpFilterShipMonth='all';
 var _mpSortKey='category';
 var _mpSortAsc=false;
-var _mpHideInactive=false;    // 완료/LOI 접수/발주 대기 상태 숨기고 진행중(그 외 상태·공란)만 보기
+var _mpHideInactive=true;     // 완료/LOI 접수/발주 대기 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
 var _MP_HIDDEN_STATUSES=['완료','LOI 접수','발주 대기'];
 
 function _mpId(){ return genId('mp',S.masterProjects); }
