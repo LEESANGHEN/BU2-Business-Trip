@@ -13,6 +13,8 @@ var _mpFilterCustomer='all';
 var _mpFilterShipMonth='all';
 var _mpSortKey='category';
 var _mpSortAsc=false;
+var _mpHideInactive=false;    // 완료/LOI 접수/발주 대기 상태 숨기고 진행중(그 외 상태·공란)만 보기
+var _MP_HIDDEN_STATUSES=['완료','LOI 접수','발주 대기'];
 
 function _mpId(){ return genId('mp',S.masterProjects); }
 
@@ -46,6 +48,10 @@ function renderProjectsTab(){
   html+='<span style="font-size:10px;color:#555">출하월</span>';
   html+='<select id="mpShipMonthSel" onchange="setMpShipMonthFilter(this.value)">'+_mpShipMonthFilterOpts()+'</select>';
   html+='</div>';
+  html+='<div class="pm-ctrl-sep"></div>';
+  html+='<div class="pm-ctrl-group">';
+  html+='<button class="pm-filter-btn'+(_mpHideInactive?' on':'')+'" id="mpHideInactiveBtn" onclick="togglePmHideInactive()">진행중만 보기</button>';
+  html+='</div>';
   html+='<div style="flex:1"></div>';
   if(!S.masterProjects.length){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
@@ -63,6 +69,12 @@ function setMpRegionFilter(v){_mpFilterRegion=v;renderProjectsBody();}
 function setMpStatusFilter(v){_mpFilterStatus=v;renderProjectsBody();}
 function setMpCustomerFilter(v){_mpFilterCustomer=v;renderProjectsBody();}
 function setMpShipMonthFilter(v){_mpFilterShipMonth=v;renderProjectsBody();}
+function togglePmHideInactive(){
+  _mpHideInactive=!_mpHideInactive;
+  var btn=document.getElementById('mpHideInactiveBtn');
+  if(btn) btn.className='pm-filter-btn'+(_mpHideInactive?' on':'');
+  renderProjectsBody();
+}
 function setMpSort(key){
   if(_mpSortKey===key)_mpSortAsc=!_mpSortAsc;
   else{_mpSortKey=key;_mpSortAsc=true;}
@@ -110,6 +122,7 @@ function renderProjectsBody(){
     if(_mpFilterStatus!=='all'&&(mp.status||'')!==_mpFilterStatus)return false;
     if(_mpFilterCustomer!=='all'&&(mp.customer||'')!==_mpFilterCustomer)return false;
     if(_mpFilterShipMonth!=='all'&&_mpShipMonth(mp)!==_mpFilterShipMonth)return false;
+    if(_mpHideInactive&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){
       var hay=[mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit,mp.serial].join(' ').toLowerCase();
       if(hay.indexOf(_mpSearch)<0)return false;
