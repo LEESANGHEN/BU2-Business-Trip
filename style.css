@@ -112,7 +112,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .scnt{font-size:9px;padding:1px 4px;border-radius:5px;background:var(--bg-hover);color:var(--tx-dim);border:1px solid var(--bd-main);flex-shrink:0}
 .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 /* 간트 헤더 */
-.gscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch}
+.gscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
 .gwrap{display:inline-block;min-width:100%}
 .ghrow{display:flex;flex-direction:column;position:sticky;top:0;z-index:30;border-bottom:2px solid var(--bd-strong);background:var(--bg-alt)}
 .ghinner{display:flex}
