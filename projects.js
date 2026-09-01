@@ -337,7 +337,7 @@ function renderMonthlyAggTab(){
       +'<td>'+ym+'</td>'
       +'<td>'+hq.count+'</td><td style="white-space:pre-line;font-size:11px;text-align:left">'+_esc(hq.list.join('\n'))+'</td>'
       +'<td>'+site.count+'</td><td style="white-space:pre-line;font-size:11px;text-align:left">'+_esc(site.list.join('\n'))+'</td>'
-      +'<td>'+people.length+'</td><td style="font-size:11px;text-align:left">'+_esc(people.join(', '))+'</td>'
+      +'<td>'+people.count+'</td><td style="white-space:pre-line;font-size:11px;text-align:left">'+_esc(people.list.join('\n'))+'</td>'
       +'</tr>';
   });
   html+='</tbody></table></div>';
@@ -412,12 +412,26 @@ function _mpMonthGroup(ym,phase){
 // 출장 인원 명단은 프로젝트 등록(trip1Manager)이 아니라 간트 차트(S.schedules)를 기준으로 집계한다.
 // 완료된 일정도 포함해서 그 달과 기간이 겹치는 모든 일정의 담당자를 모은다 (sc.end는 연장분까지 반영된 최종 종료일).
 function _mpMonthTravelers(ym){
-  var names={};
+  var bySite={}; // '지역|사이트' -> {이름:true,...}
+  var allNames={};
   S.schedules.forEach(function(sc){
     if(!_mpMonthOverlap(ym,sc.start,sc.end))return;
-    if(sc.name) names[sc.name]=true;
+    if(!sc.name)return;
+    var proj=S.projects.find(function(p){return p.id===sc.projectId;});
+    var site=proj?S.sites.find(function(s){return s.id===proj.siteId;}):null;
+    var region=(site&&site.country)||'기타';
+    var siteName=(site&&site.name)||(proj?proj.siteId:'미지정');
+    var key=region+'|'+siteName;
+    if(!bySite[key]) bySite[key]={};
+    bySite[key][sc.name]=true;
+    allNames[sc.name]=true;
   });
-  return Object.keys(names);
+  var keys=Object.keys(bySite);
+  var list=keys.map(function(k,i){
+    var parts=k.split('|');
+    return (i+1)+'. ['+parts[0]+'] '+parts[1]+' - '+Object.keys(bySite[k]).join(', ');
+  });
+  return {count:Object.keys(allNames).length, list:list};
 }
 
 /* ── 엑셀 "프로젝트 입력" 시트 원본 데이터 (2026-08-31 기준 1회성 가져오기용) ── */
