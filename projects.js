@@ -353,6 +353,14 @@ function _mpAllMonths(){
       if(!max||d>max)max=d;
     });
   });
+  // 출장 인원은 간트(S.schedules) 기준이므로, 프로젝트 등록 데이터에 없는 달도 빠지지 않도록 범위에 포함시킨다
+  S.schedules.forEach(function(sc){
+    [sc.start,sc.end].forEach(function(d){
+      if(!d)return;
+      if(!min||d<min)min=d;
+      if(!max||d>max)max=d;
+    });
+  });
   if(!min||!max)return [];
   var months=[];
   var y=parseInt(min.slice(0,4),10),m=parseInt(min.slice(5,7),10);
@@ -388,12 +396,13 @@ function _mpMonthGroup(ym,phase){
   });
   return {count:keys.reduce(function(s,k){return s+groups[k];},0),list:list};
 }
+// 출장 인원 명단은 프로젝트 등록(trip1Manager)이 아니라 간트 차트(S.schedules)를 기준으로 집계한다.
+// 완료된 일정도 포함해서 그 달과 기간이 겹치는 모든 일정의 담당자를 모은다 (sc.end는 연장분까지 반영된 최종 종료일).
 function _mpMonthTravelers(ym){
   var names={};
-  S.masterProjects.forEach(function(mp){
-    if(!_mpMonthOverlap(ym,mp.trip1Start,mp.trip1End))return;
-    if(!mp.trip1Manager)return;
-    mp.trip1Manager.split(',').forEach(function(nm){nm=nm.trim();if(nm)names[nm]=true;});
+  S.schedules.forEach(function(sc){
+    if(!_mpMonthOverlap(ym,sc.start,sc.end))return;
+    if(sc.name) names[sc.name]=true;
   });
   return Object.keys(names);
 }
