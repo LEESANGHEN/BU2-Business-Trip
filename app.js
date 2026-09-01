@@ -1206,10 +1206,34 @@ function closeSidebar(view){
   if(sb) sb.classList.remove('open');
 }
 
+/* ── 관리자 모드 ──
+   좌측 상단 타이틀을 Ctrl+Shift를 누른 채 클릭하면 진입/해제된다. 어디에도 저장하지 않는
+   순수 메모리상 상태라서, 페이지를 새로고침하거나 새로 접속하면 누구나 항상 일반 모드로
+   시작한다 — 같은 화면을 동시에 보는 다른 접속자에게는 전혀 영향을 주지 않으며, 그들은
+   계속 일반 모드(조회 전용) 화면만 보게 된다.*/
+var _adminMode=false;
+function _isAdminMode(){ return _adminMode; }
+function _applyAdminVisibility(){
+  var admin=_isAdminMode();
+  ['btnSiteMgr','btnAddEvent','btnAddSchedule','btnSheetsSettings'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.style.display=admin?'':'none';
+  });
+}
+function _setAdminMode(on){
+  _adminMode=on;
+  _applyAdminVisibility();
+  switchTab(_activeTab);
+}
+function _handleTitleClick(e){
+  if(e.ctrlKey&&e.shiftKey) _setAdminMode(!_isAdminMode());
+}
+
 /* ── 시작 ── */
 // 모든 스크립트 로드 후 실행 (renderAll 등이 gantt.js에 정의되므로 DOMContentLoaded 사용)
 document.addEventListener('DOMContentLoaded', function(){
   initTheme();
+  _applyAdminVisibility();
   loadData();
   renderAll(); // 캐시/DEF 데이터로 즉시 표시
   loadFromSheets(function(){

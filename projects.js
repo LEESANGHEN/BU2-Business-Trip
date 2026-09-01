@@ -56,7 +56,7 @@ function renderProjectsTab(){
   if(!S.masterProjects.length){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
   }
-  html+='<button class="btn pri sm" onclick="openAddMasterProject()">+ 프로젝트 등록</button>';
+  if(_isAdminMode()) html+='<button class="btn pri sm" onclick="openAddMasterProject()">+ 프로젝트 등록</button>';
   html+='</div>';
   html+='</div>';
   html+='<div class="pm-body-scroll"><div id="mpBody"></div></div>';

@@ -15,7 +15,7 @@
   <div class="app">
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:8px">
-        <span class="ttl">출장 일정 관리</span>
+        <span class="ttl" onclick="_handleTitleClick(event)">출장 일정 관리</span>
         <div class="conn-dot" id="connStatus" onclick="checkConn()" title="클릭하면 연결 상태 확인">
           <div class="conn-led" id="connLed"></div>
           <span id="connTxt">연결 확인</span>
@@ -56,9 +56,9 @@
             <label class="chkrow"><input type="checkbox" id="tf_work" checked onchange="toggleTypeShow('work',this.checked)">작업</label>
           </div>
           <button class="btn" id="btnHidden" onclick="toggleShowHidden()">숨김 보기</button>
-          <button class="btn" onclick="openModal('site')">사이트 관리</button>
-          <button class="btn ev" onclick="openModal('event')">★ 이벤트 등록</button>
-          <button class="btn pri" onclick="openModal('schedule')">+ 출장 등록</button>
+          <button class="btn" id="btnSiteMgr" onclick="openModal('site')">사이트 관리</button>
+          <button class="btn ev" id="btnAddEvent" onclick="openModal('event')">★ 이벤트 등록</button>
+          <button class="btn pri" id="btnAddSchedule" onclick="openModal('schedule')">+ 출장 등록</button>
         </div>
         <div id="visionTools" style="display:none;gap:5px;align-items:center;flex-wrap:wrap">
           <button class="mobile-only sidebar-toggle" onclick="openSidebar('vision')" title="사이트 필터">☰</button>
@@ -83,7 +83,7 @@
           <button class="btn warn" id="btnAddEquipItem" onclick="openAddEquipItem()" style="display:none">+ 항목</button>
         </div>
         <button class="btn" onclick="downloadExcel()">⬇ 엑셀</button>
-        <button class="btn" onclick="openSheetsSettings()">⚙ Sheets 설정</button>
+        <button class="btn" id="btnSheetsSettings" onclick="openSheetsSettings()">⚙ Sheets 설정</button>
       </div>
     </div>
     <div class="tab-bar">
@@ -148,10 +148,10 @@
   <div id="mc"></div>
 
   <script src="data.js?v=20260723b"></script>
-  <script src="app.js?v=20260831b"></script>
+  <script src="app.js?v=20260901b"></script>
   <script src="gantt.js?v=20260901a"></script>
   <script src="modals.js?v=20260901a"></script>
-  <script src="projects.js?v=20260901l"></script>
+  <script src="projects.js?v=20260901m"></script>
   <script src="person.js?v=20260901d"></script>
   <script src="equip.js?v=20260810w"></script>
   <script src="vision.js?v=20260807a"></script>
