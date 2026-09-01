@@ -20,10 +20,10 @@ function _doDownloadExcel(){
   var wb=new ExcelJS.Workbook();
   wb.creator='BU2 출장 일정 관리';
   wb.created=new Date();
+  _buildProjectsSheet(wb);
   _buildGanttSheet(wb);
   _buildPersonSheet(wb);
-  _buildEquipSheet(wb);
-  _buildVisionSheet(wb);
+  _buildMonthlyAggSheet(wb);
   wb.xlsx.writeBuffer().then(function(buf){
     var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     var url=URL.createObjectURL(blob);
@@ -119,6 +119,92 @@ function _doExportSiteRosterExcel(siteId){
     a.download=siteName+'_출장이력_'+d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+'.xlsx';
     a.click();
     setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  });
+}
+
+/* ── Sheet: 프로젝트관리 ── */
+function _buildProjectsSheet(wb){
+  var ws=wb.addWorksheet('프로젝트관리');
+  var rows=S.masterProjects.slice().sort(function(a,b){
+    var tieFields=['category','region','customer','projectName'];
+    for(var i=0;i<tieFields.length;i++){
+      var f=tieFields[i];
+      var tv=String(a[f]||'').localeCompare(String(b[f]||''),'ko');
+      if(tv!==0) return tv;
+    }
+    var uv=_mpUnitCompare(a.prodUnit,b.prodUnit);
+    if(uv!==0) return uv;
+    return _mpUnitCompare(a.customerUnit,b.customerUnit);
+  });
+
+  ws.columns=[12,10,16,20,16,14,14,20,14,10].map(function(w){return {width:w};});
+  ws.views=[{state:'frozen',ySplit:1}];
+
+  if(!rows.length){
+    ws.getCell('A1').value='등록된 프로젝트가 없습니다.';
+    return;
+  }
+
+  var hdr=['구분','지역','고객사','프로젝트','프로젝트 시리얼','생산 호기','고객사 호기','생산 셋업 기간','설비 출하 일정','상태'];
+  var hRow=ws.getRow(1);
+  hdr.forEach(function(h,i){
+    var cell=hRow.getCell(i+1);
+    cell.value=h;
+    _xStyle(cell,{bg:'#2a2a3e',fg:'#e0e0ec',bold:true});
+  });
+  hRow.height=20;
+
+  var rIdx=2;
+  rows.forEach(function(mp){
+    var bg=rIdx%2===0?'#1c1c24':'#181820';
+    var setupLbl=(mp.setupStart&&mp.setupEnd)?(mp.setupStart+' ~ '+mp.setupEnd):'';
+    var row=ws.getRow(rIdx);
+    [mp.category,mp.region,mp.customer,mp.projectName,mp.serial,mp.prodUnit,mp.customerUnit,setupLbl,mp.shipDate,mp.status].forEach(function(v,i){
+      var cell=row.getCell(i+1);
+      cell.value=v||'';
+      _xStyle(cell,{bg:bg,fg:'#c8c8d4',align:i<=3?'left':'center'});
+    });
+    row.height=17;
+    rIdx++;
+  });
+}
+
+/* ── Sheet: 월별집계 ── */
+function _buildMonthlyAggSheet(wb){
+  var ws=wb.addWorksheet('월별집계');
+  var months=_mpAllMonths();
+
+  ws.columns=[10,12,34,12,34,10,40].map(function(w){return {width:w};});
+  ws.views=[{state:'frozen',ySplit:1}];
+
+  if(!months.length){
+    ws.getCell('A1').value='집계할 데이터가 없습니다.';
+    return;
+  }
+
+  var hdr=['월','본사 셋업 설비 수','본사 셋업 설비군','현장 셋업 설비 수','현장 셋업 설비군','출장 인원','출장 인원 명단'];
+  var hRow=ws.getRow(1);
+  hdr.forEach(function(h,i){
+    var cell=hRow.getCell(i+1);
+    cell.value=h;
+    _xStyle(cell,{bg:'#2a2a3e',fg:'#e0e0ec',bold:true,wrap:true});
+  });
+  hRow.height=20;
+
+  var rIdx=2;
+  months.forEach(function(ym){
+    var hq=_mpMonthGroup(ym,'hq');
+    var site=_mpMonthGroup(ym,'site');
+    var people=_mpMonthTravelers(ym);
+    var bg=rIdx%2===0?'#1c1c24':'#181820';
+    var row=ws.getRow(rIdx);
+    [ym,hq.count,hq.list.join('\n'),site.count,site.list.join('\n'),people.count,people.list.join('\n')].forEach(function(v,i){
+      var cell=row.getCell(i+1);
+      cell.value=v;
+      _xStyle(cell,{bg:bg,fg:'#c8c8d4',align:(i===0||i===1||i===3||i===5)?'center':'left',wrap:(i===2||i===4||i===6)});
+    });
+    row.height=Math.max(17,15*Math.max(hq.list.length,site.list.length,people.list.length,1));
+    rIdx++;
   });
 }
 
