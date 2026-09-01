@@ -498,6 +498,35 @@ function _personTotalDaysUnion(trips){
   return Object.keys(set).length;
 }
 
+// 같은 사람 + 같은 사이트에서 기간이 겹치는 여러 출장(동시에 여러 프로젝트 수행하러 간 같은 출장)은
+// 그중 가장 긴 일정을 대표로 선택해 표에는 한 줄로만 보여준다 (전체 출장일수 집계와는 무관 — 그건 항상 모든 출장 기준)
+function _dedupTripsBySite(trips){
+  var bySite={};
+  trips.forEach(function(t){
+    (bySite[t.siteId]=bySite[t.siteId]||[]).push(t);
+  });
+  var result=[];
+  Object.keys(bySite).forEach(function(siteId){
+    var list=bySite[siteId].slice().sort(function(a,b){return a.start>b.start?1:(a.start<b.start?-1:0);});
+    var clusters=[];
+    list.forEach(function(t){
+      var cur=clusters[clusters.length-1];
+      if(cur && t.start<=cur.end){
+        cur.items.push(t);
+        if(t.end>cur.end) cur.end=t.end;
+      }else{
+        clusters.push({start:t.start,end:t.end,items:[t]});
+      }
+    });
+    clusters.forEach(function(c){
+      var rep=c.items[0];
+      c.items.forEach(function(t){ if(t.tripTotal>rep.tripTotal) rep=t; });
+      result.push(rep);
+    });
+  });
+  return result;
+}
+
 // 결과 테이블만 갱신 - pmCtrlBar/pmSearchInp DOM 건드리지 않음
 function renderPersonBody(){
   var body=document.getElementById('pmBody');
@@ -535,7 +564,7 @@ function renderPersonBody(){
   // 출장(일정) 1건당 1행으로 평탄화
   var rows=[];
   Object.keys(allPersons).forEach(function(n){
-    allPersons[n].trips.forEach(function(t){
+    _dedupTripsBySite(allPersons[n].trips).forEach(function(t){
       rows.push({name:n,trip:t,grandTotal:grandTotals[n]});
     });
   });
@@ -592,6 +621,7 @@ function renderPersonTable(rows){
   html+='</tbody></table>';
   html+='<div style="font-size:10px;color:#707080;padding:8px 4px;margin-top:4px">'
     +'* 전체 출장일수는 해당 인원의 모든 출장을 합산한 값입니다 (같은 인원의 각 행에 동일하게 표시).'
+    +' 같은 사이트에서 기간이 겹치는 여러 프로젝트 출장은 가장 긴 일정 한 줄로만 표시됩니다.'
     +'</div>';
   return html;
 }
