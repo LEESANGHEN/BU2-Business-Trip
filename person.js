@@ -477,6 +477,18 @@ function buildSortBtnsHtml(){
   return h;
 }
 
+// 인원별 "전체 출장일수" — 같은 기간에 여러 프로젝트로 겹쳐서 출장을 가더라도(같은 사이트, 동시 진행)
+// 실제 달력상 겹치는 날짜는 한 번만 센다 (calcTotalOverseas12M과 동일한 날짜 Set 방식)
+function _personTotalDaysUnion(trips){
+  var set={};
+  trips.forEach(function(t){
+    var s=pd(t.start),e=pd(t.end);
+    for(var cur=new Date(s);cur<=e;cur.setDate(cur.getDate()+1))
+      set[cur.toDateString()]=true;
+  });
+  return Object.keys(set).length;
+}
+
 // 결과 테이블만 갱신 - pmCtrlBar/pmSearchInp DOM 건드리지 않음
 function renderPersonBody(){
   var body=document.getElementById('pmBody');
@@ -505,7 +517,7 @@ function renderPersonBody(){
   // 인원별 전체 출장일수(모든 출장 합산) 미리 계산
   var grandTotals={};
   Object.keys(allPersons).forEach(function(n){
-    grandTotals[n]=allPersons[n].trips.reduce(function(s,t){return s+t.tripTotal;},0);
+    grandTotals[n]=_personTotalDaysUnion(allPersons[n].trips);
   });
 
   // 출장(일정) 1건당 1행으로 평탄화

@@ -9,6 +9,8 @@
 var _mpSearch='';
 var _mpFilterRegion='all';
 var _mpFilterStatus='all';
+var _mpFilterCustomer='all';
+var _mpFilterShipMonth='all';
 var _mpSortKey='customer';
 var _mpSortAsc=true;
 
@@ -34,6 +36,16 @@ function renderProjectsTab(){
   html+='<span style="font-size:10px;color:#555">상태</span>';
   html+='<select id="mpStatusSel" onchange="setMpStatusFilter(this.value)">'+_mpStatusFilterOpts()+'</select>';
   html+='</div>';
+  html+='<div class="pm-ctrl-sep"></div>';
+  html+='<div class="pm-ctrl-group">';
+  html+='<span style="font-size:10px;color:#555">고객사</span>';
+  html+='<select id="mpCustomerSel" onchange="setMpCustomerFilter(this.value)">'+_mpCustomerFilterOpts()+'</select>';
+  html+='</div>';
+  html+='<div class="pm-ctrl-sep"></div>';
+  html+='<div class="pm-ctrl-group">';
+  html+='<span style="font-size:10px;color:#555">출하월</span>';
+  html+='<select id="mpShipMonthSel" onchange="setMpShipMonthFilter(this.value)">'+_mpShipMonthFilterOpts()+'</select>';
+  html+='</div>';
   html+='<div style="flex:1"></div>';
   if(!S.masterProjects.length){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
@@ -49,6 +61,8 @@ function renderProjectsTab(){
 function setMpSearch(v){_mpSearch=v.trim().toLowerCase();renderProjectsBody();}
 function setMpRegionFilter(v){_mpFilterRegion=v;renderProjectsBody();}
 function setMpStatusFilter(v){_mpFilterStatus=v;renderProjectsBody();}
+function setMpCustomerFilter(v){_mpFilterCustomer=v;renderProjectsBody();}
+function setMpShipMonthFilter(v){_mpFilterShipMonth=v;renderProjectsBody();}
 function setMpSort(key){
   if(_mpSortKey===key)_mpSortAsc=!_mpSortAsc;
   else{_mpSortKey=key;_mpSortAsc=true;}
@@ -70,6 +84,23 @@ function _mpStatusFilterOpts(){
   statuses.forEach(function(s){html+='<option value="'+_esc(s)+'"'+(_mpFilterStatus===s?' selected':'')+'>'+_esc(s)+'</option>';});
   return html;
 }
+function _mpCustomerFilterOpts(){
+  var customers=[];
+  S.masterProjects.forEach(function(mp){if(mp.customer&&customers.indexOf(mp.customer)<0)customers.push(mp.customer);});
+  customers.sort(function(a,b){return a.localeCompare(b,'ko');});
+  var html='<option value="all"'+(_mpFilterCustomer==='all'?' selected':'')+'>전체</option>';
+  customers.forEach(function(c){html+='<option value="'+_esc(c)+'"'+(_mpFilterCustomer===c?' selected':'')+'>'+_esc(c)+'</option>';});
+  return html;
+}
+function _mpShipMonth(mp){ return mp.shipDate?mp.shipDate.slice(0,7):''; }
+function _mpShipMonthFilterOpts(){
+  var months=[];
+  S.masterProjects.forEach(function(mp){var m=_mpShipMonth(mp);if(m&&months.indexOf(m)<0)months.push(m);});
+  months.sort();
+  var html='<option value="all"'+(_mpFilterShipMonth==='all'?' selected':'')+'>전체</option>';
+  months.forEach(function(m){html+='<option value="'+m+'"'+(_mpFilterShipMonth===m?' selected':'')+'>'+m+'</option>';});
+  return html;
+}
 
 function renderProjectsBody(){
   var body=document.getElementById('mpBody');
@@ -77,6 +108,8 @@ function renderProjectsBody(){
   var rows=S.masterProjects.filter(function(mp){
     if(_mpFilterRegion!=='all'&&(mp.region||'기타')!==_mpFilterRegion)return false;
     if(_mpFilterStatus!=='all'&&(mp.status||'')!==_mpFilterStatus)return false;
+    if(_mpFilterCustomer!=='all'&&(mp.customer||'')!==_mpFilterCustomer)return false;
+    if(_mpFilterShipMonth!=='all'&&_mpShipMonth(mp)!==_mpFilterShipMonth)return false;
     if(_mpSearch){
       var hay=[mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit,mp.serial].join(' ').toLowerCase();
       if(hay.indexOf(_mpSearch)<0)return false;

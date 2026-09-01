@@ -33,6 +33,19 @@ function renderHeader(){
   document.getElementById('gwrap').style.width=(ganttFixedW()+_totPx)+'px';
 }
 
+/* ── 사이드바 그룹 접기/펼치기 상태 (새로고침 후에도 유지) ── */
+var _GANTT_GRP_COLLAPSED_LS_KEY='bu2_gantt_grp_collapsed';
+var _ganttGrpCollapsed=(function(){
+  try{return JSON.parse(localStorage.getItem(_GANTT_GRP_COLLAPSED_LS_KEY)||'{}')||{};}catch(e){return {};}
+})();
+function _saveGanttGrpCollapsed(){
+  try{localStorage.setItem(_GANTT_GRP_COLLAPSED_LS_KEY,JSON.stringify(_ganttGrpCollapsed));}catch(e){}
+}
+function toggleGanttGrpCollapse(gid){
+  _ganttGrpCollapsed[gid]=!_ganttGrpCollapsed[gid];
+  _saveGanttGrpCollapsed();
+  renderSidebar();
+}
 /* ── 사이드바 (그룹별) ── */
 function renderSidebar(){
   var el=document.getElementById('siteList');el.innerHTML='';
@@ -58,11 +71,16 @@ function renderSidebar(){
       var site=S.sites.find(function(s){return s.id===p.siteId;});
       return site&&(site.groupId||'_none')===grp.id&&_sVisible(sc);
     }).length;
+    var collapsed=!!_ganttGrpCollapsed[grp.id];
     var lbl=document.createElement('div');
     lbl.className='grplbl'+(S.filterSite===grpKey?' on':'');
-    lbl.innerHTML=_esc(grp.name)+'<span class="scnt grp-cnt">'+grpCnt+'</span>';
+    lbl.style.cssText='display:flex;align-items:center;gap:4px;cursor:pointer';
+    lbl.innerHTML='<span class="grp-toggle" style="flex-shrink:0;font-size:8px;color:var(--tx-faint)">'+(collapsed?'▶':'▼')+'</span>'
+      +'<span style="flex:1">'+_esc(grp.name)+'</span><span class="scnt grp-cnt">'+grpCnt+'</span>';
+    lbl.querySelector('.grp-toggle').onclick=(function(gid){return function(e){e.stopPropagation();toggleGanttGrpCollapse(gid);};})(grp.id);
     lbl.onclick=(function(gk){return function(){S.filterSite=gk;S.filterSites=[];renderAll();};})(grpKey);
     el.appendChild(lbl);
+    if(collapsed)return;
     var isMulti=S.filterSites.length>0;
     grpSites.forEach(function(site){
       var cnt=S.schedules.filter(function(s){var p=S.projects.find(function(p){return p.id===s.projectId;});return p&&p.siteId===site.id&&_sVisible(s);}).length;
