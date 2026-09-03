@@ -179,14 +179,16 @@ function thP(labelKey,defaultLbl){
 // 관리자 모드에서 표 제목을 자유롭게 바꿀 수 있게 하는 커스텀 오버라이드 (Sheets에 저장되어 모든 접속자에게 반영)
 function _colLabel(key,defaultLbl){
   var ov=(S.labelOverrides||{})[key];
-  return (ov!==undefined&&ov!=='')?_esc(ov):defaultLbl;
+  if(ov===undefined||ov==='')return defaultLbl;
+  // '/'를 줄바꿈 구분자로 써서 두 줄 이상으로도 표시할 수 있게 함 (예: "고객사 요청/설비 출하 일정")
+  return ov.split('/').map(_esc).join('<br>');
 }
 function _thEditBtn(key){
   return _isAdminMode()?' <span class="mp-th-edit" onclick="event.stopPropagation();_editColLabel(\''+key+'\')" title="제목 수정">✎</span>':'';
 }
 function _editColLabel(key){
   var current=(S.labelOverrides&&S.labelOverrides[key])||'';
-  var v=prompt('열 제목을 입력하세요 (비우고 확인하면 기본 제목으로 돌아갑니다):',current);
+  var v=prompt('열 제목을 입력하세요 (비우고 확인하면 기본 제목으로 돌아갑니다.\n두 줄로 나누고 싶으면 / 로 구분하세요. 예: 고객사 요청/설비 출하 일정):',current);
   if(v===null)return;
   if(!S.labelOverrides)S.labelOverrides={};
   if(v.trim()==='')delete S.labelOverrides[key];

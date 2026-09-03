@@ -637,8 +637,11 @@ function _flushToSheets(){
       S.equipProjects=_mergeArr('equipProjects',S.equipProjects,sheetsData.equipProjects);
     if(sheetsData.masterProjects&&sheetsData.masterProjects.length)
       S.masterProjects=_mergeArr('masterProjects',S.masterProjects,sheetsData.masterProjects);
-    if(sheetsData.appTitle!==undefined) S.appTitle=sheetsData.appTitle;
-    if(sheetsData.labelOverrides!==undefined) S.labelOverrides=sheetsData.labelOverrides;
+    // ── appTitle / labelOverrides: 여기서 Sheets 값으로 덮어쓰지 않는다.
+    //    이 함수는 "지금 막 로컬에서 고친 값을 POST하기 직전" 단계라, 서버 값으로 덮으면
+    //    방금 수정한 내용이 전송 직전에 사라져버린다(연속으로 다른 항목을 고칠 때 이전 수정이
+    //    원상복구되던 버그의 원인). 이 두 필드는 관리자 1명이 가끔 바꾸는 값이라 병합 없이
+    //    로컬 값을 그대로 신뢰해서 전송한다.
     if(sheetsData.visionEquips&&sheetsData.visionEquips.length)
       S.visionEquips=_mergeArr('visionEquips',S.visionEquips,sheetsData.visionEquips,{protectField:'data',postMerge:_viPostMerge});
     // ── visionTemplate: 단일 JSON 블롭 — Sheets가 더 최신(mt)일 때만 교체
