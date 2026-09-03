@@ -217,7 +217,7 @@ function renderProjectRow(mp){
   var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)):'-';
   var shipLbl=mp.shipDate?fmtFull(mp.shipDate):'-';
   var custReqShipLbl=mp.customerReqShipDate?fmtFull(mp.customerReqShipDate):'-';
-  var unitLbl=[mp.prodUnit,mp.customerUnit].filter(Boolean).join(' / ');
+  var unitLbl=(mp.prodUnit&&mp.customerUnit)?(mp.prodUnit+'('+mp.customerUnit+')'):(mp.prodUnit||mp.customerUnit||'');
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
     +'<td>'+_esc(mp.category||'')+'</td>'
