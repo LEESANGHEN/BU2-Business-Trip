@@ -700,6 +700,9 @@ function delSite(id){
 /* 프로젝트 생성 — 출장 등록 시 입력한 이름으로 사이트별 자동 생성/재사용 (_resolveProjIds에서 사용) */
 function _createProjectId(name){
   var baseId=name.replace(/[^a-zA-Z0-9가-힣]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')||'pjt';
-  var newId=baseId,n=2;while(S.projects.find(function(p){return p.id===newId;}))newId=baseId+'_'+n++;
+  // 예전에 삭제(tombstone)된 프로젝트와 같은 id를 다시 쓰면, 다음 동기화 때 _purgeTombstoned()가
+  // 방금 새로 만든 프로젝트를 "예전에 지운 것"으로 착각해서 통째로 지워버린다 — 반드시 피해야 한다.
+  var newId=baseId,n=2;
+  while(S.projects.find(function(p){return p.id===newId;})||_isDeleted('projects',newId))newId=baseId+'_'+n++;
   return newId;
 }
