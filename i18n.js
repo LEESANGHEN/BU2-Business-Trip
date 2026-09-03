@@ -23,7 +23,7 @@ ko:{
   colCustomerReqShipL1:'고객사 요청', colCustomerReqShipL2:'출하 일정',
   pmSearchPh:'이름 검색...', pmStatusAll:'전체', pmStatusGoing:'출장중', pmStatusHome:'국내',
   pmTypeHq:'본사', pmTypeOutsource:'외주', pmTypeLocalOutsource:'현지외주', pmTypeTech:'기술', pmTypeVision:'비전', pmTypeHost:'호스트',
-  pmSortLabel:'정렬', pmSortName:'이름', pmSortDays:'최초 출장일수', pmSortGrandTotal:'전체 출장일수', pmHideDone:'완료 숨기기',
+  pmSortLabel:'정렬', pmSortName:'이름', pmSortDays:'최초 출장일수', pmSortGrandTotal:'전체 출장일수', pmHideDone:'진행중만 보기',
   statRegisteredPersons:'등록 인원', statAllTravelers:'전체 출장자', statOnTripNow:'현재 출장 중', statTodayBasis:'오늘 기준', pmBdOutsource:'외주', pmPersonTypeLabel:'인원',
   colName:'이름', colCountry:'국가', colCity:'지역', colSite:'사이트', colFirstDays:'최초 출장일수', colExt1Days:'1차 연장일수', colExt2Days:'2차 연장일수', colStatusBadge:'상태', colGrandTotal:'전체 출장일수',
   maMonth:'월', maHqCount:'본사 셋업 설비 수', maHqList:'본사 셋업 설비군', maSiteCount:'현장 셋업 설비 수', maSiteList:'현장 셋업 설비군', maPeople:'출장 인원', maPeopleList:'출장 인원 명단'
@@ -44,7 +44,7 @@ en:{
   colCustomerReqShipL1:'Customer Requested', colCustomerReqShipL2:'Ship Date',
   pmSearchPh:'Search name...', pmStatusAll:'All', pmStatusGoing:'On Trip', pmStatusHome:'Domestic',
   pmTypeHq:'HQ', pmTypeOutsource:'Outsource', pmTypeLocalOutsource:'Local Outsource', pmTypeTech:'Tech', pmTypeVision:'Vision', pmTypeHost:'Host',
-  pmSortLabel:'Sort', pmSortName:'Name', pmSortDays:'Initial Days', pmSortGrandTotal:'Total Days', pmHideDone:'Hide Done',
+  pmSortLabel:'Sort', pmSortName:'Name', pmSortDays:'Initial Days', pmSortGrandTotal:'Total Days', pmHideDone:'Active only',
   statRegisteredPersons:'Registered', statAllTravelers:'All travelers', statOnTripNow:'Currently on trip', statTodayBasis:'As of today', pmBdOutsource:'Outsource', pmPersonTypeLabel:'Type',
   colName:'Name', colCountry:'Country', colCity:'Region', colSite:'Site', colFirstDays:'Initial Days', colExt1Days:'Ext.1 Days', colExt2Days:'Ext.2 Days', colStatusBadge:'Status', colGrandTotal:'Total Days',
   maMonth:'Month', maHqCount:'HQ Setup Units', maHqList:'HQ Setup Details', maSiteCount:'Site Setup Units', maSiteList:'Site Setup Details', maPeople:'Travelers', maPeopleList:'Traveler List'
@@ -65,7 +65,7 @@ zhHans:{
   colCustomerReqShipL1:'客户要求', colCustomerReqShipL2:'出货日期',
   pmSearchPh:'搜索姓名...', pmStatusAll:'全部', pmStatusGoing:'出差中', pmStatusHome:'国内',
   pmTypeHq:'总部', pmTypeOutsource:'外包', pmTypeLocalOutsource:'当地外包', pmTypeTech:'技术', pmTypeVision:'视觉', pmTypeHost:'主机厂',
-  pmSortLabel:'排序', pmSortName:'姓名', pmSortDays:'首次出差天数', pmSortGrandTotal:'总出差天数', pmHideDone:'隐藏已完成',
+  pmSortLabel:'排序', pmSortName:'姓名', pmSortDays:'首次出差天数', pmSortGrandTotal:'总出差天数', pmHideDone:'仅看进行中',
   statRegisteredPersons:'登记人数', statAllTravelers:'全部出差人员', statOnTripNow:'当前出差中', statTodayBasis:'截至今天', pmBdOutsource:'外包', pmPersonTypeLabel:'人员',
   colName:'姓名', colCountry:'国家', colCity:'地区', colSite:'站点', colFirstDays:'首次出差天数', colExt1Days:'第1次延长天数', colExt2Days:'第2次延长天数', colStatusBadge:'状态', colGrandTotal:'总出差天数',
   maMonth:'月份', maHqCount:'总部安装设备数', maHqList:'总部安装设备清单', maSiteCount:'现场安装设备数', maSiteList:'现场安装设备清单', maPeople:'出差人数', maPeopleList:'出差人员名单'
@@ -86,7 +86,7 @@ zhHant:{
   colCustomerReqShipL1:'客戶要求', colCustomerReqShipL2:'出貨日期',
   pmSearchPh:'搜尋姓名...', pmStatusAll:'全部', pmStatusGoing:'出差中', pmStatusHome:'國內',
   pmTypeHq:'總部', pmTypeOutsource:'外包', pmTypeLocalOutsource:'當地外包', pmTypeTech:'技術', pmTypeVision:'視覺', pmTypeHost:'主機廠',
-  pmSortLabel:'排序', pmSortName:'姓名', pmSortDays:'首次出差天數', pmSortGrandTotal:'總出差天數', pmHideDone:'隱藏已完成',
+  pmSortLabel:'排序', pmSortName:'姓名', pmSortDays:'首次出差天數', pmSortGrandTotal:'總出差天數', pmHideDone:'僅看進行中',
   statRegisteredPersons:'登記人數', statAllTravelers:'全部出差人員', statOnTripNow:'目前出差中', statTodayBasis:'截至今天', pmBdOutsource:'外包', pmPersonTypeLabel:'人員',
   colName:'姓名', colCountry:'國家', colCity:'地區', colSite:'站點', colFirstDays:'首次出差天數', colExt1Days:'第1次延長天數', colExt2Days:'第2次延長天數', colStatusBadge:'狀態', colGrandTotal:'總出差天數',
   maMonth:'月份', maHqCount:'總部安裝設備數', maHqList:'總部安裝設備清單', maSiteCount:'現場安裝設備數', maSiteList:'現場安裝設備清單', maPeople:'出差人數', maPeopleList:'出差人員名單'
@@ -107,7 +107,7 @@ ja:{
   colCustomerReqShipL1:'顧客要求', colCustomerReqShipL2:'出荷日程',
   pmSearchPh:'名前検索...', pmStatusAll:'全体', pmStatusGoing:'出張中', pmStatusHome:'国内',
   pmTypeHq:'本社', pmTypeOutsource:'外注', pmTypeLocalOutsource:'現地外注', pmTypeTech:'技術', pmTypeVision:'ビジョン', pmTypeHost:'ホスト',
-  pmSortLabel:'並び替え', pmSortName:'名前', pmSortDays:'初回出張日数', pmSortGrandTotal:'全体出張日数', pmHideDone:'完了を非表示',
+  pmSortLabel:'並び替え', pmSortName:'名前', pmSortDays:'初回出張日数', pmSortGrandTotal:'全体出張日数', pmHideDone:'進行中のみ表示',
   statRegisteredPersons:'登録人数', statAllTravelers:'全出張者', statOnTripNow:'現在出張中', statTodayBasis:'本日時点', pmBdOutsource:'外注', pmPersonTypeLabel:'人員',
   colName:'名前', colCountry:'国', colCity:'地域', colSite:'サイト', colFirstDays:'初回出張日数', colExt1Days:'1次延長日数', colExt2Days:'2次延長日数', colStatusBadge:'状態', colGrandTotal:'全体出張日数',
   maMonth:'月', maHqCount:'本社セットアップ設備数', maHqList:'本社セットアップ設備群', maSiteCount:'現場セットアップ設備数', maSiteList:'現場セットアップ設備群', maPeople:'出張人員', maPeopleList:'出張人員名簿'

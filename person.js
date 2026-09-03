@@ -227,7 +227,7 @@ var _pmTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localO
 var _pmSitePeriod='all';      // 사이트별 출장일 집계 기간: all | year | r12
 var _pmSiteCollapsed=true;    // 사이트별 출장일 요약 접기 상태 (기본 접힘)
 var _pmSiteTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localOutsource:true}; // 사이트별 요약 인원유형 체크
-var _pmHideDone=true;         // 완료된 출장(간트 기준 종료일 지남) 숨기기 — 기본 On
+var _pmHideDone=true;         // 켜면 진행중(출장중) 상태만 남기고 완료/예정은 숨김 — 기본 On
 
 function setPmFilter(f){ _pmFilter=f; renderPersonTab(); }
 function setPmSearch(v){
@@ -527,6 +527,48 @@ function _dedupTripsBySite(trips){
   return result;
 }
 
+// 인원 이름 클릭 시: 국가/지역/사이트별로 며칠 출장 갔는지 + 전체 합계를 보여주는 상세 모달
+// (겹치는 기간은 날짜 Set으로 중복 제거 — _personTotalDaysUnion과 동일한 방식이라 합계가 정확히 일치한다)
+function _personSiteBreakdown(trips){
+  var bySite={};
+  trips.forEach(function(t){
+    var key=t.siteId;
+    if(!bySite[key]) bySite[key]={siteId:t.siteId,siteName:t.siteName,siteColor:t.siteColor,region:t.region,city:t.city,dates:{}};
+    var s=pd(t.start),e=pd(t.end);
+    for(var cur=new Date(s);cur<=e;cur.setDate(cur.getDate()+1))
+      bySite[key].dates[cur.toDateString()]=true;
+  });
+  return Object.keys(bySite).map(function(k){
+    var b=bySite[k];
+    return {siteId:b.siteId,siteName:b.siteName,siteColor:b.siteColor,region:b.region||'기타',city:b.city||'-',days:Object.keys(b.dates).length};
+  }).sort(function(a,b){return b.days-a.days;});
+}
+function openPersonDaysModal(name){
+  var allPersons=aggregatePersonTrips();
+  var p=allPersons[name];
+  if(!p){cm();return;}
+  var rows=_personSiteBreakdown(p.trips);
+  var total=_personTotalDaysUnion(p.trips);
+  var body='<div class="mtit">'+_esc(name)+' — 출장일수 상세</div>';
+  if(!rows.length){
+    body+='<div style="padding:10px;color:var(--tx-muted);font-size:12px">출장 기록이 없습니다.</div>';
+  }else{
+    body+='<table class="pm-person-table"><thead><tr><th>국가</th><th>지역</th><th>사이트</th><th>일수</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+      body+='<tr>'
+        +'<td>'+_esc(r.region)+'</td>'
+        +'<td>'+_esc(r.city)+'</td>'
+        +'<td><span class="pm-site-chip" style="background:'+r.siteColor+'"></span>'+_esc(r.siteName)+'</td>'
+        +'<td>'+r.days+'일</td>'
+        +'</tr>';
+    });
+    body+='<tr class="pm-site-total-row"><td colspan="3">합계</td><td>'+total+'일</td></tr>';
+    body+='</tbody></table>';
+  }
+  body+='<div class="mfoot"><button class="btn sm" onclick="cm()">닫기</button></div>';
+  mw(body,true);
+}
+
 // 결과 테이블만 갱신 - pmCtrlBar/pmSearchInp DOM 건드리지 않음
 function renderPersonBody(){
   var body=document.getElementById('pmBody');
@@ -575,7 +617,7 @@ function renderPersonBody(){
     if(_pmSearch && r.name.toLowerCase().indexOf(_pmSearch)<0) return false;
     if(_pmFilter==='going' && r.trip.status!=='going') return false;
     if(_pmFilter==='home'  && !r.trip.domestic) return false;
-    if(_pmHideDone && r.trip.status==='done') return false;
+    if(_pmHideDone && r.trip.status!=='going') return false;
     return true;
   });
 
@@ -640,9 +682,10 @@ function renderPersonRow(r){
   var countryLbl=t.region||'기타';
   var cityLbl=t.city||'-';
 
+  var nameAttr=r.name.replace(/'/g,"\\'");
   var html='<tr class="pm-person-row">';
   html+='<td><div style="display:flex;align-items:center;gap:6px">'
-    +'<span class="pm-name">'+r.name+'</span>'
+    +'<span class="pm-name" style="cursor:pointer;text-decoration:underline dotted" onclick="openPersonDaysModal(\''+nameAttr+'\')" title="클릭하면 출장일수 상세 보기">'+r.name+'</span>'
     +'<span class="pm-type" style="background:'+tc+'">'+tl+'</span>'
     +'</div></td>';
   html+='<td>'+countryLbl+'</td>';
