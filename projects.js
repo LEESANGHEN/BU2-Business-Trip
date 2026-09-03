@@ -217,7 +217,9 @@ function renderProjectRow(mp){
   var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)):'-';
   var shipLbl=mp.shipDate?fmtFull(mp.shipDate):'-';
   var custReqShipLbl=mp.customerReqShipDate?fmtFull(mp.customerReqShipDate):'-';
-  var unitLbl=(mp.prodUnit&&mp.customerUnit)?(mp.prodUnit+'_(현장 '+mp.customerUnit+')'):(mp.prodUnit||(mp.customerUnit?('현장 '+mp.customerUnit):''));
+  // 생산 호기는 입력값에 "생산"을 붙이지 않고 저장(예: "70호기")하므로, 화면 표시할 때만 "생산 "을 붙인다
+  var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
+  var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
     +'<td>'+_esc(mp.category||'')+'</td>'
@@ -284,7 +286,7 @@ function _mpFormHtml(mp){
     +'<div class="fg" style="flex:1"><label class="fl">프로젝트</label><input type="text" id="mp_projectName" value="'+v('projectName')+'" autocomplete="off"></div>'
     +'</div>';
   html+='<div style="display:flex;gap:8px">'
-    +'<div class="fg" style="flex:1"><label class="fl">생산 호기</label><input type="text" id="mp_prodUnit" value="'+v('prodUnit')+'" autocomplete="off"></div>'
+    +'<div class="fg" style="flex:1"><label class="fl">생산 호기</label><input type="text" id="mp_prodUnit" value="'+v('prodUnit')+'" placeholder="예: 70호기 (\'생산\' 제외하고 입력)" autocomplete="off"></div>'
     +'<div class="fg" style="flex:1"><label class="fl">고객사 호기</label><input type="text" id="mp_customerUnit" value="'+v('customerUnit')+'" autocomplete="off"></div>'
     +'<div class="fg" style="flex:1"><label class="fl">프로젝트 시리얼</label><input type="text" id="mp_serial" value="'+v('serial')+'" autocomplete="off"></div>'
     +'</div>';
