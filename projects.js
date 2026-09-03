@@ -168,21 +168,43 @@ function renderProjectsBody(){
   body.innerHTML=renderProjectsTable(rows);
 }
 
+function thS(sortKey,labelKey,defaultLbl){
+  var isOn=_mpSortKey===sortKey;
+  var arrow=isOn?(_mpSortAsc?' ▲':' ▼'):'';
+  return '<th class="'+(isOn?'on':'')+'" onclick="setMpSort(\''+sortKey+'\')">'+_colLabel(labelKey,defaultLbl)+arrow+_thEditBtn(labelKey)+'</th>';
+}
+function thP(labelKey,defaultLbl){
+  return '<th>'+_colLabel(labelKey,defaultLbl)+_thEditBtn(labelKey)+'</th>';
+}
+// 관리자 모드에서 표 제목을 자유롭게 바꿀 수 있게 하는 커스텀 오버라이드 (Sheets에 저장되어 모든 접속자에게 반영)
+function _colLabel(key,defaultLbl){
+  var ov=(S.labelOverrides||{})[key];
+  return (ov!==undefined&&ov!=='')?_esc(ov):defaultLbl;
+}
+function _thEditBtn(key){
+  return _isAdminMode()?' <span class="mp-th-edit" onclick="event.stopPropagation();_editColLabel(\''+key+'\')" title="제목 수정">✎</span>':'';
+}
+function _editColLabel(key){
+  var current=(S.labelOverrides&&S.labelOverrides[key])||'';
+  var v=prompt('열 제목을 입력하세요 (비우고 확인하면 기본 제목으로 돌아갑니다):',current);
+  if(v===null)return;
+  if(!S.labelOverrides)S.labelOverrides={};
+  if(v.trim()==='')delete S.labelOverrides[key];
+  else S.labelOverrides[key]=v.trim();
+  saveData();
+  renderProjectsBody();
+}
+
 function renderProjectsTable(rows){
-  function thS(key,lbl){
-    var isOn=_mpSortKey===key;
-    var arrow=isOn?(_mpSortAsc?' ▲':' ▼'):'';
-    return '<th class="'+(isOn?'on':'')+'" onclick="setMpSort(\''+key+'\')">'+lbl+arrow+'</th>';
-  }
   var html='<table class="pm-person-table"><thead><tr>';
-  html+=thS('category',t('colCategory'))+thS('region',t('mpRegion'))+thS('customer',t('mpCustomer'))+thS('projectName',t('colProject'));
-  html+='<th>'+t('colSerial')+'</th>';
-  html+='<th>'+t('colUnitCombined')+'</th>';
-  html+=thS('setupStart',t('colSetupPeriod'));
-  html+=thS('shipDate',t('colShipDate'));
-  html+='<th>'+t('colCustomerReqShipL1')+'<br>'+t('colCustomerReqShipL2')+'</th>';
-  html+=thS('status',t('mpStatus'));
-  if(_isAdminMode()) html+='<th>'+t('colManage')+'</th>';
+  html+=thS('category','colCategory',t('colCategory'))+thS('region','colRegionHdr',t('mpRegion'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
+  html+=thP('colSerial',t('colSerial'));
+  html+=thP('colUnitCombined',t('colUnitCombined'));
+  html+=thS('setupStart','colSetupPeriod',t('colSetupPeriod'));
+  html+=thS('shipDate','colShipDate',t('colShipDate'));
+  html+=thP('colCustomerReqShip',t('colCustomerReqShipL1')+'<br>'+t('colCustomerReqShipL2'));
+  html+=thS('status','colStatusHdr',t('mpStatus'));
+  if(_isAdminMode()) html+=thP('colManage',t('colManage'));
   html+='</tr></thead><tbody>';
   rows.forEach(function(mp){html+=renderProjectRow(mp);});
   html+='</tbody></table>';

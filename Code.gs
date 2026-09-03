@@ -33,7 +33,7 @@ var CHUNK_SIZE = 40000; // Google Sheets 셀 1개 최대 5만자 제한보다 �
 
 var FIELDS = ['groups', 'sites', 'projects', 'schedules', 'events', 'workTasks',
               'equipItems', 'equipUnits', 'equipSiteOrder', 'equipProjects',
-              'visionTemplate', 'visionEquips', 'masterProjects', 'appTitle'];
+              'visionTemplate', 'visionEquips', 'masterProjects', 'appTitle', 'labelOverrides'];
 
 function _getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -85,7 +85,7 @@ function doGet(e) {
       if (state[f] !== undefined) {
         out[f] = state[f];
       } else {
-        out[f] = (f === 'visionTemplate') ? {} : (f === 'appTitle' ? '' : []);
+        out[f] = (f === 'visionTemplate' || f === 'labelOverrides') ? {} : (f === 'appTitle' ? '' : []);
       }
     });
     out.deletedIds = state.deletedIds || [];

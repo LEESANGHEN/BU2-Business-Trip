@@ -411,6 +411,8 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 /* 인원 탭 — 1인 테이블 */
 .pm-person-table{width:100%;border-collapse:collapse;font-size:12px}
 .pm-person-table th{padding:9px 10px;text-align:left;font-size:13px;font-weight:700;color:var(--tx-second);text-transform:uppercase;letter-spacing:.05em;background:var(--bg-alt);border-bottom:1px solid var(--bd-main);white-space:nowrap;cursor:pointer;user-select:none;position:sticky;top:0;z-index:10}
+.mp-th-edit{cursor:pointer;opacity:.55;font-size:11px;text-transform:none;margin-left:2px}
+.mp-th-edit:hover{opacity:1;color:#4a8aee}
 .pm-person-table th:hover{color:var(--tx-second)}
 .pm-person-table th.on{color:#7aafee}
 .pm-person-table td{padding:8px 10px;border-bottom:1px solid var(--bd-subtle);vertical-align:middle}
