@@ -180,6 +180,7 @@ function renderProjectsTable(rows){
   html+='<th>'+t('colUnitCombined')+'</th>';
   html+=thS('setupStart',t('colSetupPeriod'));
   html+=thS('shipDate',t('colShipDate'));
+  html+='<th>'+t('colCustomerReqShipL1')+'<br>'+t('colCustomerReqShipL2')+'</th>';
   html+=thS('status',t('mpStatus'));
   if(_isAdminMode()) html+='<th>'+t('colManage')+'</th>';
   html+='</tr></thead><tbody>';
@@ -191,6 +192,7 @@ function renderProjectsTable(rows){
 function renderProjectRow(mp){
   var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)):'-';
   var shipLbl=mp.shipDate?fmtFull(mp.shipDate):'-';
+  var custReqShipLbl=mp.customerReqShipDate?fmtFull(mp.customerReqShipDate):'-';
   var unitLbl=[mp.prodUnit,mp.customerUnit].filter(Boolean).join(' / ');
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
@@ -202,6 +204,7 @@ function renderProjectRow(mp){
     +'<td>'+_esc(unitLbl)+'</td>'
     +'<td>'+setupLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
+    +'<td>'+custReqShipLbl+'</td>'
     +'<td>'+_esc(mp.status||'')+'</td>'
     +(admin?('<td onclick="event.stopPropagation()">'
       +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">'+t('btnEdit')+'</button> '
@@ -267,7 +270,10 @@ function _mpFormHtml(mp){
     +dateFld('mp_setupEnd','종료',ie?mp.setupEnd:'')
     +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_setupManager" value="'+v('setupManager')+'" autocomplete="off"></div>'
     +'</div>';
-  html+='<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>';
+  html+='<div style="display:flex;gap:8px">'
+    +'<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>'
+    +'<div class="fg" style="max-width:200px">'+dateFld('mp_customerReqShipDate','고객사 요청 출하 일정',ie?mp.customerReqShipDate:'')+'</div>'
+    +'</div>';
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="발주 대기"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
@@ -284,7 +290,7 @@ function _mpReadForm(){
     category:v('mp_category'), region:_mpReadRegionField(), customer:v('mp_customer'), projectName:v('mp_projectName'),
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
     setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'),
-    shipDate:v('mp_shipDate'),
+    shipDate:v('mp_shipDate'), customerReqShipDate:v('mp_customerReqShipDate'),
     status:v('mp_status')
   };
 }

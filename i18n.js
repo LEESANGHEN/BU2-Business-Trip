@@ -20,6 +20,7 @@ ko:{
   mpHideInactive:'진행중만 보기', mpAddProject:'+ 프로젝트 등록', optAll:'전체', btnEdit:'수정', btnDelete:'삭제',
   colCategory:'구분', colProject:'프로젝트', colSerial:'프로젝트 시리얼', colUnitCombined:'생산/고객사 호기',
   colSetupPeriod:'생산 셋업 기간', colShipDate:'설비 출하 일정', colManage:'관리',
+  colCustomerReqShipL1:'고객사 요청', colCustomerReqShipL2:'출하 일정',
   pmSearchPh:'이름 검색...', pmStatusAll:'전체', pmStatusGoing:'출장중', pmStatusHome:'국내',
   pmTypeHq:'본사', pmTypeOutsource:'외주', pmTypeLocalOutsource:'현지외주', pmTypeTech:'기술', pmTypeVision:'비전', pmTypeHost:'호스트',
   pmSortLabel:'정렬', pmSortName:'이름', pmSortDays:'최초 출장일수', pmSortGrandTotal:'전체 출장일수', pmHideDone:'완료 숨기기',
@@ -40,6 +41,7 @@ en:{
   mpHideInactive:'Active only', mpAddProject:'+ Add Project', optAll:'All', btnEdit:'Edit', btnDelete:'Delete',
   colCategory:'Category', colProject:'Project', colSerial:'Project Serial', colUnitCombined:'Production/Customer Unit',
   colSetupPeriod:'Setup Period', colShipDate:'Ship Date', colManage:'Manage',
+  colCustomerReqShipL1:'Customer Requested', colCustomerReqShipL2:'Ship Date',
   pmSearchPh:'Search name...', pmStatusAll:'All', pmStatusGoing:'On Trip', pmStatusHome:'Domestic',
   pmTypeHq:'HQ', pmTypeOutsource:'Outsource', pmTypeLocalOutsource:'Local Outsource', pmTypeTech:'Tech', pmTypeVision:'Vision', pmTypeHost:'Host',
   pmSortLabel:'Sort', pmSortName:'Name', pmSortDays:'Initial Days', pmSortGrandTotal:'Total Days', pmHideDone:'Hide Done',
@@ -60,6 +62,7 @@ zhHans:{
   mpHideInactive:'仅看进行中', mpAddProject:'+ 添加项目', optAll:'全部', btnEdit:'修改', btnDelete:'删除',
   colCategory:'分类', colProject:'项目', colSerial:'项目序列号', colUnitCombined:'生产/客户机台',
   colSetupPeriod:'生产安装周期', colShipDate:'设备出货日期', colManage:'管理',
+  colCustomerReqShipL1:'客户要求', colCustomerReqShipL2:'出货日期',
   pmSearchPh:'搜索姓名...', pmStatusAll:'全部', pmStatusGoing:'出差中', pmStatusHome:'国内',
   pmTypeHq:'总部', pmTypeOutsource:'外包', pmTypeLocalOutsource:'当地外包', pmTypeTech:'技术', pmTypeVision:'视觉', pmTypeHost:'主机厂',
   pmSortLabel:'排序', pmSortName:'姓名', pmSortDays:'首次出差天数', pmSortGrandTotal:'总出差天数', pmHideDone:'隐藏已完成',
@@ -80,6 +83,7 @@ zhHant:{
   mpHideInactive:'僅看進行中', mpAddProject:'+ 新增專案', optAll:'全部', btnEdit:'修改', btnDelete:'刪除',
   colCategory:'分類', colProject:'專案', colSerial:'專案序號', colUnitCombined:'生產/客戶機台',
   colSetupPeriod:'生產安裝週期', colShipDate:'設備出貨日期', colManage:'管理',
+  colCustomerReqShipL1:'客戶要求', colCustomerReqShipL2:'出貨日期',
   pmSearchPh:'搜尋姓名...', pmStatusAll:'全部', pmStatusGoing:'出差中', pmStatusHome:'國內',
   pmTypeHq:'總部', pmTypeOutsource:'外包', pmTypeLocalOutsource:'當地外包', pmTypeTech:'技術', pmTypeVision:'視覺', pmTypeHost:'主機廠',
   pmSortLabel:'排序', pmSortName:'姓名', pmSortDays:'首次出差天數', pmSortGrandTotal:'總出差天數', pmHideDone:'隱藏已完成',
@@ -100,6 +104,7 @@ ja:{
   mpHideInactive:'進行中のみ表示', mpAddProject:'+ プロジェクト登録', optAll:'全体', btnEdit:'編集', btnDelete:'削除',
   colCategory:'区分', colProject:'プロジェクト', colSerial:'プロジェクトシリアル', colUnitCombined:'生産/顧客号機',
   colSetupPeriod:'生産セットアップ期間', colShipDate:'設備出荷日程', colManage:'管理',
+  colCustomerReqShipL1:'顧客要求', colCustomerReqShipL2:'出荷日程',
   pmSearchPh:'名前検索...', pmStatusAll:'全体', pmStatusGoing:'出張中', pmStatusHome:'国内',
   pmTypeHq:'本社', pmTypeOutsource:'外注', pmTypeLocalOutsource:'現地外注', pmTypeTech:'技術', pmTypeVision:'ビジョン', pmTypeHost:'ホスト',
   pmSortLabel:'並び替え', pmSortName:'名前', pmSortDays:'初回出張日数', pmSortGrandTotal:'全体出張日数', pmHideDone:'完了を非表示',
@@ -128,7 +133,10 @@ function _langSelectHtml(){
 function applyLanguage(){
   document.documentElement.setAttribute('lang', _lang==='ko'?'ko':(_lang==='en'?'en':(_lang==='ja'?'ja':'zh')));
   Array.prototype.slice.call(document.querySelectorAll('[data-i18n]')).forEach(function(el){
-    el.textContent=t(el.getAttribute('data-i18n'));
+    var key=el.getAttribute('data-i18n');
+    // 관리자가 커스텀 타이틀을 지정했으면(S.appTitle) 그 값을 언어와 무관하게 그대로 보여준다
+    if(key==='appTitle'&&typeof S!=='undefined'&&S.appTitle){ el.textContent=S.appTitle; return; }
+    el.textContent=t(key);
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-i18n-title]')).forEach(function(el){
     el.title=t(el.getAttribute('data-i18n-title'));
