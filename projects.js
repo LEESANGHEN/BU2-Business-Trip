@@ -294,13 +294,22 @@ function _mpReadForm(){
     status:v('mp_status')
   };
 }
+// renderProjectsTab()은 컨트롤바(필터 옵션 등)까지 통째로 다시 그려서 스크롤 위치가 최상단으로
+// 튀어버린다. 저장/삭제 후에는 방금 보던 위치 그대로 있어야 하므로 스크롤 위치를 기억했다가 복원한다.
+function _mpRenderTabKeepScroll(){
+  var scrollEl=document.querySelector('.pm-body-scroll');
+  var scrollTop=scrollEl?scrollEl.scrollTop:0;
+  renderProjectsTab();
+  var newScrollEl=document.querySelector('.pm-body-scroll');
+  if(newScrollEl) newScrollEl.scrollTop=scrollTop;
+}
 function saveAddMasterProject(){
   var f=_mpReadForm();
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   var mp=_touch(f);
   mp.id=_mpId();
   S.masterProjects.push(mp);
-  saveData();cm();renderProjectsTab();
+  saveData();cm();_mpRenderTabKeepScroll();
 }
 function saveEditMasterProject(id){
   var mp=S.masterProjects.find(function(m){return m.id===id;});
@@ -309,13 +318,13 @@ function saveEditMasterProject(id){
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   Object.keys(f).forEach(function(k){mp[k]=f[k];});
   _touch(mp);
-  saveData();cm();renderProjectsTab();
+  saveData();cm();_mpRenderTabKeepScroll();
 }
 function delMasterProject(id){
   if(!confirm('이 프로젝트 항목을 삭제하시겠습니까?'))return;
   S.masterProjects=S.masterProjects.filter(function(m){return m.id!==id;});
   _markDeleted('masterProjects',id);
-  saveData();cm();renderProjectsTab();
+  saveData();cm();_mpRenderTabKeepScroll();
 }
 
 /* ── 엑셀 데이터 1회성 가져오기 ──
