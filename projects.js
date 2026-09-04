@@ -213,6 +213,27 @@ function renderProjectsTable(rows){
   return html;
 }
 
+// 구분/상태 값에 따라 색상 배지로 표시 (모르는 값이면 배지 없이 텍스트만 표시)
+var _MP_CATEGORY_BADGE_STYLE={
+  'Repeat Order':'background:#1a3a5a;color:#7aafee;border:1px solid #2a5a8a',
+  '신규 개발':'background:#2e2050;color:#b39ddb;border:1px solid #4a3a80',
+  '기타':'background:#3a2a10;color:#e0972e;border:1px solid #6a4a1a'
+};
+var _MP_STATUS_BADGE_STYLE={
+  '진행중':'background:#1a4a2a;color:#4aaa70;border:1px solid #2a6a3a',
+  '완료':'background:var(--bg-hover);color:var(--tx-dim);border:1px solid var(--bd-main)',
+  '발주 대기':'background:#3a3010;color:#d4b02e;border:1px solid #6a5a1a',
+  'LOI 접수':'background:#103a3a;color:#2ecccc;border:1px solid #1a6a6a'
+};
+function _mpBadge(val,styleMap){
+  if(!val)return '';
+  var st=styleMap[val];
+  if(!st)return _esc(val);
+  return '<span style="'+st+';padding:3px 10px;border-radius:5px;font-size:12px;font-weight:500;white-space:nowrap">'+_esc(val)+'</span>';
+}
+function _mpCategoryBadge(cat){ return _mpBadge(cat,_MP_CATEGORY_BADGE_STYLE); }
+function _mpStatusBadge(st){ return _mpBadge(st,_MP_STATUS_BADGE_STYLE); }
+
 function renderProjectRow(mp){
   var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)):'-';
   var shipLbl=mp.shipDate?fmtFull(mp.shipDate):'-';
@@ -222,7 +243,7 @@ function renderProjectRow(mp){
   var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
-    +'<td>'+_esc(mp.category||'')+'</td>'
+    +'<td>'+_mpCategoryBadge(mp.category)+'</td>'
     +'<td>'+_esc(mp.region||'')+'</td>'
     +'<td>'+_esc(mp.customer||'')+'</td>'
     +'<td>'+_esc(mp.projectName||'')+'</td>'
@@ -231,7 +252,7 @@ function renderProjectRow(mp){
     +'<td>'+setupLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
     +'<td>'+custReqShipLbl+'</td>'
-    +'<td>'+_esc(mp.status||'')+'</td>'
+    +'<td>'+_mpStatusBadge(mp.status)+'</td>'
     +(admin?('<td onclick="event.stopPropagation()">'
       +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">'+t('btnEdit')+'</button> '
       +'<button class="eq-item-edit-btn" onclick="delMasterProject(\''+mp.id+'\')" style="color:#c04040">'+t('btnDelete')+'</button>'
