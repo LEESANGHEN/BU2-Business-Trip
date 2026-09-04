@@ -3,6 +3,7 @@ var WPX=42,_months=[],_totPx=0,_sd=null;
 var _ganttZoom='week'; // 'week'|'biweek'|'month'
 var _ganttSearch='';   // 담당자명 검색
 var _typeShow={sched:true,event:true,work:true}; // 출장일정/이벤트/작업 표시 토글
+var _ganttScrollBootstrapped=false; // 최초 1회만 '오늘' 위치로 자동 스크롤, 이후 재렌더는 사용자 위치 유지
 function toggleTypeShow(k,v){_typeShow[k]=v;renderGantt();}
 var WPX_MAP={'week':42,'biweek':22,'month':12};
 function ganttFixedW(){var el=document.querySelector('.ghfixed');return (el&&el.offsetWidth)||455;} // 좌측 고정컬럼 실측 폭(반응형 CSS 추종)
@@ -293,7 +294,13 @@ function assignWtLanes(wts){
 }
 
 function renderGantt(){
-  var body=document.getElementById('gbody');body.innerHTML='';
+  var body=document.getElementById('gbody');
+  // gbody(내용)만 교체되고 gscroll(스크롤 컨테이너)은 그대로라 스크롤 위치는 원래 안 튀지만,
+  // 아래에서 '오늘' 위치로 강제 이동시키는 로직이 최초 1회 이후에도 매번 실행되어 검색/필터/
+  // 동기화 등 어떤 이벤트든 스크롤을 되돌려버렸다 — 최초 진입 때만 자동 이동하도록 고친다
+  var _gscrollEl=document.getElementById('gscroll');
+  var _gTop=_gscrollEl?_gscrollEl.scrollTop:0, _gLeft=_gscrollEl?_gscrollEl.scrollLeft:0;
+  body.innerHTML='';
   // 숨김 보기 버튼 상태 동기화 (showHidden이 localStorage에서 복원된 경우 반영)
   var _btn=document.getElementById('btnHidden');
   if(_btn){_btn.textContent=S.showHidden?'숨김 숨기기':'숨김 보기';_btn.className='btn'+(S.showHidden?' warn':'');}
@@ -416,8 +423,13 @@ function renderGantt(){
       });
     });
   });
-  // ponytail: 400=300*4/3 이었던 기존 비율(고정컬럼+여유폭)을 보존한 상대식. 여백감이 안 맞으면 4/3 계수만 튜닝.
-  document.getElementById('gscroll').scrollLeft=Math.max(0,tpx()-Math.round(ganttFixedW()*4/3));
+  if(!_ganttScrollBootstrapped){
+    // ponytail: 400=300*4/3 이었던 기존 비율(고정컬럼+여유폭)을 보존한 상대식. 여백감이 안 맞으면 4/3 계수만 튜닝.
+    document.getElementById('gscroll').scrollLeft=Math.max(0,tpx()-Math.round(ganttFixedW()*4/3));
+    _ganttScrollBootstrapped=true;
+  } else if(_gscrollEl){
+    _gscrollEl.scrollTop=_gTop; _gscrollEl.scrollLeft=_gLeft;
+  }
 }
 
 function renderAll(){initTL();renderSidebar();renderHeader();renderGantt();if(_activeTab==='projects')renderProjectsTab();if(_activeTab==='person')renderPersonTab();if(_activeTab==='equip')renderEquipTab();if(_activeTab==='vision')renderMonthlyAggTab();}

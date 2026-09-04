@@ -33,6 +33,11 @@ function _mpId(){ return genId('mp',S.masterProjects); }
 function renderProjectsTab(){
   var wrap=document.getElementById('mpWrap');
   if(!wrap) return;
+  // 컨트롤바까지 통째로 다시 그리면 .pm-body-scroll이 새 요소로 교체되어 스크롤이 맨 위로
+  // 튀어버린다(언어 변경/관리자 모드 전환/탭 재진입 등 전체 재렌더 시). 이전 위치를 기억했다가
+  // 다시 그린 뒤 그대로 복원한다 — 호출부(_mpRenderTabKeepScroll 등)를 신경 쓸 필요 없이 항상 동작
+  var _prevScroll=wrap.querySelector('.pm-body-scroll');
+  var _sTop=_prevScroll?_prevScroll.scrollTop:0, _sLeft=_prevScroll?_prevScroll.scrollLeft:0;
   var html='<div class="pm-fixed-header">';
   html+='<div class="pm-ctrl-bar" id="mpCtrlBar">';
   html+='<div class="pm-ctrl-group">';
@@ -73,6 +78,8 @@ function renderProjectsTab(){
   html+='<div class="pm-body-scroll"><div id="mpBody"></div></div>';
   wrap.innerHTML=html;
   renderProjectsBody();
+  var _newScroll=wrap.querySelector('.pm-body-scroll');
+  if(_newScroll){_newScroll.scrollTop=_sTop;_newScroll.scrollLeft=_sLeft;}
 }
 
 function setMpSearch(v){_mpSearch=v.trim().toLowerCase();renderProjectsBody();}
@@ -385,14 +392,10 @@ function _mpApplyTransferOverride(f){
   if(f.transferDateOverride) f.setupStart=_addDaysStr(f.transferDateOverride,1);
   return f;
 }
-// renderProjectsTab()은 컨트롤바(필터 옵션 등)까지 통째로 다시 그려서 스크롤 위치가 최상단으로
-// 튀어버린다. 저장/삭제 후에는 방금 보던 위치 그대로 있어야 하므로 스크롤 위치를 기억했다가 복원한다.
+// renderProjectsTab() 자체가 스크롤 위치를 기억했다가 복원하므로 그냥 호출하면 된다
+// (예전엔 이 함수에서 직접 처리했으나 모든 재렌더 경로에 적용되도록 renderProjectsTab()으로 옮김)
 function _mpRenderTabKeepScroll(){
-  var scrollEl=document.querySelector('.pm-body-scroll');
-  var scrollTop=scrollEl?scrollEl.scrollTop:0;
   renderProjectsTab();
-  var newScrollEl=document.querySelector('.pm-body-scroll');
-  if(newScrollEl) newScrollEl.scrollTop=scrollTop;
 }
 function saveAddMasterProject(){
   var f=_mpApplyTransferOverride(_mpReadForm());
@@ -455,12 +458,14 @@ function renderMonthlyAggTab(){
   var main=document.getElementById('visionMain');
   if(sidebar)sidebar.innerHTML='';
   if(!main)return;
+  var _prevScroll=document.getElementById('maScroll');
+  var _sTop=_prevScroll?_prevScroll.scrollTop:0, _sLeft=_prevScroll?_prevScroll.scrollLeft:0;
   var months=_mpAllMonths();
   if(!months.length){
     main.innerHTML='<div style="padding:40px;text-align:center;color:#707080">집계할 프로젝트 데이터가 없습니다. "프로젝트 관리" 탭에서 데이터를 등록하거나 가져오세요.</div>';
     return;
   }
-  var html='<div style="overflow:auto;flex:1;padding:12px">';
+  var html='<div id="maScroll" style="overflow:auto;flex:1;padding:12px">';
   html+='<table class="pm-person-table"><thead><tr>'
     +'<th>'+t('maMonth')+'</th><th>'+t('maHqCount')+'</th><th>'+t('maHqList')+'</th>'
     +'<th>'+t('maSiteCount')+'</th><th>'+t('maSiteList')+'</th>'
@@ -478,6 +483,8 @@ function renderMonthlyAggTab(){
   });
   html+='</tbody></table></div>';
   main.innerHTML=html;
+  var _newScroll=document.getElementById('maScroll');
+  if(_newScroll){_newScroll.scrollTop=_sTop;_newScroll.scrollLeft=_sLeft;}
 }
 function _mpAllMonths(){
   var min=null,max=null;

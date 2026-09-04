@@ -229,7 +229,7 @@ var _pmSiteCollapsed=true;    // 사이트별 출장일 요약 접기 상태 (�
 var _pmSiteTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localOutsource:true}; // 사이트별 요약 인원유형 체크
 var _pmHideDone=true;         // 켜면 진행중(출장중) 상태만 남기고 완료/예정은 숨김 — 기본 On
 
-function setPmFilter(f){ _pmFilter=f; renderPersonTab(); }
+function setPmFilter(f){ _pmFilter=f; renderPersonBody(); }
 function setPmSearch(v){
   _pmSearch=v.toLowerCase();
   renderPersonBody();
@@ -403,6 +403,10 @@ function openSiteRosterModal(siteId){
 function renderPersonTab(){
   var wrap=document.getElementById('pmWrap');
   if(!wrap) return;
+  // 통계 카드/컨트롤바까지 통째로 다시 그리면 .pm-body-scroll이 새 요소로 교체되어 스크롤이
+  // 맨 위로 튀어버린다(언어 변경/관리자 모드 전환/탭 재진입 등). 이전 위치를 기억했다가 복원한다
+  var _prevScroll=wrap.querySelector('.pm-body-scroll');
+  var _sTop=_prevScroll?_prevScroll.scrollTop:0, _sLeft=_prevScroll?_prevScroll.scrollLeft:0;
 
   var allPersons=aggregatePersonTrips();
   var allNames=Object.keys(allPersons);
@@ -472,6 +476,8 @@ function renderPersonTab(){
 
   wrap.innerHTML=html;
   renderPersonBody(); // 결과 채우기
+  var _newScroll=wrap.querySelector('.pm-body-scroll');
+  if(_newScroll){_newScroll.scrollTop=_sTop;_newScroll.scrollLeft=_sLeft;}
 }
 
 // 정렬 버튼 HTML 조각 생성 (컨트롤바 내 정렬 버튼 업데이트에 재사용)
@@ -581,8 +587,16 @@ function renderPersonBody(){
   var hideDoneBtn=document.getElementById('pmHideDoneBtn');
   if(hideDoneBtn) hideDoneBtn.className='pm-filter-btn'+(_pmHideDone?' on':'');
 
-  // 타입필터 버튼 상태 업데이트
+  // 상태 필터(전체/출장중/국내) 버튼 상태 업데이트
   var ctrlBar=document.getElementById('pmCtrlBar');
+  if(ctrlBar){
+    ctrlBar.querySelectorAll("button[onclick^=\"setPmFilter\"]").forEach(function(btn){
+      var v=btn.getAttribute('onclick').replace(/setPmFilter\('|'\)/g,'');
+      btn.className='pm-filter-btn'+(_pmFilter===v?' on':'');
+    });
+  }
+
+  // 타입필터 버튼 상태 업데이트
   if(ctrlBar){
     ctrlBar.querySelectorAll('.pm-type-ck').forEach(function(el){
       var t=el.querySelector('input[type=checkbox]');
