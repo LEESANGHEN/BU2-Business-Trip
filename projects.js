@@ -235,9 +235,17 @@ function _mpCategoryBadge(cat){ return _mpBadge(cat,_MP_CATEGORY_BADGE_STYLE); }
 function _mpStatusBadge(st){ return _mpBadge(st,_MP_STATUS_BADGE_STYLE); }
 
 function renderProjectRow(mp){
-  var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)):'-';
+  var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)+'('+dd(mp.setupStart,mp.setupEnd)+'일)'):'-';
   var shipLbl=mp.shipDate?fmtFull(mp.shipDate):'-';
-  var custReqShipLbl=mp.customerReqShipDate?fmtFull(mp.customerReqShipDate):'-';
+  // 출하 요청일이 있으면 셋업 시작일부터 출하 전날까지(출하 당일 제외)의 일수를 뒤에 표시
+  var custReqShipLbl='-';
+  if(mp.customerReqShipDate){
+    custReqShipLbl=fmtFull(mp.customerReqShipDate);
+    if(mp.setupStart){
+      var custSetupDays=Math.round((pd(mp.customerReqShipDate)-pd(mp.setupStart))/86400000);
+      custReqShipLbl+='('+custSetupDays+'일)';
+    }
+  }
   // 생산 호기는 입력값에 "생산"을 붙이지 않고 저장(예: "70호기")하므로, 화면 표시할 때만 "생산 "을 붙인다
   var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
   var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
