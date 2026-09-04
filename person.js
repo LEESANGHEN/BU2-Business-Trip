@@ -219,9 +219,9 @@ function getCurrentLocation(trips){
 }
 
 // ── 상태 변수
-var _pmFilter='all';          // 상태 필터: all | going | home
+var _pmFilter='all';          // 상태 필터: all | done | going | plan
 var _pmSearch='';             // 이름 검색
-var _pmSortKey='name';        // 정렬 기준: name | days | grandTotal
+var _pmSortKey='name';        // 정렬 기준: name | country | site
 var _pmSortAsc=true;          // 정렬 방향
 var _pmTypeFilter={hq:true,outsource:true,tech:true,vision:true,host:true,localOutsource:true}; // 인원유형 체크
 var _pmSitePeriod='all';      // 사이트별 출장일 집계 기간: all | year | r12
@@ -398,6 +398,19 @@ function openSiteRosterModal(siteId){
   mw(body,true);
 }
 
+// 상단 통계 카드의 인원유형 구성 배지 — 예전엔 본사/외주 두 갈래로만 묶어서 기술·비전·호스트
+// 인원까지 전부 "본사계열"로 보였다. 실제 인원유형(TYPE_LBL) 그대로, 존재하는 유형만 표시한다.
+var _PM_TYPE_ORDER=['hq','outsource','localOutsource','tech','vision','host'];
+function _pmTypeBreakdownHtml(names,allPersons){
+  var counts={};
+  names.forEach(function(n){ var ty=allPersons[n].type; counts[ty]=(counts[ty]||0)+1; });
+  return _PM_TYPE_ORDER.filter(function(ty){return counts[ty];}).map(function(ty){
+    var key='pmType'+ty.charAt(0).toUpperCase()+ty.slice(1);
+    var c=TYPE_COLOR[ty]||'#666';
+    return '<span class="pm-bd-type" style="color:'+c+';background:'+c+'22">'+t(key)+' '+counts[ty]+'</span>';
+  }).join('');
+}
+
 // renderPersonTab : 전체 렌더 (탭 첫 진입, 지역필터 변경 시)
 // renderPersonBody: 결과 테이블만 갱신 (검색·정렬·타입필터 변경 시 → 검색창 IME 유지)
 function renderPersonTab(){
@@ -412,12 +425,10 @@ function renderPersonTab(){
   var allNames=Object.keys(allPersons);
 
   var totalPersons=allNames.length;
-  var onTripNow=allNames.filter(function(n){return getCurrentLocation(allPersons[n].trips).onTrip;}).length;
-  var isOut=function(t){return t==='outsource'||t==='localOutsource';};
-  var totalHq=allNames.filter(function(n){return !isOut(allPersons[n].type);}).length;
-  var totalOut=allNames.filter(function(n){return isOut(allPersons[n].type);}).length;
-  var onTripHq=allNames.filter(function(n){return getCurrentLocation(allPersons[n].trips).onTrip&&!isOut(allPersons[n].type);}).length;
-  var onTripOut=allNames.filter(function(n){return getCurrentLocation(allPersons[n].trips).onTrip&&isOut(allPersons[n].type);}).length;
+  var onTripNames=allNames.filter(function(n){return getCurrentLocation(allPersons[n].trips).onTrip;});
+  var onTripNow=onTripNames.length;
+  var totalBreakdown=_pmTypeBreakdownHtml(allNames,allPersons);
+  var onTripBreakdown=_pmTypeBreakdownHtml(onTripNames,allPersons);
 
   if(!totalPersons){
     wrap.innerHTML='<div style="padding:40px;text-align:center;color:#555">등록된 출장 일정이 없습니다.</div>';
@@ -430,8 +441,8 @@ function renderPersonTab(){
 
   // 통계 카드
   html+='<div class="pm-stats-row">';
-  html+='<div class="pm-stat-card"><div class="pm-stat-val">'+totalPersons+'</div><div class="pm-stat-lbl">'+t('statRegisteredPersons')+'</div><div class="pm-stat-sub">'+t('statAllTravelers')+'</div><div class="pm-stat-breakdown"><span class="pm-bd-hq">'+t('legendHq')+' '+totalHq+'</span><span class="pm-bd-out">'+t('pmBdOutsource')+' '+totalOut+'</span></div></div>';
-  html+='<div class="pm-stat-card"><div class="pm-stat-val" style="color:#2176cc">'+onTripNow+'</div><div class="pm-stat-lbl">'+t('statOnTripNow')+'</div><div class="pm-stat-sub">'+t('statTodayBasis')+'</div><div class="pm-stat-breakdown"><span class="pm-bd-hq">'+t('legendHq')+' '+onTripHq+'</span><span class="pm-bd-out">'+t('pmBdOutsource')+' '+onTripOut+'</span></div></div>';
+  html+='<div class="pm-stat-card"><div class="pm-stat-val">'+totalPersons+'</div><div class="pm-stat-lbl">'+t('statRegisteredPersons')+'</div><div class="pm-stat-sub">'+t('statAllTravelers')+'</div><div class="pm-stat-breakdown">'+totalBreakdown+'</div></div>';
+  html+='<div class="pm-stat-card"><div class="pm-stat-val" style="color:#2176cc">'+onTripNow+'</div><div class="pm-stat-lbl">'+t('statOnTripNow')+'</div><div class="pm-stat-sub">'+t('statTodayBasis')+'</div><div class="pm-stat-breakdown">'+onTripBreakdown+'</div></div>';
   html+='</div>';
 
   // ── 사이트별 Total 출장일수 요약
@@ -446,7 +457,7 @@ function renderPersonTab(){
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
   html+='<span style="font-size:10px;color:#555">'+t('mpStatus')+'</span>';
-  [{v:'all',l:t('pmStatusAll')},{v:'going',l:t('pmStatusGoing')},{v:'home',l:t('pmStatusHome')}].forEach(function(f){
+  [{v:'all',l:t('pmStatusAll')},{v:'done',l:t('pmStatusDone')},{v:'going',l:t('pmStatusGoing')},{v:'plan',l:t('pmStatusPlan')}].forEach(function(f){
     html+='<button class="pm-filter-btn'+((_pmFilter===f.v)?' on':'')+'" onclick="setPmFilter(\''+f.v+'\')">'+f.l+'</button>';
   });
   html+='</div>';
@@ -482,7 +493,7 @@ function renderPersonTab(){
 
 // 정렬 버튼 HTML 조각 생성 (컨트롤바 내 정렬 버튼 업데이트에 재사용)
 function buildSortBtnsHtml(){
-  var sortBtns=[['name',t('pmSortName')],['days',t('pmSortDays')],['grandTotal',t('pmSortGrandTotal')]];
+  var sortBtns=[['name',t('pmSortName')],['country',t('pmSortCountry')],['site',t('pmSortSite')]];
   var h='<span style="font-size:10px;color:#555">'+t('pmSortLabel')+'</span>';
   sortBtns.forEach(function(b){
     var isOn=_pmSortKey===b[0];
@@ -629,8 +640,7 @@ function renderPersonBody(){
   rows=rows.filter(function(r){
     if(!_pmTypeFilter[r.trip.type]) return false;
     if(_pmSearch && r.name.toLowerCase().indexOf(_pmSearch)<0) return false;
-    if(_pmFilter==='going' && r.trip.status!=='going') return false;
-    if(_pmFilter==='home'  && !r.trip.domestic) return false;
+    if(_pmFilter!=='all' && r.trip.status!==_pmFilter) return false;
     if(_pmHideDone && r.trip.status!=='going') return false;
     return true;
   });
