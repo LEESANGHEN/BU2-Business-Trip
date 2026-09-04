@@ -167,7 +167,12 @@ function applyLanguage(){
   Array.prototype.slice.call(document.querySelectorAll('[data-i18n]')).forEach(function(el){
     var key=el.getAttribute('data-i18n');
     // 관리자가 커스텀 타이틀을 지정했으면(S.appTitle) 그 값을 언어와 무관하게 그대로 보여준다
-    if(key==='appTitle'&&typeof S!=='undefined'&&S.appTitle){ el.textContent=S.appTitle; return; }
+    if(key==='appTitle'){
+      var titleTxt=(typeof S!=='undefined'&&S.appTitle)?S.appTitle:t(key);
+      el.textContent=titleTxt;
+      document.title=titleTxt; // 브라우저 탭 제목도 함께 갱신
+      return;
+    }
     el.textContent=t(key);
   });
   Array.prototype.slice.call(document.querySelectorAll('[data-i18n-title]')).forEach(function(el){
