@@ -308,6 +308,15 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .pm-sort-btn:hover{color:var(--tx-primary);background:var(--bg-hover)}
 .pm-sort-btn.on{background:#1a2a3a;color:#7aafee;border-color:#2a4a6a}
 .pm-sort-arrow{font-size:10px;opacity:.7}
+/* 프로젝트 관리 — 다중 선택 필터 드롭다운 */
+.pm-ms-wrap{position:relative;display:inline-block}
+.pm-ms-trigger{padding:4px 9px;font-size:12px;background:var(--bg-input);border:1px solid var(--bd-main);border-radius:5px;color:var(--tx-primary);cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+.pm-ms-trigger:hover{background:var(--bg-hover)}
+.pm-ms-panel{position:absolute;top:100%;left:0;z-index:60;background:var(--bg-panel);border:1px solid var(--bd-main);border-radius:6px;margin-top:3px;min-width:160px;max-width:280px;max-height:240px;overflow-y:auto;box-shadow:0 4px 14px rgba(0,0,0,.4);padding:4px}
+.pm-ms-opt{display:flex;align-items:center;gap:6px;padding:4px 8px;font-size:12px;color:var(--tx-primary);cursor:pointer;border-radius:3px;white-space:nowrap}
+.pm-ms-opt:hover{background:var(--bg-hover)}
+.pm-ms-opt.all{font-weight:600;border-bottom:1px solid var(--bd-light);margin-bottom:3px;padding-bottom:6px}
+.pm-ms-opt input[type=checkbox]{margin:0;cursor:pointer}
 /* 인원유형 체크박스 */
 .pm-type-ck{display:flex;align-items:center;gap:3px;padding:2px 7px;border-radius:4px;border:1px solid var(--bd-main);cursor:pointer;font-size:11px;color:var(--tx-dim);transition:all .15s;white-space:nowrap}
 .pm-type-ck:hover{background:var(--bg-hover)}

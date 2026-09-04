@@ -7,10 +7,8 @@
 ══════════════════════════════════════════ */
 
 var _mpSearch='';
-var _mpFilterRegion='all';
-var _mpFilterStatus='all';
-var _mpFilterCustomer='all';
-var _mpFilterShipMonth='all';
+// 지역/고객사/설비명(프로젝트)/상태/출하월 필터 — 각각 다중 선택 가능(배열, 빈 배열=전체)
+var _mpMS={region:[],customer:[],project:[],status:[],shipMonth:[]};
 var _mpSortKey='category';
 var _mpSortAsc=false;
 var _mpHideInactive=true;     // 완료/LOI 접수/발주 대기 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
@@ -45,25 +43,15 @@ function renderProjectsTab(){
   html+='<input class="pm-search" id="mpSearchInp" type="text" placeholder="'+t('mpSearchPh')+'" autocomplete="off" oninput="setMpSearch(this.value)" value="'+_esc(_mpSearch)+'">';
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
-  html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">'+t('mpRegion')+'</span>';
-  html+='<select id="mpRegionSel" onchange="setMpRegionFilter(this.value)">'+_mpRegionFilterOpts()+'</select>';
-  html+='</div>';
+  html+=_mpMsHtml('region',t('mpFilterRegion'));
   html+='<div class="pm-ctrl-sep"></div>';
-  html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">'+t('mpStatus')+'</span>';
-  html+='<select id="mpStatusSel" onchange="setMpStatusFilter(this.value)">'+_mpStatusFilterOpts()+'</select>';
-  html+='</div>';
+  html+=_mpMsHtml('customer',t('mpFilterCustomer'));
   html+='<div class="pm-ctrl-sep"></div>';
-  html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">'+t('mpCustomer')+'</span>';
-  html+='<select id="mpCustomerSel" onchange="setMpCustomerFilter(this.value)">'+_mpCustomerFilterOpts()+'</select>';
-  html+='</div>';
+  html+=_mpMsHtml('project',t('mpFilterProject'));
   html+='<div class="pm-ctrl-sep"></div>';
-  html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">'+t('mpShipMonth')+'</span>';
-  html+='<select id="mpShipMonthSel" onchange="setMpShipMonthFilter(this.value)">'+_mpShipMonthFilterOpts()+'</select>';
-  html+='</div>';
+  html+=_mpMsHtml('status',t('mpStatus'));
+  html+='<div class="pm-ctrl-sep"></div>';
+  html+=_mpMsHtml('shipMonth',t('mpShipMonth'));
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
   html+='<button class="pm-filter-btn'+(_mpHideInactive?' on':'')+'" id="mpHideInactiveBtn" onclick="togglePmHideInactive()">'+t('mpHideInactive')+'</button>';
@@ -83,10 +71,6 @@ function renderProjectsTab(){
 }
 
 function setMpSearch(v){_mpSearch=v.trim().toLowerCase();renderProjectsBody();}
-function setMpRegionFilter(v){_mpFilterRegion=v;renderProjectsBody();}
-function setMpStatusFilter(v){_mpFilterStatus=v;renderProjectsBody();}
-function setMpCustomerFilter(v){_mpFilterCustomer=v;renderProjectsBody();}
-function setMpShipMonthFilter(v){_mpFilterShipMonth=v;renderProjectsBody();}
 function togglePmHideInactive(){
   _mpHideInactive=!_mpHideInactive;
   var btn=document.getElementById('mpHideInactiveBtn');
@@ -99,47 +83,109 @@ function setMpSort(key){
   renderProjectsBody();
 }
 
-function _mpRegionFilterOpts(){
-  var regions=[];
-  S.masterProjects.forEach(function(mp){if(mp.region&&regions.indexOf(mp.region)<0)regions.push(mp.region);});
-  (typeof BASE_REGIONS!=='undefined'?BASE_REGIONS:[]).forEach(function(r){if(regions.indexOf(r)<0)regions.push(r);});
-  var html='<option value="all"'+(_mpFilterRegion==='all'?' selected':'')+'>'+t('optAll')+'</option>';
-  regions.forEach(function(r){html+='<option value="'+_esc(r)+'"'+(_mpFilterRegion===r?' selected':'')+'>'+_esc(tRegion(r))+'</option>';});
-  return html;
-}
-function _mpStatusFilterOpts(){
-  var statuses=[];
-  S.masterProjects.forEach(function(mp){if(mp.status&&statuses.indexOf(mp.status)<0)statuses.push(mp.status);});
-  var html='<option value="all"'+(_mpFilterStatus==='all'?' selected':'')+'>'+t('optAll')+'</option>';
-  statuses.forEach(function(s){html+='<option value="'+_esc(s)+'"'+(_mpFilterStatus===s?' selected':'')+'>'+_esc(tStatus(s))+'</option>';});
-  return html;
-}
-function _mpCustomerFilterOpts(){
-  var customers=[];
-  S.masterProjects.forEach(function(mp){if(mp.customer&&customers.indexOf(mp.customer)<0)customers.push(mp.customer);});
-  customers.sort(function(a,b){return a.localeCompare(b,'ko');});
-  var html='<option value="all"'+(_mpFilterCustomer==='all'?' selected':'')+'>'+t('optAll')+'</option>';
-  customers.forEach(function(c){html+='<option value="'+_esc(c)+'"'+(_mpFilterCustomer===c?' selected':'')+'>'+_esc(c)+'</option>';});
-  return html;
-}
 function _mpShipMonth(mp){ return mp.shipDate?mp.shipDate.slice(0,7):''; }
-function _mpShipMonthFilterOpts(){
-  var months=[];
-  S.masterProjects.forEach(function(mp){var m=_mpShipMonth(mp);if(m&&months.indexOf(m)<0)months.push(m);});
-  months.sort();
-  var html='<option value="all"'+(_mpFilterShipMonth==='all'?' selected':'')+'>'+t('optAll')+'</option>';
-  months.forEach(function(m){html+='<option value="'+m+'"'+(_mpFilterShipMonth===m?' selected':'')+'>'+m+'</option>';});
+
+// ── 다중 선택 필터(국가(지역)/고객사(사이트)/설비명(프로젝트)/상태/출하월) 공용 드롭다운 ──
+var _MP_MS_DEFS={
+  region:function(){
+    var arr=[];
+    S.masterProjects.forEach(function(mp){if(mp.region&&arr.indexOf(mp.region)<0)arr.push(mp.region);});
+    (typeof BASE_REGIONS!=='undefined'?BASE_REGIONS:[]).forEach(function(r){if(arr.indexOf(r)<0)arr.push(r);});
+    return arr.map(function(v){return {value:v,label:tRegion(v)};});
+  },
+  customer:function(){
+    var arr=[];
+    S.masterProjects.forEach(function(mp){if(mp.customer&&arr.indexOf(mp.customer)<0)arr.push(mp.customer);});
+    arr.sort(function(a,b){return a.localeCompare(b,'ko');});
+    return arr.map(function(v){return {value:v,label:v};});
+  },
+  project:function(){
+    var arr=[];
+    S.masterProjects.forEach(function(mp){if(mp.projectName&&arr.indexOf(mp.projectName)<0)arr.push(mp.projectName);});
+    arr.sort(function(a,b){return a.localeCompare(b,'ko');});
+    return arr.map(function(v){return {value:v,label:v};});
+  },
+  status:function(){
+    var arr=[];
+    S.masterProjects.forEach(function(mp){if(mp.status&&arr.indexOf(mp.status)<0)arr.push(mp.status);});
+    return arr.map(function(v){return {value:v,label:tStatus(v)};});
+  },
+  shipMonth:function(){
+    var arr=[];
+    S.masterProjects.forEach(function(mp){var m=_mpShipMonth(mp);if(m&&arr.indexOf(m)<0)arr.push(m);});
+    arr.sort();
+    return arr.map(function(v){return {value:v,label:v};});
+  }
+};
+function _mpMsSummary(key){
+  var sel=_mpMS[key];
+  if(!sel.length) return t('optAll');
+  if(sel.length===1){
+    var opt=_MP_MS_DEFS[key]().find(function(o){return o.value===sel[0];});
+    return opt?opt.label:sel[0];
+  }
+  return sel.length+t('mpFilterNSelected');
+}
+function _mpMsOptionsHtml(key){
+  var opts=_MP_MS_DEFS[key]();
+  var sel=_mpMS[key];
+  var html='<label class="pm-ms-opt all"><input type="checkbox" '+(sel.length===0?'checked':'')+' onchange="_mpMsClearAll(\''+key+'\')">'+t('optAll')+'</label>';
+  opts.forEach(function(o){
+    var vAttr=String(o.value).replace(/'/g,"\\'");
+    var checked=sel.indexOf(o.value)>=0;
+    html+='<label class="pm-ms-opt"><input type="checkbox" '+(checked?'checked':'')+' onchange="_mpMsToggle(\''+key+'\',\''+vAttr+'\')">'+_esc(o.label)+'</label>';
+  });
   return html;
 }
+function _mpMsHtml(key,label){
+  return '<div class="pm-ctrl-group"><span style="font-size:10px;color:#555">'+label+'</span>'
+    +'<div class="pm-ms-wrap">'
+    +'<button type="button" class="pm-ms-trigger" onclick="_mpMsTogglePanel(\''+key+'\')"><span id="mpMsLbl_'+key+'">'+_esc(_mpMsSummary(key))+'</span> ▾</button>'
+    +'<div class="pm-ms-panel" id="mpMsPanel_'+key+'" style="display:none">'+_mpMsOptionsHtml(key)+'</div>'
+    +'</div></div>';
+}
+function _mpMsTogglePanel(key){
+  var panel=document.getElementById('mpMsPanel_'+key);
+  if(!panel) return;
+  var willOpen=panel.style.display==='none';
+  document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
+  panel.style.display=willOpen?'block':'none';
+}
+function _mpMsToggle(key,value){
+  var arr=_mpMS[key];
+  var idx=arr.indexOf(value);
+  if(idx>=0) arr.splice(idx,1); else arr.push(value);
+  _mpMsRefresh(key);
+  renderProjectsBody();
+}
+function _mpMsClearAll(key){
+  _mpMS[key]=[];
+  _mpMsRefresh(key);
+  var panel=document.getElementById('mpMsPanel_'+key);
+  if(panel) panel.style.display='none';
+  renderProjectsBody();
+}
+function _mpMsRefresh(key){
+  var panel=document.getElementById('mpMsPanel_'+key);
+  if(panel) panel.innerHTML=_mpMsOptionsHtml(key);
+  var lbl=document.getElementById('mpMsLbl_'+key);
+  if(lbl) lbl.textContent=_mpMsSummary(key);
+}
+// 패널 바깥을 클릭하면 열려있는 다중선택 드롭다운을 닫는다
+document.addEventListener('click',function(e){
+  if(e.target.closest&&e.target.closest('.pm-ms-wrap')) return;
+  document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
+});
 
 function renderProjectsBody(){
   var body=document.getElementById('mpBody');
   if(!body)return;
   var rows=S.masterProjects.filter(function(mp){
-    if(_mpFilterRegion!=='all'&&(mp.region||'기타')!==_mpFilterRegion)return false;
-    if(_mpFilterStatus!=='all'&&(mp.status||'')!==_mpFilterStatus)return false;
-    if(_mpFilterCustomer!=='all'&&(mp.customer||'')!==_mpFilterCustomer)return false;
-    if(_mpFilterShipMonth!=='all'&&_mpShipMonth(mp)!==_mpFilterShipMonth)return false;
+    if(_mpMS.region.length&&_mpMS.region.indexOf(mp.region||'기타')<0)return false;
+    if(_mpMS.customer.length&&_mpMS.customer.indexOf(mp.customer||'')<0)return false;
+    if(_mpMS.project.length&&_mpMS.project.indexOf(mp.projectName||'')<0)return false;
+    if(_mpMS.status.length&&_mpMS.status.indexOf(mp.status||'')<0)return false;
+    if(_mpMS.shipMonth.length&&_mpMS.shipMonth.indexOf(_mpShipMonth(mp))<0)return false;
     if(_mpHideInactive&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){
       var hay=[mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit,mp.serial].join(' ').toLowerCase();
