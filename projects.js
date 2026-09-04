@@ -251,8 +251,9 @@ function renderProjectRow(mp){
   // 생산 호기는 입력값에 "생산"을 붙이지 않고 저장(예: "70호기")하므로, 화면 표시할 때만 "생산 "을 붙인다
   var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
   var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
-  // 생산 이관일은 별도로 저장하지 않고 항상 셋업 시작일 바로 전날로 계산해서 보여준다
-  var transferLbl=mp.setupStart?fmtFull(_addDaysStr(mp.setupStart,-1)):'-';
+  // 생산 이관일은 최초 등록 시 한 번만 "셋업 시작일 - 1일"로 정해져 저장되고, 이후 변경 이관일/셋업
+  // 시작일이 바뀌어도 그대로 유지된다(최초 이관 예정일 기록용) — saveAddMasterProject/saveEditMasterProject 참고
+  var transferLbl=mp.transferDate?fmtFull(mp.transferDate):'-';
   var transferOverrideLbl=mp.transferDateOverride?fmtFull(mp.transferDateOverride):'-';
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
@@ -377,6 +378,7 @@ function _mpRenderTabKeepScroll(){
 function saveAddMasterProject(){
   var f=_mpApplyTransferOverride(_mpReadForm());
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
+  if(f.setupStart) f.transferDate=_addDaysStr(f.setupStart,-1);
   var mp=_touch(f);
   mp.id=_mpId();
   S.masterProjects.push(mp);
@@ -388,6 +390,8 @@ function saveEditMasterProject(id){
   var f=_mpApplyTransferOverride(_mpReadForm());
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   Object.keys(f).forEach(function(k){mp[k]=f[k];});
+  // 생산 이관일은 최초 1회만 정해지고 이후로는 변경 이관일/셋업 시작일이 바뀌어도 그대로 둔다
+  if(!mp.transferDate&&mp.setupStart) mp.transferDate=_addDaysStr(mp.setupStart,-1);
   _touch(mp);
   saveData();cm();_mpRenderTabKeepScroll();
 }

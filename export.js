@@ -158,7 +158,7 @@ function _buildProjectsSheet(wb){
   rows.forEach(function(mp){
     var bg=rIdx%2===0?'#1c1c24':'#181820';
     var setupLbl=(mp.setupStart&&mp.setupEnd)?(mp.setupStart+' ~ '+mp.setupEnd):'';
-    var transferDate=mp.setupStart?_addDaysStr(mp.setupStart,-1):'';
+    var transferDate=mp.transferDate||'';
     var row=ws.getRow(rIdx);
     [mp.category,mp.region,mp.customer,mp.projectName,mp.serial,mp.prodUnit,mp.customerUnit,transferDate,mp.transferDateOverride,setupLbl,mp.shipDate,mp.customerReqShipDate,mp.status].forEach(function(v,i){
       var cell=row.getCell(i+1);
