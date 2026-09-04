@@ -97,14 +97,14 @@ function _mpRegionFilterOpts(){
   S.masterProjects.forEach(function(mp){if(mp.region&&regions.indexOf(mp.region)<0)regions.push(mp.region);});
   (typeof BASE_REGIONS!=='undefined'?BASE_REGIONS:[]).forEach(function(r){if(regions.indexOf(r)<0)regions.push(r);});
   var html='<option value="all"'+(_mpFilterRegion==='all'?' selected':'')+'>'+t('optAll')+'</option>';
-  regions.forEach(function(r){html+='<option value="'+_esc(r)+'"'+(_mpFilterRegion===r?' selected':'')+'>'+_esc(r)+'</option>';});
+  regions.forEach(function(r){html+='<option value="'+_esc(r)+'"'+(_mpFilterRegion===r?' selected':'')+'>'+_esc(tRegion(r))+'</option>';});
   return html;
 }
 function _mpStatusFilterOpts(){
   var statuses=[];
   S.masterProjects.forEach(function(mp){if(mp.status&&statuses.indexOf(mp.status)<0)statuses.push(mp.status);});
   var html='<option value="all"'+(_mpFilterStatus==='all'?' selected':'')+'>'+t('optAll')+'</option>';
-  statuses.forEach(function(s){html+='<option value="'+_esc(s)+'"'+(_mpFilterStatus===s?' selected':'')+'>'+_esc(s)+'</option>';});
+  statuses.forEach(function(s){html+='<option value="'+_esc(s)+'"'+(_mpFilterStatus===s?' selected':'')+'>'+_esc(tStatus(s))+'</option>';});
   return html;
 }
 function _mpCustomerFilterOpts(){
@@ -178,6 +178,9 @@ function thP(labelKey,defaultLbl){
 }
 // 관리자 모드에서 표 제목을 자유롭게 바꿀 수 있게 하는 커스텀 오버라이드 (Sheets에 저장되어 모든 접속자에게 반영)
 function _colLabel(key,defaultLbl){
+  // 관리자 커스텀 제목은 한국어 화면에서만 적용한다. 다른 언어를 선택하면 항상 기본
+  // 번역(defaultLbl)을 보여준다 — 커스텀 문구는 번역이 없어 다국어 전환이 안 되기 때문
+  if(typeof _lang!=='undefined'&&_lang!=='ko')return defaultLbl;
   var ov=(S.labelOverrides||{})[key];
   if(ov===undefined||ov==='')return defaultLbl;
   // '/'를 줄바꿈 구분자로 써서 두 줄 이상으로도 표시할 수 있게 함 (예: "고객사 요청/설비 출하 일정")
@@ -227,14 +230,15 @@ var _MP_STATUS_BADGE_STYLE={
   '발주 대기':'background:#3a3010;color:#d4b02e;border:1px solid #6a5a1a',
   'LOI 접수':'background:#103a3a;color:#2ecccc;border:1px solid #1a6a6a'
 };
-function _mpBadge(val,styleMap){
+function _mpBadge(val,styleMap,label){
   if(!val)return '';
   var st=styleMap[val];
-  if(!st)return _esc(val);
-  return '<span style="'+st+';padding:3px 10px;border-radius:5px;font-size:12px;font-weight:500;white-space:nowrap">'+_esc(val)+'</span>';
+  var disp=(label!==undefined)?label:val;
+  if(!st)return _esc(disp);
+  return '<span style="'+st+';padding:3px 10px;border-radius:5px;font-size:12px;font-weight:500;white-space:nowrap">'+_esc(disp)+'</span>';
 }
 function _mpCategoryBadge(cat){ return _mpBadge(cat,_MP_CATEGORY_BADGE_STYLE); }
-function _mpStatusBadge(st){ return _mpBadge(st,_MP_STATUS_BADGE_STYLE); }
+function _mpStatusBadge(st){ return _mpBadge(st,_MP_STATUS_BADGE_STYLE,tStatus(st)); }
 
 function renderProjectRow(mp){
   var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)+'('+dd(mp.setupStart,mp.setupEnd)+'일)'):'-';
@@ -258,7 +262,7 @@ function renderProjectRow(mp){
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
     +'<td>'+_mpCategoryBadge(mp.category)+'</td>'
-    +'<td>'+_esc(mp.region||'')+'</td>'
+    +'<td>'+_esc(tRegion(mp.region||''))+'</td>'
     +'<td>'+_esc(mp.customer||'')+'</td>'
     +'<td>'+_esc(mp.projectName||'')+'</td>'
     +'<td>'+_esc(mp.serial||'')+'</td>'

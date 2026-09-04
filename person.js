@@ -556,7 +556,7 @@ function openPersonDaysModal(name){
     body+='<table class="pm-person-table"><thead><tr><th>국가</th><th>지역</th><th>사이트</th><th>일수</th></tr></thead><tbody>';
     rows.forEach(function(r){
       body+='<tr>'
-        +'<td>'+_esc(r.region)+'</td>'
+        +'<td>'+_esc(tRegion(r.region))+'</td>'
         +'<td>'+_esc(r.city)+'</td>'
         +'<td><span class="pm-site-chip" style="background:'+r.siteColor+'"></span>'+_esc(r.siteName)+'</td>'
         +'<td>'+r.days+'일</td>'
@@ -670,16 +670,16 @@ function renderPersonTable(rows){
 
 // 간트와 동일한 날짜 기준 status(going/plan/done)를 뱃지로 표시
 function _pmStatusBadge(status){
-  if(status==='going') return '<span class="pm-trip-status status-going">진행중</span>';
-  if(status==='plan')  return '<span class="pm-trip-status status-plan">예정</span>';
-  return '<span class="pm-trip-status status-done">완료</span>';
+  if(status==='going') return '<span class="pm-trip-status status-going">'+tStatus('진행중')+'</span>';
+  if(status==='plan')  return '<span class="pm-trip-status status-plan">'+tStatus('예정')+'</span>';
+  return '<span class="pm-trip-status status-done">'+tStatus('완료')+'</span>';
 }
 
 function renderPersonRow(r){
   var t=r.trip;
   var tc=TYPE_COLOR[t.type]||'#555';
   var tl=TYPE_LBL[t.type]||t.type;
-  var countryLbl=t.region||'기타';
+  var countryLbl=tRegion(t.region||'기타');
   var cityLbl=t.city||'-';
 
   var nameAttr=r.name.replace(/'/g,"\\'");

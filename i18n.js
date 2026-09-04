@@ -128,6 +128,33 @@ function t(key){
   return (key in dict)?dict[key]:(I18N.ko[key]!==undefined?I18N.ko[key]:key);
 }
 
+// 다국어 범위: UI 문구(위 I18N) 외에, 표에 실제로 표시되는 값 중 "국가(지역)"와
+// "상태" 두 항목만 값 자체를 번역한다(그 외 사용자가 입력한 데이터는 원문 그대로 표시).
+var REGION_I18N={
+  ko:{'국내':'국내','중국':'중국','대만':'대만','일본':'일본','베트남':'베트남','말레이시아':'말레이시아','싱가폴':'싱가폴','태국':'태국','미국':'미국','오스트리아':'오스트리아','기타':'기타'},
+  en:{'국내':'Domestic','중국':'China','대만':'Taiwan','일본':'Japan','베트남':'Vietnam','말레이시아':'Malaysia','싱가폴':'Singapore','태국':'Thailand','미국':'USA','오스트리아':'Austria','기타':'Other'},
+  zhHans:{'국내':'国内','중국':'中国','대만':'台湾','일본':'日本','베트남':'越南','말레이시아':'马来西亚','싱가폴':'新加坡','태국':'泰国','미국':'美国','오스트리아':'奥地利','기타':'其他'},
+  zhHant:{'국내':'國內','중국':'中國','대만':'台灣','일본':'日本','베트남':'越南','말레이시아':'馬來西亞','싱가폴':'新加坡','태국':'泰國','미국':'美國','오스트리아':'奧地利','기타':'其他'},
+  ja:{'국내':'国内','중국':'中国','대만':'台湾','일본':'日本','베트남':'ベトナム','말레이시아':'マレーシア','싱가폴':'シンガポール','태국':'タイ','미국':'アメリカ','오스트리아':'オーストリア','기타':'その他'}
+};
+var STATUS_I18N={
+  ko:{'진행중':'진행중','완료':'완료','발주 대기':'발주 대기','LOI 접수':'LOI 접수','예정':'예정'},
+  en:{'진행중':'In Progress','완료':'Done','발주 대기':'Order Pending','LOI 접수':'LOI Received','예정':'Planned'},
+  zhHans:{'진행중':'进行中','완료':'完成','발주 대기':'待下单','LOI 접수':'已收到LOI','예정':'预定'},
+  zhHant:{'진행중':'進行中','완료':'完成','발주 대기':'待下單','LOI 접수':'已收到LOI','예정':'預定'},
+  ja:{'진행중':'進行中','완료':'完了','발주 대기':'発注待ち','LOI 접수':'LOI受領','예정':'予定'}
+};
+function tRegion(v){
+  if(!v)return v;
+  var dict=REGION_I18N[_lang]||REGION_I18N.ko;
+  return dict[v]!==undefined?dict[v]:v;
+}
+function tStatus(v){
+  if(!v)return v;
+  var dict=STATUS_I18N[_lang]||STATUS_I18N.ko;
+  return dict[v]!==undefined?dict[v]:v;
+}
+
 function _langSelectHtml(){
   return Object.keys(LANG_LABELS).map(function(code){
     return '<option value="'+code+'"'+(code===_lang?' selected':'')+'>'+LANG_LABELS[code]+'</option>';

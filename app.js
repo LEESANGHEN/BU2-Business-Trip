@@ -1239,7 +1239,7 @@ function _setAdminMode(on){
   switchTab(_activeTab);
 }
 function _handleTitleClick(e){
-  if(e.ctrlKey&&e.shiftKey){ _setAdminMode(!_isAdminMode()); return; }
+  if(e.ctrlKey){ _setAdminMode(!_isAdminMode()); return; }
   if(_isAdminMode()) _startEditAppTitle();
 }
 // 관리자 모드에서 타이틀을 직접 입력해 커스텀 이름으로 바꿀 수 있게 함 (Sheets에 저장되어 모든 접속자에게 반영)
