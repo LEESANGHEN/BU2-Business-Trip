@@ -137,7 +137,7 @@ function _buildProjectsSheet(wb){
     return _mpUnitCompare(a.customerUnit,b.customerUnit);
   });
 
-  ws.columns=[12,10,16,20,16,14,14,20,14,14,10].map(function(w){return {width:w};});
+  ws.columns=[12,10,16,20,16,14,14,14,14,20,14,14,10].map(function(w){return {width:w};});
   ws.views=[{state:'frozen',ySplit:1}];
 
   if(!rows.length){
@@ -145,7 +145,7 @@ function _buildProjectsSheet(wb){
     return;
   }
 
-  var hdr=['구분','지역','고객사','프로젝트','프로젝트 시리얼','생산 호기','고객사 호기','생산 셋업 기간','설비 출하 일정','고객사 요청 출하 일정','상태'];
+  var hdr=['구분','지역','고객사','프로젝트','프로젝트 시리얼','생산 호기','고객사 호기','생산 이관일','변경 이관일','생산 셋업 기간','설비 출하 일정','고객사 요청 출하 일정','상태'];
   var hRow=ws.getRow(1);
   hdr.forEach(function(h,i){
     var cell=hRow.getCell(i+1);
@@ -158,8 +158,9 @@ function _buildProjectsSheet(wb){
   rows.forEach(function(mp){
     var bg=rIdx%2===0?'#1c1c24':'#181820';
     var setupLbl=(mp.setupStart&&mp.setupEnd)?(mp.setupStart+' ~ '+mp.setupEnd):'';
+    var transferDate=mp.setupStart?_addDaysStr(mp.setupStart,-1):'';
     var row=ws.getRow(rIdx);
-    [mp.category,mp.region,mp.customer,mp.projectName,mp.serial,mp.prodUnit,mp.customerUnit,setupLbl,mp.shipDate,mp.customerReqShipDate,mp.status].forEach(function(v,i){
+    [mp.category,mp.region,mp.customer,mp.projectName,mp.serial,mp.prodUnit,mp.customerUnit,transferDate,mp.transferDateOverride,setupLbl,mp.shipDate,mp.customerReqShipDate,mp.status].forEach(function(v,i){
       var cell=row.getCell(i+1);
       cell.value=v||'';
       _xStyle(cell,{bg:bg,fg:'#c8c8d4',align:i<=3?'left':'center'});

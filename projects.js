@@ -202,6 +202,8 @@ function renderProjectsTable(rows){
   html+=thS('category','colCategory',t('colCategory'))+thS('region','colRegionHdr',t('mpRegion'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
   html+=thP('colSerial',t('colSerial'));
   html+=thP('colUnitCombined',t('colUnitCombined'));
+  html+=thP('colTransferDate',t('colTransferDate'));
+  html+=thP('colTransferDateOverride',t('colTransferDateOverride'));
   html+=thS('setupStart','colSetupPeriod',t('colSetupPeriod'));
   html+=thS('shipDate','colShipDate',t('colShipDate'));
   html+=thP('colCustomerReqShip',t('colCustomerReqShipL1')+'<br>'+t('colCustomerReqShipL2'));
@@ -249,6 +251,9 @@ function renderProjectRow(mp){
   // 생산 호기는 입력값에 "생산"을 붙이지 않고 저장(예: "70호기")하므로, 화면 표시할 때만 "생산 "을 붙인다
   var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
   var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
+  // 생산 이관일은 별도로 저장하지 않고 항상 셋업 시작일 바로 전날로 계산해서 보여준다
+  var transferLbl=mp.setupStart?fmtFull(_addDaysStr(mp.setupStart,-1)):'-';
+  var transferOverrideLbl=mp.transferDateOverride?fmtFull(mp.transferDateOverride):'-';
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
     +'<td>'+_mpCategoryBadge(mp.category)+'</td>'
@@ -257,6 +262,8 @@ function renderProjectRow(mp){
     +'<td>'+_esc(mp.projectName||'')+'</td>'
     +'<td>'+_esc(mp.serial||'')+'</td>'
     +'<td>'+_esc(unitLbl)+'</td>'
+    +'<td>'+transferLbl+'</td>'
+    +'<td>'+transferOverrideLbl+'</td>'
     +'<td>'+setupLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
     +'<td>'+custReqShipLbl+'</td>'
@@ -319,6 +326,8 @@ function _mpFormHtml(mp){
     +'<div class="fg" style="flex:1"><label class="fl">고객사 호기</label><input type="text" id="mp_customerUnit" value="'+v('customerUnit')+'" autocomplete="off"></div>'
     +'<div class="fg" style="flex:1"><label class="fl">프로젝트 시리얼</label><input type="text" id="mp_serial" value="'+v('serial')+'" autocomplete="off"></div>'
     +'</div>';
+  html+='<div class="fg" style="max-width:200px">'+dateFld('mp_transferDateOverride','변경 이관일',ie?mp.transferDateOverride:'')+'</div>';
+  html+='<div style="font-size:10px;color:var(--tx-muted);margin:-4px 0 4px">비워두면 생산 이관일은 본사 셋업 시작일 바로 전날로 자동 계산됩니다. 값을 입력하면 본사 셋업 시작일이 이 날짜의 다음날로 자동 변경됩니다.</div>';
   html+='<div style="font-size:11px;color:var(--tx-muted);margin:10px 0 4px;font-weight:600">본사 셋업</div>';
   html+='<div style="display:flex;gap:8px">'
     +dateFld('mp_setupStart','시작',ie?mp.setupStart:'')
@@ -346,8 +355,15 @@ function _mpReadForm(){
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
     setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'),
     shipDate:v('mp_shipDate'), customerReqShipDate:v('mp_customerReqShipDate'),
+    transferDateOverride:v('mp_transferDateOverride'),
     status:v('mp_status')
   };
+}
+// 변경 이관일이 입력되어 있으면, 본사 셋업 시작일을 그 다음날로 자동 맞춘다
+// (생산 이관일 자체는 저장하지 않고 항상 셋업 시작일 - 1일로 계산해서 보여준다 — renderProjectRow 참고)
+function _mpApplyTransferOverride(f){
+  if(f.transferDateOverride) f.setupStart=_addDaysStr(f.transferDateOverride,1);
+  return f;
 }
 // renderProjectsTab()은 컨트롤바(필터 옵션 등)까지 통째로 다시 그려서 스크롤 위치가 최상단으로
 // 튀어버린다. 저장/삭제 후에는 방금 보던 위치 그대로 있어야 하므로 스크롤 위치를 기억했다가 복원한다.
@@ -359,7 +375,7 @@ function _mpRenderTabKeepScroll(){
   if(newScrollEl) newScrollEl.scrollTop=scrollTop;
 }
 function saveAddMasterProject(){
-  var f=_mpReadForm();
+  var f=_mpApplyTransferOverride(_mpReadForm());
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   var mp=_touch(f);
   mp.id=_mpId();
@@ -369,7 +385,7 @@ function saveAddMasterProject(){
 function saveEditMasterProject(id){
   var mp=S.masterProjects.find(function(m){return m.id===id;});
   if(!mp)return;
-  var f=_mpReadForm();
+  var f=_mpApplyTransferOverride(_mpReadForm());
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   Object.keys(f).forEach(function(k){mp[k]=f[k];});
   _touch(mp);
