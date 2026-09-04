@@ -395,6 +395,10 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .eq-memo-icon.has-memo{color:#6ab0f0}
 .eq-memo-icon-wrap{display:inline-block}
 .eq-memo-tooltip-fixed{display:none;position:fixed;z-index:9999;background:var(--bg-grp);color:var(--tx-primary);padding:7px 10px;border-radius:5px;font-size:12px;white-space:pre-wrap;max-width:260px;min-width:80px;border:1px solid var(--bd-main);box-shadow:0 4px 12px rgba(0,0,0,.5);pointer-events:none;line-height:1.5}
+/* 프로젝트 관리 — 열 제목 안내 아이콘(호버/탭 겸용) */
+.mp-info-icon{display:inline-block;font-size:11px;color:var(--tx-muted);cursor:pointer;margin-left:2px;vertical-align:middle}
+.mp-info-icon:hover{color:#7aafee}
+.mp-info-tooltip{display:none;position:fixed;z-index:9999;background:var(--bg-grp);color:var(--tx-primary);padding:8px 11px;border-radius:5px;font-size:12px;white-space:normal;max-width:240px;border:1px solid var(--bd-main);box-shadow:0 4px 12px rgba(0,0,0,.5);line-height:1.5;pointer-events:none}
 /* 프로젝트 구분 행 */
 .eq-project-row>td{border-top:1px solid var(--bd-light);border-bottom:1px solid var(--bd-light)}
 .eq-proj-sticky{padding:4px 10px 4px 20px}

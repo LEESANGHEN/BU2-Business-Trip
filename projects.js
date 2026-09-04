@@ -221,14 +221,48 @@ function renderProjectsBody(){
   body.innerHTML=renderProjectsTable(rows);
 }
 
-function thS(sortKey,labelKey,defaultLbl){
+function thS(sortKey,labelKey,defaultLbl,infoText){
   var isOn=_mpSortKey===sortKey;
   var arrow=isOn?(_mpSortAsc?' ▲':' ▼'):'';
-  return '<th class="'+(isOn?'on':'')+'" onclick="setMpSort(\''+sortKey+'\')">'+_colLabel(labelKey,defaultLbl)+arrow+_thEditBtn(labelKey)+'</th>';
+  return '<th class="'+(isOn?'on':'')+'" onclick="setMpSort(\''+sortKey+'\')">'+_colLabel(labelKey,defaultLbl)+(infoText?_mpInfoIconHtml(infoText):'')+arrow+_thEditBtn(labelKey)+'</th>';
 }
-function thP(labelKey,defaultLbl){
-  return '<th>'+_colLabel(labelKey,defaultLbl)+_thEditBtn(labelKey)+'</th>';
+function thP(labelKey,defaultLbl,infoText){
+  return '<th>'+_colLabel(labelKey,defaultLbl)+(infoText?_mpInfoIconHtml(infoText):'')+_thEditBtn(labelKey)+'</th>';
 }
+// 열 제목 옆에 붙는 안내 아이콘 — 데스크탑은 호버, 모바일은 탭으로 같은 툴팁을 보여준다
+function _mpInfoIconHtml(text){
+  var esc=text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  return ' <span class="mp-info-icon" data-tip="'+esc+'" onmouseenter="_mpShowInfoTip(this)" onmouseleave="_mpHideInfoTip()" onclick="event.stopPropagation();_mpToggleInfoTip(this)">ⓘ</span>';
+}
+function _mpShowInfoTip(el){
+  var tip=el.getAttribute('data-tip');
+  if(!tip) return;
+  var tt=document.getElementById('mp-info-tt');
+  if(!tt){ tt=document.createElement('div'); tt.id='mp-info-tt'; tt.className='mp-info-tooltip'; document.body.appendChild(tt); }
+  tt.textContent=tip;
+  tt.style.display='block';
+  tt._forEl=el;
+  var rect=el.getBoundingClientRect();
+  var top=rect.bottom+6, left=rect.left;
+  tt.style.top=top+'px'; tt.style.left=left+'px';
+  var w=tt.offsetWidth;
+  if(left+w>window.innerWidth-8) tt.style.left=Math.max(8,window.innerWidth-w-8)+'px';
+}
+function _mpHideInfoTip(){
+  var tt=document.getElementById('mp-info-tt');
+  if(tt){ tt.style.display='none'; tt._forEl=null; }
+}
+// 탭(터치)용 — 같은 아이콘을 다시 탭하면 닫히고, 다른 아이콘을 탭하면 그쪽으로 옮겨간다
+function _mpToggleInfoTip(el){
+  var tt=document.getElementById('mp-info-tt');
+  if(tt&&tt.style.display==='block'&&tt._forEl===el){ _mpHideInfoTip(); return; }
+  _mpShowInfoTip(el);
+}
+// 터치 환경은 mouseleave가 없으므로, 아이콘 바깥을 탭하면 열려있는 안내 툴팁을 닫는다
+document.addEventListener('click',function(e){
+  if(e.target.closest&&e.target.closest('.mp-info-icon')) return;
+  _mpHideInfoTip();
+});
 // 관리자 모드에서 표 제목을 자유롭게 바꿀 수 있게 하는 커스텀 오버라이드 (Sheets에 저장되어 모든 접속자에게 반영)
 function _colLabel(key,defaultLbl){
   // 관리자 커스텀 제목은 한국어 화면에서만 적용한다. 다른 언어를 선택하면 항상 기본
@@ -260,9 +294,9 @@ function renderProjectsTable(rows){
   html+=thP('colUnitCombined',t('colUnitCombined'));
   html+=thP('colTransferDate',t('colTransferDate'));
   html+=thP('colTransferDateOverride',t('colTransferDateOverride'));
-  html+=thS('setupStart','colSetupPeriod',t('colSetupPeriod'));
+  html+=thS('setupStart','colSetupPeriod',t('colSetupPeriod'),t('tipSetupPeriod'));
   html+=thS('shipDate','colShipDate',t('colShipDate'));
-  html+=thP('colCustomerReqShip',t('colCustomerReqShipL1')+'<br>'+t('colCustomerReqShipL2'));
+  html+=thP('colCustomerReqShip',t('colCustomerReqShipL1')+'<br>'+t('colCustomerReqShipL2'),t('tipCustomerReqShip'));
   html+=thS('status','colStatusHdr',t('mpStatus'));
   if(_isAdminMode()) html+=thP('colManage',t('colManage'));
   html+='</tr></thead><tbody>';
