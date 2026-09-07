@@ -92,7 +92,7 @@ function _buildProjectsSheet(wb){
     var setupLbl=(mp.setupStart&&mp.setupEnd)?(mp.setupStart+' ~ '+mp.setupEnd):'';
     var transferDate=mp.transferDate||'';
     var row=ws.getRow(rIdx);
-    [mp.category,mp.region,mp.customer,mp.projectName,mp.serial,mp.prodUnit,mp.customerUnit,transferDate,mp.transferDateOverride,setupLbl,mp.shipDate,mp.customerReqShipDate,mp.status].forEach(function(v,i){
+    [mp.category,mp.region,mp.customer,mp.projectName,mp.serial,mp.prodUnit,mp.customerUnit,transferDate,mp.transferDateOverride,setupLbl,mp.shipDate,mp.customerReqShipDate,_mpEffectiveStatus(mp)].forEach(function(v,i){
       var cell=row.getCell(i+1);
       cell.value=v||'';
       _xStyle(cell,{bg:bg,fg:'#c8c8d4',align:i<=3?'left':'center'});

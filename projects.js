@@ -107,7 +107,7 @@ var _MP_MS_DEFS={
   },
   status:function(){
     var arr=[];
-    S.masterProjects.forEach(function(mp){if(mp.status&&arr.indexOf(mp.status)<0)arr.push(mp.status);});
+    S.masterProjects.forEach(function(mp){var st=_mpEffectiveStatus(mp);if(st&&arr.indexOf(st)<0)arr.push(st);});
     return arr.map(function(v){return {value:v,label:tStatus(v)};});
   },
   shipMonth:function(){
@@ -184,7 +184,7 @@ function renderProjectsBody(){
     if(_mpMS.region.length&&_mpMS.region.indexOf(mp.region||'기타')<0)return false;
     if(_mpMS.customer.length&&_mpMS.customer.indexOf(mp.customer||'')<0)return false;
     if(_mpMS.project.length&&_mpMS.project.indexOf(mp.projectName||'')<0)return false;
-    if(_mpMS.status.length&&_mpMS.status.indexOf(mp.status||'')<0)return false;
+    if(_mpMS.status.length&&_mpMS.status.indexOf(_mpEffectiveStatus(mp)||'')<0)return false;
     if(_mpMS.shipMonth.length&&_mpMS.shipMonth.indexOf(_mpShipMonth(mp))<0)return false;
     if(_mpHideInactive&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){
@@ -312,11 +312,19 @@ var _MP_CATEGORY_BADGE_STYLE={
   '기타':'background:#3a2a10;color:#e0972e;border:1px solid #6a4a1a'
 };
 var _MP_STATUS_BADGE_STYLE={
-  '진행중':'background:#1a4a2a;color:#4aaa70;border:1px solid #2a6a3a',
+  '진행중(HQ)':'background:#1a3a5a;color:#5a9aee;border:1px solid #2a5a8a',
+  '진행중(Field)':'background:#1a4a2a;color:#4aaa70;border:1px solid #2a6a3a',
   '완료':'background:var(--bg-hover);color:var(--tx-dim);border:1px solid var(--bd-main)',
   '발주 대기':'background:#3a3010;color:#d4b02e;border:1px solid #6a5a1a',
   'LOI 접수':'background:#103a3a;color:#2ecccc;border:1px solid #1a6a6a'
 };
+// 저장된 상태값 자체는 "진행중"으로 하나지만, 화면에는 출하 일정을 기준으로 HQ 셋업 중인지
+// (출하 전) 현장에서 진행 중인지(출하 후)를 자동으로 나눠서 보여준다 — 관리자가 수동으로
+// HQ/Field를 고를 필요 없이 출하 일정만 등록/변경하면 자동으로 분류가 바뀐다
+function _mpEffectiveStatus(mp){
+  if(mp.status==='진행중') return (mp.shipDate&&pd(mp.shipDate)<TODAY)?'진행중(Field)':'진행중(HQ)';
+  return mp.status;
+}
 function _mpBadge(val,styleMap,label){
   if(!val)return '';
   var st=styleMap[val];
@@ -359,7 +367,7 @@ function renderProjectRow(mp){
     +'<td>'+setupLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
     +'<td>'+custReqShipLbl+'</td>'
-    +'<td>'+_mpStatusBadge(mp.status)+'</td>'
+    +'<td>'+_mpStatusBadge(_mpEffectiveStatus(mp))+'</td>'
     +(admin?('<td onclick="event.stopPropagation()">'
       +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">'+t('btnEdit')+'</button> '
       +'<button class="eq-item-edit-btn" onclick="delMasterProject(\''+mp.id+'\')" style="color:#c04040">'+t('btnDelete')+'</button>'
