@@ -56,7 +56,7 @@ function renderSidebar(){
   var allDiv=document.createElement('div');
   allDiv.className='sit-all'+(S.filterSite==='all'?' on':'');
   var totalCnt=S.schedules.filter(_sVisible).length;
-  allDiv.innerHTML='<div class="sdot" style="background:#666"></div><span class="sname">전체 보기</span><span class="scnt">'+totalCnt+'</span>';
+  allDiv.innerHTML='<div class="sdot" style="background:#666"></div><span class="sname">전체 보기</span><span class="scnt'+(totalCnt>0?' has':'')+'">'+totalCnt+'</span>';
   allDiv.onclick=function(){S.filterSite='all';S.filterSites=[];renderAll();};
   el.appendChild(allDiv);
 
@@ -77,7 +77,7 @@ function renderSidebar(){
     lbl.className='grplbl'+(S.filterSite===grpKey?' on':'');
     lbl.style.cssText='display:flex;align-items:center;gap:4px;cursor:pointer';
     lbl.innerHTML='<span class="grp-toggle" style="flex-shrink:0;font-size:8px;color:var(--tx-faint)">'+(collapsed?'▶':'▼')+'</span>'
-      +'<span style="flex:1">'+_esc(grp.name)+'</span><span class="scnt grp-cnt">'+grpCnt+'</span>';
+      +'<span style="flex:1">'+_esc(grp.name)+'</span><span class="scnt grp-cnt'+(grpCnt>0?' has':'')+'">'+grpCnt+'</span>';
     lbl.querySelector('.grp-toggle').onclick=(function(gid){return function(e){e.stopPropagation();toggleGanttGrpCollapse(gid);};})(grp.id);
     lbl.onclick=(function(gk){return function(){S.filterSite=gk;S.filterSites=[];renderAll();};})(grpKey);
     el.appendChild(lbl);
@@ -88,7 +88,7 @@ function renderSidebar(){
       var checked=S.filterSites.indexOf(site.id)>=0;
       var on=isMulti?checked:S.filterSite===site.id;
       var d=document.createElement('div');d.className='sit'+(on?' on':'');
-      d.innerHTML='<input type="checkbox" class="sit-cb"'+(checked?' checked':'')+'><div class="sdot" style="background:'+site.color+'"></div><span class="sname">'+_esc(site.name)+'</span><span class="scnt">'+cnt+'</span>';
+      d.innerHTML='<input type="checkbox" class="sit-cb"'+(checked?' checked':'')+'><div class="sdot" style="background:'+site.color+'"></div><span class="sname">'+_esc(site.name)+'</span><span class="scnt'+(cnt>0?' has':'')+'">'+cnt+'</span>';
       d.onclick=(function(sid){return function(){S.filterSite=sid;S.filterSites=[];renderAll();};})(site.id);
       d.querySelector('.sit-cb').onclick=(function(sid){return function(e){
         e.stopPropagation();

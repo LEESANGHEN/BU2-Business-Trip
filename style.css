@@ -110,6 +110,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .sdot{width:7px;height:7px;border-radius:50%;margin-right:5px;flex-shrink:0}
 .sname{flex:1;font-size:11px;color:var(--tx-second);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .scnt{font-size:9px;padding:1px 4px;border-radius:5px;background:var(--bg-hover);color:var(--tx-dim);border:1px solid var(--bd-main);flex-shrink:0}
+/* 등록된 출장 건수가 1건 이상인 사이트/그룹은 배지를 채워서 한눈에 띄게 표시 */
+.scnt.has{background:#1a5a9a;color:#bfe0ff;border-color:#2a7ad0;font-weight:700}
 .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 /* 간트 헤더 */
 .gscroll{flex:1;overflow:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
@@ -783,6 +785,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 [data-theme="light"] .pm-filter-btn.on{background:#d4e8ff;color:#1a4a8a;border-color:#90c0e8}
 [data-theme="light"] .pm-sort-btn.on{background:#d4e0f4;color:#1a4a8a;border-color:#90b0e0}
 [data-theme="light"] .pm-bd-hq{background:#d4e8ff;color:#1a4a8a}
+[data-theme="light"] .scnt.has{background:#1a6bd8;color:#fff;border-color:#1558b0}
 [data-theme="light"] .pm-bd-out{background:#fff0d4;color:#8a4a00}
 [data-theme="light"] .ev-type-btn.on{background:#d4e8ff;color:#1a4a8a}
 [data-theme="light"] .eq-td.eq-done,[data-theme="light"] .eq-td-fix.eq-done{background:#d4f4d4}
