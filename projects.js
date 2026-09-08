@@ -138,7 +138,7 @@ function _mpMsOptionsHtml(key){
   return html;
 }
 function _mpMsHtml(key,label){
-  return '<div class="pm-ctrl-group"><span style="font-size:10px;color:#555">'+label+'</span>'
+  return '<div class="pm-ctrl-group"><span class="pm-ctrl-label">'+label+'</span>'
     +'<div class="pm-ms-wrap">'
     +'<button type="button" class="pm-ms-trigger" onclick="_mpMsTogglePanel(\''+key+'\')"><span id="mpMsLbl_'+key+'">'+_esc(_mpMsSummary(key))+'</span> ▾</button>'
     +'<div class="pm-ms-panel" id="mpMsPanel_'+key+'" style="display:none">'+_mpMsOptionsHtml(key)+'</div>'

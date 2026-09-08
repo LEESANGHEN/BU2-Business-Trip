@@ -303,6 +303,9 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 /* 컨트롤 바 */
 .pm-ctrl-bar{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;padding:8px 10px;background:var(--bg-alt);border:1px solid var(--bd-light);border-radius:6px}
 .pm-ctrl-group{display:flex;align-items:center;gap:6px}
+/* 필터 라벨(국가(지역)/고객사(사이트)/상태 등) — 예전엔 고정 회색(#555)이라 다크/라이트 모드
+   둘 다에서 흐릿하게 보였다. 테마별 대비가 확실한 색상 변수 + 살짝 키운 글씨/굵기로 눈에 띄게 함 */
+.pm-ctrl-label{font-size:11px;font-weight:700;color:var(--tx-second)}
 .pm-ctrl-sep{width:1px;height:18px;background:var(--bd-main);flex-shrink:0}
 .pm-search{padding:4px 9px;border:1px solid var(--bd-main);border-radius:5px;font-size:12px;background:var(--bg-input);color:var(--tx-primary);width:140px;outline:none}
 .pm-search:focus{border-color:#1a6bbf}

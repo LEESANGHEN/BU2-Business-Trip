@@ -232,14 +232,14 @@ function renderPersonTab(){
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
-  html+='<span style="font-size:10px;color:#555">'+t('mpStatus')+'</span>';
+  html+='<span class="pm-ctrl-label">'+t('mpStatus')+'</span>';
   [{v:'all',l:t('pmStatusAll')},{v:'done',l:t('pmStatusDone')},{v:'going',l:t('pmStatusGoing')},{v:'plan',l:t('pmStatusPlan')}].forEach(function(f){
     html+='<button class="pm-filter-btn'+((_pmFilter===f.v)?' on':'')+'" onclick="setPmFilter(\''+f.v+'\')">'+f.l+'</button>';
   });
   html+='</div>';
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group" style="flex-wrap:wrap;gap:4px">';
-  html+='<span style="font-size:10px;color:#555">'+t('pmPersonTypeLabel')+'</span>';
+  html+='<span class="pm-ctrl-label">'+t('pmPersonTypeLabel')+'</span>';
   var typeList=[['hq',t('pmTypeHq'),TYPE_COLOR.hq],['outsource',t('pmTypeOutsource'),TYPE_COLOR.outsource],['localOutsource',t('pmTypeLocalOutsource'),TYPE_COLOR.localOutsource],['tech',t('pmTypeTech'),TYPE_COLOR.tech],['vision',t('pmTypeVision'),TYPE_COLOR.vision],['host',t('pmTypeHost'),TYPE_COLOR.host]];
   typeList.forEach(function(tp){
     var isOn=_pmTypeFilter[tp[0]];
@@ -270,7 +270,7 @@ function renderPersonTab(){
 // 정렬 버튼 HTML 조각 생성 (컨트롤바 내 정렬 버튼 업데이트에 재사용)
 function buildSortBtnsHtml(){
   var sortBtns=[['name',t('pmSortName')],['country',t('pmSortCountry')],['site',t('pmSortSite')]];
-  var h='<span style="font-size:10px;color:#555">'+t('pmSortLabel')+'</span>';
+  var h='<span class="pm-ctrl-label">'+t('pmSortLabel')+'</span>';
   sortBtns.forEach(function(b){
     var isOn=_pmSortKey===b[0];
     var arrow=isOn?(_pmSortAsc?'▲':'▼'):'';
