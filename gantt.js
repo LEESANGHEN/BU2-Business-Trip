@@ -9,7 +9,18 @@ var WPX_MAP={'week':42,'biweek':22,'month':12};
 function ganttFixedW(){var el=document.querySelector('.ghfixed');return (el&&el.offsetWidth)||455;} // 좌측 고정컬럼 실측 폭(반응형 CSS 추종)
 function calcRange(){
   var minD=new Date(TODAY.getFullYear(),TODAY.getMonth()-1,1),maxD=new Date(TODAY.getFullYear(),TODAY.getMonth()+3,0);
-  var all=[];S.schedules.forEach(function(s){all.push(s.start);all.push(s.end);});S.events.forEach(function(e){all.push(e.date);});
+  // 숨김/완료(과거) 일정까지 범위 계산에 끼면 화면엔 안 보이는데 타임라인만 옛날로 길게 늘어나서
+  // 오늘 위치가 화면 한쪽으로 쏠려버린다 — 실제로 막대가 그려지는(renderGantt와 동일 기준) 항목만 반영
+  var _td=TODAY;var todayISO=_td.getFullYear()+'-'+String(_td.getMonth()+1).padStart(2,'0')+'-'+String(_td.getDate()).padStart(2,'0');
+  var all=[];
+  S.schedules.forEach(function(s){
+    var isPast=s.end&&s.end<todayISO;
+    if((!s.hidden&&!isPast)||S.showHidden){all.push(s.start);all.push(s.end);}
+  });
+  S.events.forEach(function(e){
+    var isPast=e.date&&e.date<todayISO;
+    if(!isPast||S.showHidden){all.push(e.date);}
+  });
   if(all.length){var sorted=all.map(function(d){return pd(d);}).sort(function(a,b){return a-b;});if(sorted[0]<minD)minD=new Date(sorted[0].getFullYear(),sorted[0].getMonth(),1);var mx=sorted[sorted.length-1];var mxE=new Date(mx.getFullYear(),mx.getMonth()+2,0);if(mxE>maxD)maxD=mxE;}
   return{start:minD,end:maxD};
 }
