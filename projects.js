@@ -7,8 +7,8 @@
 ══════════════════════════════════════════ */
 
 var _mpSearch='';
-// 지역/고객사/설비명(프로젝트)/상태/출하월 필터 — 각각 다중 선택 가능(배열, 빈 배열=전체)
-var _mpMS={region:[],customer:[],project:[],status:[],shipMonth:[]};
+// 지역/고객사/설비명(프로젝트)/상태/이관월/출하월 필터 — 각각 다중 선택 가능(배열, 빈 배열=전체)
+var _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],shipMonth:[]};
 var _mpSortKey='category';
 var _mpSortAsc=false;
 var _mpHideInactive=true;     // 완료/LOI 접수/발주 대기 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
@@ -51,6 +51,8 @@ function renderProjectsTab(){
   html+='<div class="pm-ctrl-sep"></div>';
   html+=_mpMsHtml('status',t('mpStatus'));
   html+='<div class="pm-ctrl-sep"></div>';
+  html+=_mpMsHtml('transferMonth',t('mpFilterTransferMonth'));
+  html+='<div class="pm-ctrl-sep"></div>';
   html+=_mpMsHtml('shipMonth',t('mpShipMonth'));
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
@@ -83,9 +85,16 @@ function setMpSort(key){
   renderProjectsBody();
 }
 
-function _mpShipMonth(mp){ return mp.shipDate?mp.shipDate.slice(0,7):''; }
+// 고객사 요청 출하 일정이 등록되면(고객사가 출하일을 못박은 것) 그 프로젝트는 HQ 출하 예정일 대신
+// 고객사 기준일로 "출하월"을 판단한다 — 상태(진행중 HQ/Field) 분류 기준과 동일한 우선순위
+function _mpEffectiveShipDate(mp){ return mp.customerReqShipDate||mp.shipDate; }
+function _mpShipMonth(mp){ var d=_mpEffectiveShipDate(mp); return d?d.slice(0,7):''; }
+// 변경 이관일이 입력되면(이관일을 다시 조정한 것) 그 프로젝트는 원래 생산 이관일 대신
+// 변경된 이관일 기준으로 "이관월"을 판단한다
+function _mpEffectiveTransferDate(mp){ return mp.transferDateOverride||mp.transferDate; }
+function _mpTransferMonth(mp){ var d=_mpEffectiveTransferDate(mp); return d?d.slice(0,7):''; }
 
-// ── 다중 선택 필터(국가(지역)/고객사(사이트)/설비명(프로젝트)/상태/출하월) 공용 드롭다운 ──
+// ── 다중 선택 필터(국가(지역)/고객사(사이트)/설비명(프로젝트)/상태/이관월/출하월) 공용 드롭다운 ──
 var _MP_MS_DEFS={
   region:function(){
     var arr=[];
@@ -109,6 +118,12 @@ var _MP_MS_DEFS={
     var arr=[];
     S.masterProjects.forEach(function(mp){var st=_mpEffectiveStatus(mp);if(st&&arr.indexOf(st)<0)arr.push(st);});
     return arr.map(function(v){return {value:v,label:tStatus(v)};});
+  },
+  transferMonth:function(){
+    var arr=[];
+    S.masterProjects.forEach(function(mp){var m=_mpTransferMonth(mp);if(m&&arr.indexOf(m)<0)arr.push(m);});
+    arr.sort();
+    return arr.map(function(v){return {value:v,label:v};});
   },
   shipMonth:function(){
     var arr=[];
@@ -185,6 +200,7 @@ function renderProjectsBody(){
     if(_mpMS.customer.length&&_mpMS.customer.indexOf(mp.customer||'')<0)return false;
     if(_mpMS.project.length&&_mpMS.project.indexOf(mp.projectName||'')<0)return false;
     if(_mpMS.status.length&&_mpMS.status.indexOf(_mpEffectiveStatus(mp)||'')<0)return false;
+    if(_mpMS.transferMonth.length&&_mpMS.transferMonth.indexOf(_mpTransferMonth(mp))<0)return false;
     if(_mpMS.shipMonth.length&&_mpMS.shipMonth.indexOf(_mpShipMonth(mp))<0)return false;
     if(_mpHideInactive&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){
@@ -322,7 +338,11 @@ var _MP_STATUS_BADGE_STYLE={
 // (출하 전) 현장에서 진행 중인지(출하 후)를 자동으로 나눠서 보여준다 — 관리자가 수동으로
 // HQ/Field를 고를 필요 없이 출하 일정만 등록/변경하면 자동으로 분류가 바뀐다
 function _mpEffectiveStatus(mp){
-  if(mp.status==='진행중') return (mp.shipDate&&pd(mp.shipDate)<TODAY)?'진행중(Field)':'진행중(HQ)';
+  if(mp.status==='진행중'){
+    // 고객사 요청 출하 일정이 등록되면 그 날짜를 기준으로, 없으면 HQ 출하 예정일을 기준으로 판단
+    var d=_mpEffectiveShipDate(mp);
+    return (d&&pd(d)<TODAY)?'진행중(Field)':'진행중(HQ)';
+  }
   return mp.status;
 }
 function _mpBadge(val,styleMap,label){
