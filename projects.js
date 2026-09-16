@@ -11,8 +11,8 @@ var _mpSearch='';
 var _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],shipMonth:[]};
 var _mpSortKey='category';
 var _mpSortAsc=false;
-var _mpHideInactive=true;     // 완료/LOI 접수/발주 대기 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
-var _MP_HIDDEN_STATUSES=['완료','LOI 접수','발주 대기'];
+var _mpHideInactive=true;     // 완료/LOI 접수/PO 대기/PO 발행 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
+var _MP_HIDDEN_STATUSES=['완료','LOI 접수','PO 대기','PO 발행'];
 
 // "생산 98호기"처럼 숫자가 섞인 호기 텍스트를 숫자 크기로 비교 (둘 다 숫자면 숫자 비교, 아니면 문자열 비교)
 function _mpUnitNum(v){
@@ -27,10 +27,20 @@ function _mpUnitCompare(a,b){
 
 function _mpId(){ return genId('mp',S.masterProjects); }
 
+// "발주 대기" 상태명을 "PO 대기"로 바꾸면서, 기존에 이미 저장된 레코드도 한 번만 자동으로 갱신
+function _migrateMpStatusRename(){
+  var changed=false;
+  S.masterProjects.forEach(function(mp){
+    if(mp.status==='발주 대기'){ mp.status='PO 대기'; _touch(mp); changed=true; }
+  });
+  if(changed) saveData();
+}
+
 /* ── 목록 탭 렌더 ── */
 function renderProjectsTab(){
   var wrap=document.getElementById('mpWrap');
   if(!wrap) return;
+  _migrateMpStatusRename();
   // 컨트롤바까지 통째로 다시 그리면 .pm-body-scroll이 새 요소로 교체되어 스크롤이 맨 위로
   // 튀어버린다(언어 변경/관리자 모드 전환/탭 재진입 등 전체 재렌더 시). 이전 위치를 기억했다가
   // 다시 그린 뒤 그대로 복원한다 — 호출부(_mpRenderTabKeepScroll 등)를 신경 쓸 필요 없이 항상 동작
@@ -331,7 +341,8 @@ var _MP_STATUS_BADGE_STYLE={
   '진행중(HQ)':'background:#1a3a5a;color:#5a9aee;border:1px solid #2a5a8a',
   '진행중(Field)':'background:#1a4a2a;color:#4aaa70;border:1px solid #2a6a3a',
   '완료':'background:var(--bg-hover);color:var(--tx-dim);border:1px solid var(--bd-main)',
-  '발주 대기':'background:#3a3010;color:#d4b02e;border:1px solid #6a5a1a',
+  'PO 대기':'background:#3a3010;color:#d4b02e;border:1px solid #6a5a1a',
+  'PO 발행':'background:#2a1a4a;color:#b39ddb;border:1px solid #4a3080',
   'LOI 접수':'background:#103a3a;color:#2ecccc;border:1px solid #1a6a6a'
 };
 // 저장된 상태값 자체는 "진행중"으로 하나지만, 화면에는 출하 일정을 기준으로 HQ 셋업 중인지
@@ -474,7 +485,7 @@ function _mpFormHtml(mp){
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_customerReqShipDate','고객사 요청 출하 일정',ie?mp.customerReqShipDate:'')+'</div>'
     +'</div>';
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
-  html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="발주 대기"><option value="LOI 접수"></datalist>';
+  html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="PO 대기"><option value="PO 발행"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
   if(ie) html+='<button class="btn red sm" onclick="delMasterProject(\''+mp.id+'\')">삭제</button>';
   html+='<button class="btn sm" onclick="cm()">취소</button>';
