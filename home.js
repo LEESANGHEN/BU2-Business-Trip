@@ -132,7 +132,8 @@ function _homeMonthlySetupData(){
     return {label:m.label,value:items.length,items:items};
   });
 }
-// 막대에 마우스를 올리거나(데스크탑) 탭하면(모바일) 그 달의 설비명(프로젝트) 목록을 툴팁으로 보여준다
+// 막대를 클릭하면 그 달의 설비명(프로젝트) 목록을 툴팁으로 보여주고, 바깥을 클릭하면 닫힌다
+// (호버로 열면 목록이 길 때 마우스를 옮기다 mouseleave로 닫혀서 스크롤을 할 수 없었다 — 클릭 토글로 변경)
 // — 열 제목의 ⓘ 안내 아이콘과 동일한 툴팁 매커니즘(_mpShowInfoTip 등, projects.js)을 재사용
 function _homeMonthlyChartCardHtml(title,color,data){
   var max=Math.max.apply(null,data.map(function(d){return d.value;}).concat([1]));
@@ -141,7 +142,7 @@ function _homeMonthlyChartCardHtml(title,color,data){
     var tip=(d.items&&d.items.length)?d.items.join('\n'):'해당 월에 등록된 설비가 없습니다.';
     var tipAttr=tip.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     return '<div class="home-chart-col"><div class="home-chart-val">'+d.value+'</div>'
-      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+tipAttr+'" onmouseenter="_mpShowInfoTip(this)" onmouseleave="_mpHideInfoTip()" onclick="event.stopPropagation();_mpToggleInfoTip(this)"></div>'
+      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+tipAttr+'" onclick="event.stopPropagation();_mpToggleInfoTip(this)"></div>'
       +'<div class="home-chart-mo">'+_esc(d.label)+'</div></div>';
   }).join('');
   return '<div class="home-card" style="margin-bottom:14px"><p class="home-card-h">'+_esc(title)+'</p><div class="home-chart-wrap">'+cols+'</div></div>';
