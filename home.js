@@ -57,7 +57,7 @@ function _homeUpcomingCardHtml(){
     return '<div class="home-row"><span class="home-row-main">'+_esc(t.name)+' · '+_esc(t.siteName)+'</span>'
       +'<span style="background:#1a3a5a;color:#5a9aee;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;flex-shrink:0">D-'+t.dday+'</span></div>';
   }).join(''):'<div class="home-empty">14일 내 예정된 출장이 없습니다.</div>';
-  return '<div class="home-card"><p class="home-card-h">📅 다가오는 출장 일정</p>'+body+'</div>';
+  return '<div class="home-card"><p class="home-card-h">📅 다가오는 셋업 일정</p>'+body+'</div>';
 }
 
 function _homeQuickActionsCardHtml(){
@@ -67,7 +67,9 @@ function _homeQuickActionsCardHtml(){
     html+='<button class="home-qbtn" onclick="switchTab(\'gantt\');openModal(\'schedule\')">+ 출장 등록</button>';
   }
   html+='<button class="home-qbtn" onclick="downloadExcel()">⬇ 엑셀 다운로드</button>';
-  html+='<button class="home-qbtn" onclick="openSheetsSettings()">⚙ Sheets 설정</button>';
+  if(_isAdminMode()){
+    html+='<button class="home-qbtn" onclick="openSheetsSettings()">⚙ Sheets 설정</button>';
+  }
   html+='</div>';
   return html;
 }
