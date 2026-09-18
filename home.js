@@ -132,9 +132,40 @@ function _homeMonthlySetupData(){
     return {label:m.label,value:items.length,items:items};
   });
 }
-// 막대를 클릭하면 그 달의 설비명(프로젝트) 목록을 툴팁으로 보여주고, 바깥을 클릭하면 닫힌다
-// (호버로 열면 목록이 길 때 마우스를 옮기다 mouseleave로 닫혀서 스크롤을 할 수 없었다 — 클릭 토글로 변경)
-// — 열 제목의 ⓘ 안내 아이콘과 동일한 툴팁 매커니즘(_mpShowInfoTip 등, projects.js)을 재사용
+// 막대를 클릭하면 그 달의 설비명(프로젝트) 목록을 툴팁으로 보여주고, 바깥을 클릭하면 닫힌다.
+// 프로젝트 관리 표 헤더의 ⓘ 툴팁(_mpShowInfoTip)은 position:fixed라 뷰포트에 고정되는데,
+// 홈 화면은 스크롤되는 컨테이너(#homeWrap) 안에서 막대를 스크롤해 지나쳐도 툴팁은 화면에 그대로
+// 남아 엉뚱한 카드 위에 겹쳐 보였다 — 그래서 #homeWrap 안에 absolute로 붙여 함께 스크롤되게 한다
+function _homeShowChartTip(el){
+  var tip=el.getAttribute('data-tip');
+  var wrap=document.getElementById('homeWrap');
+  if(!tip||!wrap) return;
+  var tt=document.getElementById('home-chart-tt');
+  if(!tt){ tt=document.createElement('div'); tt.id='home-chart-tt'; tt.className='home-chart-tt'; wrap.appendChild(tt); }
+  tt.textContent=tip;
+  tt.style.display='block';
+  tt._forEl=el;
+  var barRect=el.getBoundingClientRect(), wrapRect=wrap.getBoundingClientRect();
+  var top=(barRect.bottom-wrapRect.top)+wrap.scrollTop+6;
+  var left=(barRect.left-wrapRect.left)+wrap.scrollLeft;
+  var maxLeft=wrap.scrollLeft+wrap.clientWidth-280-8;
+  tt.style.top=top+'px';
+  tt.style.left=Math.max(wrap.scrollLeft+8,Math.min(left,maxLeft))+'px';
+}
+function _homeHideChartTip(){
+  var tt=document.getElementById('home-chart-tt');
+  if(tt){ tt.style.display='none'; tt._forEl=null; }
+}
+function _homeToggleChartTip(el){
+  var tt=document.getElementById('home-chart-tt');
+  if(tt&&tt.style.display==='block'&&tt._forEl===el){ _homeHideChartTip(); return; }
+  _homeShowChartTip(el);
+}
+document.addEventListener('click',function(e){
+  if(e.target.closest&&(e.target.closest('.home-chart-bar')||e.target.closest('.home-chart-tt'))) return;
+  _homeHideChartTip();
+});
+
 function _homeMonthlyChartCardHtml(title,color,data){
   var max=Math.max.apply(null,data.map(function(d){return d.value;}).concat([1]));
   var cols=data.map(function(d){
@@ -142,7 +173,7 @@ function _homeMonthlyChartCardHtml(title,color,data){
     var tip=(d.items&&d.items.length)?d.items.join('\n'):'해당 월에 등록된 설비가 없습니다.';
     var tipAttr=tip.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     return '<div class="home-chart-col"><div class="home-chart-val">'+d.value+'</div>'
-      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+tipAttr+'" onclick="event.stopPropagation();_mpToggleInfoTip(this)"></div>'
+      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+tipAttr+'" onclick="event.stopPropagation();_homeToggleChartTip(this)"></div>'
       +'<div class="home-chart-mo">'+_esc(d.label)+'</div></div>';
   }).join('');
   return '<div class="home-card" style="margin-bottom:14px"><p class="home-card-h">'+_esc(title)+'</p><div class="home-chart-wrap">'+cols+'</div></div>';
