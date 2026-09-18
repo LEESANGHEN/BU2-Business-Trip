@@ -2,11 +2,17 @@
    홈 대시보드 — home.js
    프로젝트 관리(S.masterProjects)/간트 차트(S.schedules)/인원 출장일 데이터를
    한 화면에 요약해서 보여준다. 자체 저장 데이터는 없고 매번 렌더 시점에 계산한다.
+   화면 문구는 전부 i18n.js의 home* 키를 통해 언어 변경 시 함께 바뀐다.
 ══════════════════════════════════════════ */
+
+// 언어 코드(ko/en/zhHans/zhHant/ja) → Intl 로케일 태그. 날짜/요일/월 이름은
+// 직접 사전을 만드는 대신 브라우저 Intl API에 맡겨서 자연스럽게 현지화한다
+var HOME_LOCALE_MAP={ko:'ko-KR',en:'en-US',zhHans:'zh-CN',zhHant:'zh-TW',ja:'ja-JP'};
+function _homeLocale(){ return HOME_LOCALE_MAP[typeof _lang!=='undefined'?_lang:'ko']||'ko-KR'; }
 
 function _homeIsoStr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
-// 앞으로 days일 이내에 시작하는(아직 시작 전인) 간트 일정 — "다가오는 출장 일정"
+// 앞으로 days일 이내에 시작하는(아직 시작 전인) 간트 일정 — "다가오는 셋업 일정"
 function _homeUpcomingTrips(days,limit){
   var maxDate=new Date(TODAY); maxDate.setDate(maxDate.getDate()+days);
   var todayISO=_homeIsoStr(TODAY), maxISO=_homeIsoStr(maxDate);
@@ -24,16 +30,14 @@ var HOME_STATUS_ORDER=['진행중(HQ)','진행중(Field)','완료','PO 대기','
 var HOME_STATUS_COLOR={'진행중(HQ)':'#5a9aee','진행중(Field)':'#4aaa70','완료':'var(--tx-dim)','PO 대기':'#d4b02e','PO 발행':'#b39ddb','LOI 접수':'#2ecccc'};
 
 function _homeGreetingHtml(){
-  var d=TODAY;
-  var wd=['일','월','화','수','목','금','토'][d.getDay()];
-  var dateStr=d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+wd+'요일';
+  var dateStr=new Intl.DateTimeFormat(_homeLocale(),{year:'numeric',month:'long',day:'numeric',weekday:'long'}).format(TODAY);
   var poWaiting=S.masterProjects.filter(function(mp){return mp.status==='PO 대기';}).length;
   var upcoming=_homeUpcomingTrips(14).length;
   var parts=[];
-  if(poWaiting) parts.push('PO 대기 '+poWaiting+'건');
-  if(upcoming) parts.push('곧 시작하는 출장 '+upcoming+'건');
-  var sub=parts.length?(parts.join(', ')+'이 있습니다'):'오늘도 좋은 하루 되세요';
-  return '<p class="home-hello">안녕하세요 👋</p><p class="home-sub">'+dateStr+' · '+sub+'</p>';
+  if(poWaiting) parts.push(t('homeSubPoWaiting').replace('{n}',poWaiting));
+  if(upcoming) parts.push(t('homeSubUpcoming').replace('{n}',upcoming));
+  var sub=parts.length?(parts.join(t('homeSubJoiner'))+t('homeSubSuffix')):t('homeSubNone');
+  return '<p class="home-hello">'+_esc(t('homeGreeting'))+'</p><p class="home-sub">'+_esc(dateStr)+' · '+_esc(sub)+'</p>';
 }
 
 function _homeStatRowHtml(){
@@ -43,7 +47,7 @@ function _homeStatRowHtml(){
     if(counts[st]!==undefined) counts[st]++;
   });
   var html='<div class="home-stat-row">';
-  html+='<div class="home-stat-card"><div class="home-stat-num">'+S.masterProjects.length+'</div><div class="home-stat-lbl">전체</div></div>';
+  html+='<div class="home-stat-card"><div class="home-stat-num">'+S.masterProjects.length+'</div><div class="home-stat-lbl">'+_esc(t('optAll'))+'</div></div>';
   HOME_STATUS_ORDER.forEach(function(k){
     html+='<div class="home-stat-card"><div class="home-stat-num" style="color:'+HOME_STATUS_COLOR[k]+'">'+counts[k]+'</div><div class="home-stat-lbl">'+_esc(tStatus(k))+'</div></div>';
   });
@@ -53,22 +57,22 @@ function _homeStatRowHtml(){
 
 function _homeUpcomingCardHtml(){
   var list=_homeUpcomingTrips(14,5);
-  var body=list.length?list.map(function(t){
-    return '<div class="home-row"><span class="home-row-main">'+_esc(t.name)+' · '+_esc(t.siteName)+'</span>'
-      +'<span style="background:#1a3a5a;color:#5a9aee;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;flex-shrink:0">D-'+t.dday+'</span></div>';
-  }).join(''):'<div class="home-empty">14일 내 예정된 출장이 없습니다.</div>';
-  return '<div class="home-card"><p class="home-card-h">📅 다가오는 셋업 일정</p>'+body+'</div>';
+  var body=list.length?list.map(function(tr){
+    return '<div class="home-row"><span class="home-row-main">'+_esc(tr.name)+' · '+_esc(tr.siteName)+'</span>'
+      +'<span style="background:#1a3a5a;color:#5a9aee;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;flex-shrink:0">D-'+tr.dday+'</span></div>';
+  }).join(''):'<div class="home-empty">'+_esc(t('homeUpcomingEmpty'))+'</div>';
+  return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeUpcomingTitle'))+'</p>'+body+'</div>';
 }
 
 function _homeQuickActionsCardHtml(){
-  var html='<div class="home-card"><p class="home-card-h">⚡ 빠른 작업</p>';
+  var html='<div class="home-card"><p class="home-card-h">'+_esc(t('homeQuickTitle'))+'</p>';
   if(_isAdminMode()){
-    html+='<button class="home-qbtn" onclick="switchTab(\'projects\');openAddMasterProject()">+ 프로젝트 등록</button>';
-    html+='<button class="home-qbtn" onclick="switchTab(\'gantt\');openModal(\'schedule\')">+ 출장 등록</button>';
+    html+='<button class="home-qbtn" onclick="switchTab(\'projects\');openAddMasterProject()">'+_esc(t('mpAddProject'))+'</button>';
+    html+='<button class="home-qbtn" onclick="switchTab(\'gantt\');openModal(\'schedule\')">'+_esc(t('btnAddSchedule'))+'</button>';
   }
-  html+='<button class="home-qbtn" onclick="downloadExcel()">⬇ 엑셀 다운로드</button>';
+  html+='<button class="home-qbtn" onclick="downloadExcel()">'+_esc(t('homeBtnExcel'))+'</button>';
   if(_isAdminMode()){
-    html+='<button class="home-qbtn" onclick="openSheetsSettings()">⚙ Sheets 설정</button>';
+    html+='<button class="home-qbtn" onclick="openSheetsSettings()">'+_esc(t('btnSheetsSettings'))+'</button>';
   }
   html+='</div>';
   return html;
@@ -96,12 +100,12 @@ function _homeCountryCardHtml(){
   var body=arr.length?arr.map(function(a,i){
     var pct=Math.max(Math.round(a.count/max*100),4);
     var c=HOME_PALETTE[i%HOME_PALETTE.length];
-    var tip=a.sites.length?a.sites.join('\n'):'등록된 고객사(사이트)가 없습니다.';
+    var tip=a.sites.length?a.sites.join('\n'):t('homeCountryTipEmpty');
     return '<div class="home-bar-row"><span class="home-bar-dot" style="background:'+c+'"></span><span class="home-bar-lbl">'+_esc(a.label)+'</span>'
       +'<div class="home-bar-track" style="cursor:pointer" data-tip="'+_homeEscAttr(tip)+'" onmouseenter="_homeShowChartTip(this)" onmouseleave="_homeHideChartTip()"><div class="home-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div><span class="home-bar-n">'+a.count+'</span></div>';
-  }).join(''):'<div class="home-empty">등록된 프로젝트가 없습니다.</div>';
-  return '<div class="home-card"><p class="home-card-h">🌏 국가별 프로젝트 현황</p>'
-    +(arr.length?'<p class="home-hint">막대에 마우스를 올리면 고객사(사이트) 목록을 볼 수 있습니다.</p>':'')
+  }).join(''):'<div class="home-empty">'+_esc(t('homeEmptyProjects'))+'</div>';
+  return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeCountryTitle'))+'</p>'
+    +(arr.length?'<p class="home-hint">'+_esc(t('homeCountryHint'))+'</p>':'')
     +body+'</div>';
 }
 
@@ -111,25 +115,26 @@ function _homeTypeCardHtml(){
   var counts={hq:0,outsource:0,localOutsource:0,tech:0,vision:0,host:0};
   var names={hq:[],outsource:[],localOutsource:[],tech:[],vision:[],host:[]};
   Object.keys(all).forEach(function(n){ var ty=all[n].type; if(counts[ty]!==undefined){ counts[ty]++; names[ty].push(n); } });
-  var order=['hq','outsource','localOutsource','tech','vision','host'];
-  var max=Math.max.apply(null,order.map(function(k){return counts[k];}).concat([1]));
-  var body=order.map(function(k){
-    var n=counts[k], pct=Math.max(Math.round(n/max*100),4);
+  var order=[['hq','pmTypeHq'],['outsource','pmTypeOutsource'],['localOutsource','pmTypeLocalOutsource'],['tech','pmTypeTech'],['vision','pmTypeVision'],['host','pmTypeHost']];
+  var max=Math.max.apply(null,order.map(function(o){return counts[o[0]];}).concat([1]));
+  var body=order.map(function(o){
+    var k=o[0], n=counts[k], pct=Math.max(Math.round(n/max*100),4);
     var c=TYPE_COLOR[k]||'#888';
-    var tip=names[k].length?names[k].sort(function(a,b){return a.localeCompare(b,'ko');}).join('\n'):'해당 유형으로 등록된 출장자가 없습니다.';
-    return '<div class="home-bar-row"><span class="home-bar-dot" style="background:'+c+'"></span><span class="home-bar-lbl">'+_esc(TYPE_LBL[k]||k)+'</span>'
+    var tip=names[k].length?names[k].sort(function(a,b){return a.localeCompare(b,'ko');}).join('\n'):t('homeTypeTipEmpty');
+    return '<div class="home-bar-row"><span class="home-bar-dot" style="background:'+c+'"></span><span class="home-bar-lbl">'+_esc(t(o[1]))+'</span>'
       +'<div class="home-bar-track" style="cursor:pointer" data-tip="'+_homeEscAttr(tip)+'" onmouseenter="_homeShowChartTip(this)" onmouseleave="_homeHideChartTip()"><div class="home-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div><span class="home-bar-n">'+n+'</span></div>';
   }).join('');
-  return '<div class="home-card"><p class="home-card-h">👥 인원유형별 출장 현황</p>'
-    +'<p class="home-hint">막대에 마우스를 올리면 출장자 명단을 볼 수 있습니다.</p>'
+  return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeTypeTitle'))+'</p>'
+    +'<p class="home-hint">'+_esc(t('homeTypeHint'))+'</p>'
     +body+'</div>';
 }
 
-// 이번 달부터 6개월 치 연-월(ym) 목록 — 출하/셋업 그래프 공용
+// 이번 달부터 6개월 치 연-월(ym) 목록 — 출하/셋업 그래프 공용. 월 이름도 Intl로 현지화
 function _homeMonthlyMonths(){
   var months=[]; var d=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);
+  var fmt=new Intl.DateTimeFormat(_homeLocale(),{month:'short'});
   for(var i=0;i<6;i++){
-    months.push({ym:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:(d.getMonth()+1)+'월'});
+    months.push({ym:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'),label:fmt.format(d)});
     d.setMonth(d.getMonth()+1);
   }
   return months;
@@ -186,17 +191,17 @@ document.addEventListener('click',function(e){
   _homeHideChartTip();
 });
 
-function _homeMonthlyChartCardHtml(title,color,data){
+function _homeMonthlyChartCardHtml(title,hintKey,color,data){
   var max=Math.max.apply(null,data.map(function(d){return d.value;}).concat([1]));
   var cols=data.map(function(d){
     var h=d.value>0?Math.max(Math.round(d.value/max*100),6):2;
-    var tip=(d.items&&d.items.length)?d.items.join('\n'):'해당 월에 등록된 설비가 없습니다.';
+    var tip=(d.items&&d.items.length)?d.items.join('\n'):t('homeChartTipEmpty');
     return '<div class="home-chart-col"><div class="home-chart-val">'+d.value+'</div>'
       +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+_homeEscAttr(tip)+'" onclick="event.stopPropagation();_homeToggleChartTip(this)"></div>'
       +'<div class="home-chart-mo">'+_esc(d.label)+'</div></div>';
   }).join('');
   return '<div class="home-card" style="margin-bottom:14px"><p class="home-card-h">'+_esc(title)+'</p>'
-    +'<p class="home-hint">막대를 클릭하면 해당 월의 설비명(프로젝트) 목록을 볼 수 있습니다.</p>'
+    +'<p class="home-hint">'+_esc(t(hintKey))+'</p>'
     +'<div class="home-chart-wrap">'+cols+'</div></div>';
 }
 
@@ -206,8 +211,8 @@ function _homeRecentCardHtml(){
     var d=mp.mt?new Date(mp.mt):null;
     return '<div class="home-row"><span class="home-row-main">'+_esc(mp.projectName||'')+' · '+_esc(mp.customer||'')+'</span>'
       +'<span style="color:var(--tx-faint);flex-shrink:0">'+(d?(d.getMonth()+1)+'/'+d.getDate():'')+'</span></div>';
-  }).join(''):'<div class="home-empty">등록된 프로젝트가 없습니다.</div>';
-  return '<div class="home-card"><p class="home-card-h">🕓 최근 등록/수정 프로젝트</p>'+body+'</div>';
+  }).join(''):'<div class="home-empty">'+_esc(t('homeEmptyProjects'))+'</div>';
+  return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeRecentTitle'))+'</p>'+body+'</div>';
 }
 
 // 마스터 프로젝트 id는 genId('mp',...) = "mp"+시각(36진수)+"_"+난수 형식이라, 등록 시각을 그대로 복원할 수 있다
@@ -224,10 +229,11 @@ function _homeHighlightCardHtml(){
     if(mp.status==='완료'&&isThisMonth(mp.mt)) doneCount++;
     if(mp.status==='PO 발행'&&isThisMonth(mp.mt)) poIssuedCount++;
   });
-  return '<div class="home-card"><p class="home-card-h">✨ 이번달 하이라이트</p>'
-    +'<div class="home-row"><span>신규 등록 프로젝트</span><span style="font-weight:700">'+newCount+'건</span></div>'
-    +'<div class="home-row"><span>완료 처리</span><span style="font-weight:700">'+doneCount+'건</span></div>'
-    +'<div class="home-row"><span>PO 발행</span><span style="font-weight:700">'+poIssuedCount+'건</span></div>'
+  var suf=t('homeCountSuffix');
+  return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeHighlightTitle'))+'</p>'
+    +'<div class="home-row"><span>'+_esc(t('homeHighlightNew'))+'</span><span style="font-weight:700">'+newCount+suf+'</span></div>'
+    +'<div class="home-row"><span>'+_esc(t('homeHighlightDone'))+'</span><span style="font-weight:700">'+doneCount+suf+'</span></div>'
+    +'<div class="home-row"><span>'+_esc(tStatus('PO 발행'))+'</span><span style="font-weight:700">'+poIssuedCount+suf+'</span></div>'
     +'</div>';
 }
 
@@ -239,8 +245,8 @@ function renderHomeTab(){
   html+=_homeStatRowHtml();
   html+='<div class="home-grid2">'+_homeUpcomingCardHtml()+_homeQuickActionsCardHtml()+'</div>';
   html+='<div class="home-grid2">'+_homeCountryCardHtml()+_homeTypeCardHtml()+'</div>';
-  html+=_homeMonthlyChartCardHtml('🚚 월별 출하 설비 수 (이번 달 기준 6개월)','#5a9aee',_homeMonthlyShipData());
-  html+=_homeMonthlyChartCardHtml('🔧 월별 설비 셋업 수량 (이번 달 기준 6개월)','#4aaa70',_homeMonthlySetupData());
+  html+=_homeMonthlyChartCardHtml(t('homeShipChartTitle'),'homeChartHint','#5a9aee',_homeMonthlyShipData());
+  html+=_homeMonthlyChartCardHtml(t('homeSetupChartTitle'),'homeChartHint','#4aaa70',_homeMonthlySetupData());
   html+='<div class="home-grid2">'+_homeRecentCardHtml()+_homeHighlightCardHtml()+'</div>';
   wrap.innerHTML=html;
 }

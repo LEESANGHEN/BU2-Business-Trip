@@ -29,7 +29,15 @@ ko:{
   pmSortLabel:'정렬', pmSortName:'이름', pmSortCountry:'국가', pmSortSite:'사이트', pmHideDone:'진행중만 보기',
   statRegisteredPersons:'등록 인원', statAllTravelers:'전체 출장자', statOnTripNow:'현재 출장 중', statTodayBasis:'오늘 기준', pmBdOutsource:'외주', pmPersonTypeLabel:'인원',
   colName:'이름', colCountry:'국가', colCity:'지역', colSite:'사이트', colFirstDays:'최초 출장일수', colExt1Days:'1차 연장일수', colExt2Days:'2차 연장일수', colStatusBadge:'상태', colGrandTotal:'전체 출장일수',
-  maMonth:'월', maHqCount:'본사 셋업 설비 수', maHqList:'본사 셋업 설비군', maSiteCount:'현장 셋업 설비 수', maSiteList:'현장 셋업 설비군', maPeople:'출장 인원', maPeopleList:'출장 인원 명단'
+  maMonth:'월', maHqCount:'본사 셋업 설비 수', maHqList:'본사 셋업 설비군', maSiteCount:'현장 셋업 설비 수', maSiteList:'현장 셋업 설비군', maPeople:'출장 인원', maPeopleList:'출장 인원 명단',
+  homeGreeting:'안녕하세요 👋', homeSubPoWaiting:'PO 대기 {n}건', homeSubUpcoming:'곧 시작하는 출장 {n}건', homeSubJoiner:', ', homeSubSuffix:'이 있습니다', homeSubNone:'오늘도 좋은 하루 되세요',
+  homeUpcomingTitle:'📅 다가오는 셋업 일정', homeUpcomingEmpty:'14일 내 예정된 출장이 없습니다.',
+  homeQuickTitle:'⚡ 빠른 작업', homeBtnExcel:'⬇ 엑셀 다운로드',
+  homeCountryTitle:'🌏 국가별 프로젝트 현황', homeCountryHint:'막대에 마우스를 올리면 고객사(사이트) 목록을 볼 수 있습니다.', homeCountryTipEmpty:'등록된 고객사(사이트)가 없습니다.', homeEmptyProjects:'등록된 프로젝트가 없습니다.',
+  homeTypeTitle:'👥 인원유형별 출장 현황', homeTypeHint:'막대에 마우스를 올리면 출장자 명단을 볼 수 있습니다.', homeTypeTipEmpty:'해당 유형으로 등록된 출장자가 없습니다.',
+  homeShipChartTitle:'🚚 월별 출하 설비 수 (이번 달 기준 6개월)', homeSetupChartTitle:'🔧 월별 설비 셋업 수량 (이번 달 기준 6개월)', homeChartHint:'막대를 클릭하면 해당 월의 설비명(프로젝트) 목록을 볼 수 있습니다.', homeChartTipEmpty:'해당 월에 등록된 설비가 없습니다.',
+  homeRecentTitle:'🕓 최근 등록/수정 프로젝트',
+  homeHighlightTitle:'✨ 이번달 하이라이트', homeHighlightNew:'신규 등록 프로젝트', homeHighlightDone:'완료 처리', homeCountSuffix:'건'
 },
 en:{
   appTitle:'Trip Schedule Management', connOk:'Connected', connChecking:'Checking...', themeToggleTitle:'Toggle dark/light mode',
@@ -53,7 +61,15 @@ en:{
   pmSortLabel:'Sort', pmSortName:'Name', pmSortCountry:'Country', pmSortSite:'Site', pmHideDone:'Active only',
   statRegisteredPersons:'Registered', statAllTravelers:'All travelers', statOnTripNow:'Currently on trip', statTodayBasis:'As of today', pmBdOutsource:'Outsource', pmPersonTypeLabel:'Type',
   colName:'Name', colCountry:'Country', colCity:'Region', colSite:'Site', colFirstDays:'Initial Days', colExt1Days:'Ext.1 Days', colExt2Days:'Ext.2 Days', colStatusBadge:'Status', colGrandTotal:'Total Days',
-  maMonth:'Month', maHqCount:'HQ Setup Units', maHqList:'HQ Setup Details', maSiteCount:'Site Setup Units', maSiteList:'Site Setup Details', maPeople:'Travelers', maPeopleList:'Traveler List'
+  maMonth:'Month', maHqCount:'HQ Setup Units', maHqList:'HQ Setup Details', maSiteCount:'Site Setup Units', maSiteList:'Site Setup Details', maPeople:'Travelers', maPeopleList:'Traveler List',
+  homeGreeting:'Hello 👋', homeSubPoWaiting:'{n} PO(s) pending', homeSubUpcoming:'{n} upcoming trip(s)', homeSubJoiner:', ', homeSubSuffix:'', homeSubNone:'Have a great day',
+  homeUpcomingTitle:'📅 Upcoming setup schedule', homeUpcomingEmpty:'No trips scheduled in the next 14 days.',
+  homeQuickTitle:'⚡ Quick actions', homeBtnExcel:'⬇ Download Excel',
+  homeCountryTitle:'🌏 Projects by country', homeCountryHint:'Hover a bar to see registered customers (sites).', homeCountryTipEmpty:'No customers (sites) registered.', homeEmptyProjects:'No projects registered.',
+  homeTypeTitle:'👥 Trips by personnel type', homeTypeHint:'Hover a bar to see traveler names.', homeTypeTipEmpty:'No travelers registered for this type.',
+  homeShipChartTitle:'🚚 Monthly shipments (6 months from this month)', homeSetupChartTitle:'🔧 Monthly setups (6 months from this month)', homeChartHint:"Click a bar to see that month's equipment (project) list.", homeChartTipEmpty:'No equipment registered for this month.',
+  homeRecentTitle:'🕓 Recently added/updated projects',
+  homeHighlightTitle:"✨ This month's highlights", homeHighlightNew:'New projects', homeHighlightDone:'Completed', homeCountSuffix:''
 },
 zhHans:{
   appTitle:'出差日程管理', connOk:'连接正常', connChecking:'检查中...', themeToggleTitle:'切换深色/浅色模式',
@@ -77,7 +93,15 @@ zhHans:{
   pmSortLabel:'排序', pmSortName:'姓名', pmSortCountry:'国家', pmSortSite:'站点', pmHideDone:'仅看进行中',
   statRegisteredPersons:'登记人数', statAllTravelers:'全部出差人员', statOnTripNow:'当前出差中', statTodayBasis:'截至今天', pmBdOutsource:'外包', pmPersonTypeLabel:'人员',
   colName:'姓名', colCountry:'国家', colCity:'地区', colSite:'站点', colFirstDays:'首次出差天数', colExt1Days:'第1次延长天数', colExt2Days:'第2次延长天数', colStatusBadge:'状态', colGrandTotal:'总出差天数',
-  maMonth:'月份', maHqCount:'总部安装设备数', maHqList:'总部安装设备清单', maSiteCount:'现场安装设备数', maSiteList:'现场安装设备清单', maPeople:'出差人数', maPeopleList:'出差人员名单'
+  maMonth:'月份', maHqCount:'总部安装设备数', maHqList:'总部安装设备清单', maSiteCount:'现场安装设备数', maSiteList:'现场安装设备清单', maPeople:'出差人数', maPeopleList:'出差人员名单',
+  homeGreeting:'您好 👋', homeSubPoWaiting:'{n}个PO待处理', homeSubUpcoming:'{n}个即将开始的出差', homeSubJoiner:'，', homeSubSuffix:'', homeSubNone:'祝您今天愉快',
+  homeUpcomingTitle:'📅 即将开始的安装日程', homeUpcomingEmpty:'未来14天内没有安排的出差。',
+  homeQuickTitle:'⚡ 快捷操作', homeBtnExcel:'⬇ 下载Excel',
+  homeCountryTitle:'🌏 各国家项目现况', homeCountryHint:'将鼠标悬停在柱状图上可查看已登记的客户(现场)列表。', homeCountryTipEmpty:'没有已登记的客户(现场)。', homeEmptyProjects:'没有已登记的项目。',
+  homeTypeTitle:'👥 各人员类型出差现况', homeTypeHint:'将鼠标悬停在柱状图上可查看出差人员名单。', homeTypeTipEmpty:'该类型没有已登记的出差人员。',
+  homeShipChartTitle:'🚚 月度出货设备数(以本月为准的6个月)', homeSetupChartTitle:'🔧 月度设备安装数量(以本月为准的6个月)', homeChartHint:'点击柱状图可查看该月的设备名(项目)列表。', homeChartTipEmpty:'该月没有已登记的设备。',
+  homeRecentTitle:'🕓 最近新增/修改的项目',
+  homeHighlightTitle:'✨ 本月亮点', homeHighlightNew:'新增项目', homeHighlightDone:'完成处理', homeCountSuffix:'个'
 },
 zhHant:{
   appTitle:'出差日程管理', connOk:'連線正常', connChecking:'檢查中...', themeToggleTitle:'切換深色/淺色模式',
@@ -101,7 +125,15 @@ zhHant:{
   pmSortLabel:'排序', pmSortName:'姓名', pmSortCountry:'國家', pmSortSite:'站點', pmHideDone:'僅看進行中',
   statRegisteredPersons:'登記人數', statAllTravelers:'全部出差人員', statOnTripNow:'目前出差中', statTodayBasis:'截至今天', pmBdOutsource:'外包', pmPersonTypeLabel:'人員',
   colName:'姓名', colCountry:'國家', colCity:'地區', colSite:'站點', colFirstDays:'首次出差天數', colExt1Days:'第1次延長天數', colExt2Days:'第2次延長天數', colStatusBadge:'狀態', colGrandTotal:'總出差天數',
-  maMonth:'月份', maHqCount:'總部安裝設備數', maHqList:'總部安裝設備清單', maSiteCount:'現場安裝設備數', maSiteList:'現場安裝設備清單', maPeople:'出差人數', maPeopleList:'出差人員名單'
+  maMonth:'月份', maHqCount:'總部安裝設備數', maHqList:'總部安裝設備清單', maSiteCount:'現場安裝設備數', maSiteList:'現場安裝設備清單', maPeople:'出差人數', maPeopleList:'出差人員名單',
+  homeGreeting:'您好 👋', homeSubPoWaiting:'{n}個PO待處理', homeSubUpcoming:'{n}個即將開始的出差', homeSubJoiner:'，', homeSubSuffix:'', homeSubNone:'祝您今天愉快',
+  homeUpcomingTitle:'📅 即將開始的安裝日程', homeUpcomingEmpty:'未來14天內沒有安排的出差。',
+  homeQuickTitle:'⚡ 快捷操作', homeBtnExcel:'⬇ 下載Excel',
+  homeCountryTitle:'🌏 各國家專案現況', homeCountryHint:'將滑鼠懸停在長條圖上可查看已登記的客戶(現場)清單。', homeCountryTipEmpty:'沒有已登記的客戶(現場)。', homeEmptyProjects:'沒有已登記的專案。',
+  homeTypeTitle:'👥 各人員類型出差現況', homeTypeHint:'將滑鼠懸停在長條圖上可查看出差人員名單。', homeTypeTipEmpty:'該類型沒有已登記的出差人員。',
+  homeShipChartTitle:'🚚 月度出貨設備數(以本月為準的6個月)', homeSetupChartTitle:'🔧 月度設備安裝數量(以本月為準的6個月)', homeChartHint:'點擊長條圖可查看該月的設備名(專案)清單。', homeChartTipEmpty:'該月沒有已登記的設備。',
+  homeRecentTitle:'🕓 最近新增/修改的專案',
+  homeHighlightTitle:'✨ 本月亮點', homeHighlightNew:'新增專案', homeHighlightDone:'完成處理', homeCountSuffix:'個'
 },
 ja:{
   appTitle:'出張スケジュール管理', connOk:'接続正常', connChecking:'確認中...', themeToggleTitle:'ダーク/ライトモード切替',
@@ -125,7 +157,15 @@ ja:{
   pmSortLabel:'並び替え', pmSortName:'名前', pmSortCountry:'国', pmSortSite:'サイト', pmHideDone:'進行中のみ表示',
   statRegisteredPersons:'登録人数', statAllTravelers:'全出張者', statOnTripNow:'現在出張中', statTodayBasis:'本日時点', pmBdOutsource:'外注', pmPersonTypeLabel:'人員',
   colName:'名前', colCountry:'国', colCity:'地域', colSite:'サイト', colFirstDays:'初回出張日数', colExt1Days:'1次延長日数', colExt2Days:'2次延長日数', colStatusBadge:'状態', colGrandTotal:'全体出張日数',
-  maMonth:'月', maHqCount:'本社セットアップ設備数', maHqList:'本社セットアップ設備群', maSiteCount:'現場セットアップ設備数', maSiteList:'現場セットアップ設備群', maPeople:'出張人員', maPeopleList:'出張人員名簿'
+  maMonth:'月', maHqCount:'本社セットアップ設備数', maHqList:'本社セットアップ設備群', maSiteCount:'現場セットアップ設備数', maSiteList:'現場セットアップ設備群', maPeople:'出張人員', maPeopleList:'出張人員名簿',
+  homeGreeting:'こんにちは 👋', homeSubPoWaiting:'PO待ち{n}件', homeSubUpcoming:'まもなく始まる出張{n}件', homeSubJoiner:'、', homeSubSuffix:'があります', homeSubNone:'今日も良い一日を',
+  homeUpcomingTitle:'📅 近日中のセットアップ予定', homeUpcomingEmpty:'今後14日以内に予定されている出張はありません。',
+  homeQuickTitle:'⚡ クイック操作', homeBtnExcel:'⬇ Excelダウンロード',
+  homeCountryTitle:'🌏 国別プロジェクト現況', homeCountryHint:'棒グラフにマウスを乗せると顧客(サイト)一覧が表示されます。', homeCountryTipEmpty:'登録された顧客(サイト)がありません。', homeEmptyProjects:'登録されたプロジェクトがありません。',
+  homeTypeTitle:'👥 人員タイプ別出張現況', homeTypeHint:'棒グラフにマウスを乗せると出張者名簿が表示されます。', homeTypeTipEmpty:'該当タイプで登録された出張者がいません。',
+  homeShipChartTitle:'🚚 月別出荷設備数(今月から6ヶ月間)', homeSetupChartTitle:'🔧 月別設備セットアップ数量(今月から6ヶ月間)', homeChartHint:'棒グラフをクリックするとその月の設備名(プロジェクト)一覧が表示されます。', homeChartTipEmpty:'この月に登録された設備はありません。',
+  homeRecentTitle:'🕓 最近登録/更新されたプロジェクト',
+  homeHighlightTitle:'✨ 今月のハイライト', homeHighlightNew:'新規登録プロジェクト', homeHighlightDone:'完了処理', homeCountSuffix:'件'
 }
 };
 
