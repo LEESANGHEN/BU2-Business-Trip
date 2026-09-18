@@ -176,7 +176,9 @@ function _homeMonthlyChartCardHtml(title,color,data){
       +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+tipAttr+'" onclick="event.stopPropagation();_homeToggleChartTip(this)"></div>'
       +'<div class="home-chart-mo">'+_esc(d.label)+'</div></div>';
   }).join('');
-  return '<div class="home-card" style="margin-bottom:14px"><p class="home-card-h">'+_esc(title)+'</p><div class="home-chart-wrap">'+cols+'</div></div>';
+  return '<div class="home-card" style="margin-bottom:14px"><p class="home-card-h">'+_esc(title)+'</p>'
+    +'<p class="home-hint">막대를 클릭하면 해당 월의 설비명(프로젝트) 목록을 볼 수 있습니다.</p>'
+    +'<div class="home-chart-wrap">'+cols+'</div></div>';
 }
 
 function _homeRecentCardHtml(){

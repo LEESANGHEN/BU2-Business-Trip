@@ -891,6 +891,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .home-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .home-card{background:var(--bg-panel);border:1px solid var(--bd-light);border-radius:9px;padding:14px 16px}
 .home-card-h{font-size:13px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:6px}
+.home-hint{font-size:11px;color:var(--tx-faint);margin:-8px 0 12px}
 .home-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd-subtle);font-size:12px}
 .home-row:last-child{border-bottom:none}
 .home-row-main{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
