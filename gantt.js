@@ -443,7 +443,7 @@ function renderGantt(){
   }
 }
 
-function renderAll(){initTL();renderSidebar();renderHeader();renderGantt();if(_activeTab==='projects')renderProjectsTab();if(_activeTab==='person')renderPersonTab();if(_activeTab==='equip')renderEquipTab();if(_activeTab==='vision')renderMonthlyAggTab();}
+function renderAll(){initTL();renderSidebar();renderHeader();renderGantt();if(_activeTab==='home')renderHomeTab();if(_activeTab==='projects')renderProjectsTab();if(_activeTab==='person')renderPersonTab();if(_activeTab==='equip')renderEquipTab();if(_activeTab==='vision')renderMonthlyAggTab();}
 function setGanttZoom(z){_ganttZoom=z;renderAll();_updateZoomBtns();}
 function _updateZoomBtns(){
   ['week','biweek','month'].forEach(function(z){

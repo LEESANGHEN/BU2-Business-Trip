@@ -96,6 +96,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-siz
 .legd{width:10px;height:10px;border-radius:2px;flex-shrink:0}
 .legs{height:1.5px;background:var(--bd-strong);align-self:stretch}
 /* 레이아웃 */
+.body-row{flex:1;display:flex;min-height:0;overflow:hidden;position:relative}
+.side-nav{width:190px;min-width:190px;flex-shrink:0;background:var(--bg-panel);border-right:1.5px solid var(--bd-strong);padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:7px;border:none;background:transparent;color:var(--tx-second);font-size:13px;font-weight:500;cursor:pointer;text-align:left;width:100%;transition:background .15s,color .15s}
+.nav-item:hover{background:var(--bg-hover);color:var(--tx-primary)}
+.nav-item.on{background:var(--bg-sel);color:#7aafee}
+.nav-scrim{display:none}
+.view-area{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 .content{display:flex;flex:1;min-height:0;overflow:hidden}
 .sidebar{width:185px;min-width:185px;flex-shrink:0;border-right:1.5px solid var(--bd-strong);background:var(--bg-input);overflow-y:auto;display:flex;flex-direction:column}
 .sbhead{padding:8px 10px 4px;border-bottom:1px solid var(--bd-light)}
@@ -238,12 +245,6 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .date-disp:hover{border-color:#1a6bbf}
 .date-disp .cal-icon{color:var(--tx-faint);font-size:11px}
 
-/* ── 탭 네비게이션 ── */
-.tab-nav{display:flex;align-items:center;gap:2px;flex-shrink:0}
-.tab-btn{padding:4px 14px;font-size:12px;font-weight:500;border:1px solid var(--bd-main);border-radius:5px 5px 0 0;cursor:pointer;background:var(--bg-panel);color:var(--tx-dim);transition:all .15s;border-bottom:none;position:relative;top:1px}
-.tab-btn:hover{color:var(--tx-second);background:var(--bg-hover)}
-.tab-btn.on{background:var(--bg-base);color:var(--tx-primary);border-color:var(--bd-strong);border-bottom:1px solid var(--bg-base);z-index:2}
-.tab-bar{flex-shrink:0;display:flex;align-items:flex-end;padding:0 14px;background:var(--bg-panel);border-bottom:1.5px solid var(--bd-strong);height:30px}
 
 /* ── 인원 출장 일수 탭 ── */
 .pm-wrap{flex:1;overflow:hidden;display:flex;flex-direction:column;background:var(--bg-base)}
@@ -877,6 +878,38 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .sidebar-toggle:hover{background:var(--bg-hover)}
 
 /* ═══════════════════════════════════════════
+   홈 대시보드
+═══════════════════════════════════════════ */
+.home-wrap{flex:1;overflow-y:auto;padding:22px 26px}
+.home-hello{font-size:19px;font-weight:700;margin:0 0 4px}
+.home-sub{color:var(--tx-muted);font-size:12px;margin:0 0 20px}
+.home-stat-row{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:18px}
+.home-stat-card{background:var(--bg-panel);border:1px solid var(--bd-light);border-radius:9px;padding:12px 10px;text-align:center}
+.home-stat-num{font-size:21px;font-weight:700}
+.home-stat-lbl{color:var(--tx-muted);font-size:10px;margin-top:3px;white-space:nowrap}
+.home-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.home-card{background:var(--bg-panel);border:1px solid var(--bd-light);border-radius:9px;padding:14px 16px}
+.home-card-h{font-size:13px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:6px}
+.home-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--bd-subtle);font-size:12px}
+.home-row:last-child{border-bottom:none}
+.home-row-main{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-empty{color:var(--tx-faint);font-size:12px;padding:8px 0}
+.home-qbtn{display:flex;align-items:center;gap:8px;padding:9px 12px;border-radius:7px;background:var(--bg-input);border:1px solid var(--bd-main);font-size:12px;margin-bottom:8px;color:var(--tx-primary);cursor:pointer;width:100%;text-align:left}
+.home-qbtn:last-child{margin-bottom:0}
+.home-qbtn:hover{background:var(--bg-hover)}
+.home-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:9px;font-size:11px}
+.home-bar-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.home-bar-lbl{width:64px;flex-shrink:0;color:var(--tx-second);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-bar-track{flex:1;height:7px;background:var(--bg-deep);border-radius:4px;overflow:hidden}
+.home-bar-fill{height:100%;border-radius:4px}
+.home-bar-n{width:26px;text-align:right;color:var(--tx-dim);flex-shrink:0}
+.home-chart-wrap{display:flex;align-items:flex-end;gap:16px;height:110px;padding:4px 6px 0}
+.home-chart-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.home-chart-val{font-size:11px;color:var(--tx-second);margin-bottom:4px;font-weight:600}
+.home-chart-bar{width:100%;max-width:38px;border-radius:4px 4px 0 0;min-height:2px}
+.home-chart-mo{font-size:10px;color:var(--tx-muted);margin-top:6px}
+
+/* ═══════════════════════════════════════════
    모바일 반응형 (≤768px)
 ═══════════════════════════════════════════ */
 @media (max-width: 768px) {
@@ -887,11 +920,10 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
   .topbar{padding:5px 8px;gap:4px}
   .ttl{font-size:13px}
 
-  /* 탭바: 가로 스크롤 */
-  .tab-bar{overflow-x:auto;overflow-y:hidden;white-space:nowrap;padding:0 8px;height:32px;scrollbar-width:none}
-  .tab-bar::-webkit-scrollbar{display:none}
-  .tab-nav{gap:2px}
-  .tab-btn{flex-shrink:0;padding:4px 10px;font-size:11px}
+  /* 좌측 메뉴: 모바일에서 기본 숨김, 햄버거로 오버레이 열기 */
+  .side-nav{display:none;position:absolute;top:0;left:0;bottom:0;z-index:60;box-shadow:4px 0 12px rgba(0,0,0,.4)}
+  .side-nav.open{display:flex}
+  .side-nav.open ~ .nav-scrim{display:block;position:absolute;inset:0;z-index:55;background:rgba(0,0,0,.4)}
 
   /* 간트 사이드바: 모바일에서 기본 숨김, .open 클래스 시 오버레이 */
   #view_gantt .sidebar{display:none;position:absolute;top:0;left:0;bottom:0;z-index:50;box-shadow:4px 0 12px rgba(0,0,0,.4)}
@@ -945,6 +977,11 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 
   /* content: position:relative for sidebar overlay */
   .content{position:relative;overflow:hidden}
+
+  /* 홈 대시보드 */
+  .home-wrap{padding:14px 12px}
+  .home-stat-row{grid-template-columns:repeat(3,1fr)}
+  .home-grid2{grid-template-columns:1fr}
 }
 
 /* ═══════════════════════════════════════════
@@ -953,7 +990,6 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 @media (max-width: 480px) {
   .ghfixed,.ghdbf{width:120px!important;min-width:120px!important}
   .gfix,.wkfix,.wksecfix,.grpfix,.evfix{width:120px!important;min-width:120px!important}
-  .tab-btn{font-size:10px;padding:4px 8px}
   .btn{font-size:10px;padding:3px 6px}
   .pm-stat-card{min-width:80px;padding:8px 10px}
   .pm-stat-val{font-size:18px}

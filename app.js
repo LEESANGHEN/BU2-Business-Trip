@@ -1307,26 +1307,40 @@ document.addEventListener('DOMContentLoaded', function(){
 /* ════════════════════════════════════════════
    탭 전환
 ════════════════════════════════════════════ */
-var _activeTab='projects';
+var _activeTab='home';
 
 function switchTab(tab){
   _activeTab=tab;
+  document.getElementById('view_home').style.display=tab==='home'?'flex':'none';
   document.getElementById('view_projects').style.display=tab==='projects'?'flex':'none';
   document.getElementById('view_gantt').style.display=tab==='gantt'?'flex':'none';
   document.getElementById('view_person').style.display=tab==='person'?'flex':'none';
   document.getElementById('view_equip').style.display=tab==='equip'?'flex':'none';
   document.getElementById('view_vision').style.display=tab==='vision'?'flex':'none';
-  document.getElementById('tab_projects').className='tab-btn'+(tab==='projects'?' on':'');
-  document.getElementById('tab_gantt').className='tab-btn'+(tab==='gantt'?' on':'');
-  document.getElementById('tab_person').className='tab-btn'+(tab==='person'?' on':'');
-  document.getElementById('tab_equip').className='tab-btn'+(tab==='equip'?' on':'');
-  document.getElementById('tab_vision').className='tab-btn'+(tab==='vision'?' on':'');
+  document.getElementById('tab_home').className='nav-item'+(tab==='home'?' on':'');
+  document.getElementById('tab_projects').className='nav-item'+(tab==='projects'?' on':'');
+  document.getElementById('tab_gantt').className='nav-item'+(tab==='gantt'?' on':'');
+  document.getElementById('tab_person').className='nav-item'+(tab==='person'?' on':'');
+  document.getElementById('tab_equip').className='nav-item'+(tab==='equip'?' on':'');
+  document.getElementById('tab_vision').className='nav-item'+(tab==='vision'?' on':'');
   document.getElementById('ganttTools').style.display=tab==='gantt'?'flex':'none';
   document.getElementById('equipTools').style.display=tab==='equip'?'flex':'none';
+  if(tab==='home') renderHomeTab();
   if(tab==='projects') renderProjectsTab();
   if(tab==='person') renderPersonTab();
   if(tab==='equip') renderEquipTab();
   if(tab==='vision') renderMonthlyAggTab();
+  closeGlobalNav();
+}
+
+/* ── 전역 좌측 메뉴(사이드바) 모바일 토글 ── */
+function toggleGlobalNav(){
+  var nav=document.getElementById('sideNav');
+  if(nav) nav.classList.toggle('open');
+}
+function closeGlobalNav(){
+  var nav=document.getElementById('sideNav');
+  if(nav) nav.classList.remove('open');
 }
 
 /* 이력관리 전용 Sheets Pull (visionEquips/visionTemplate 중심 갱신)

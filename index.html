@@ -9,12 +9,13 @@
   <script>
     (function(){var t=localStorage.getItem('trip_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
   </script>
-  <link rel="stylesheet" href="style.css?v=20260909a">
+  <link rel="stylesheet" href="style.css?v=20260918a">
 </head>
 <body>
   <div class="app">
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:8px">
+        <button class="mobile-only sidebar-toggle" onclick="toggleGlobalNav()" title="메뉴">☰</button>
         <span class="ttl" data-i18n="appTitle" onclick="_handleTitleClick(event)">출장 일정 관리</span>
         <div class="conn-dot" id="connStatus" onclick="checkConn()" title="클릭하면 연결 상태 확인">
           <div class="conn-led" id="connLed"></div>
@@ -87,76 +88,84 @@
         <button class="btn" id="btnSheetsSettings" data-i18n="btnSheetsSettings" onclick="openSheetsSettings()">⚙ Sheets 설정</button>
       </div>
     </div>
-    <div class="tab-bar">
-      <div class="tab-nav">
-        <button class="tab-btn on" id="tab_projects" data-i18n="tabProjects" onclick="switchTab('projects')">🗂️ 프로젝트 관리</button>
-        <button class="tab-btn" id="tab_gantt" data-i18n="tabGantt" onclick="switchTab('gantt')">📅 간트 차트</button>
-        <button class="tab-btn" id="tab_person" data-i18n="tabPerson" onclick="switchTab('person')">👤 인원 출장일</button>
-        <button class="tab-btn" id="tab_equip" onclick="switchTab('equip')" style="display:none">🏭 설비 진행율</button>
-        <button class="tab-btn" id="tab_vision" data-i18n="tabVision" onclick="switchTab('vision')">📊 월별 집계</button>
+    <div class="body-row">
+      <div class="side-nav" id="sideNav">
+        <button class="nav-item on" id="tab_home" data-i18n="tabHome" onclick="switchTab('home')">🏠 홈</button>
+        <button class="nav-item" id="tab_projects" data-i18n="tabProjects" onclick="switchTab('projects')">🗂️ 프로젝트 관리</button>
+        <button class="nav-item" id="tab_gantt" data-i18n="tabGantt" onclick="switchTab('gantt')">📅 간트 차트</button>
+        <button class="nav-item" id="tab_person" data-i18n="tabPerson" onclick="switchTab('person')">👤 인원 출장일</button>
+        <button class="nav-item" id="tab_equip" onclick="switchTab('equip')" style="display:none">🏭 설비 진행율</button>
+        <button class="nav-item" id="tab_vision" data-i18n="tabVision" onclick="switchTab('vision')">📊 월별 집계</button>
       </div>
-    </div>
-    <div class="content" id="view_projects">
-      <div class="pm-wrap" id="mpWrap"></div>
-    </div>
-    <div class="content" id="view_gantt" style="display:none">
-      <div class="sidebar" id="ganttSidebar">
-        <div class="sbhead" style="display:flex;align-items:center;justify-content:space-between">
-          <span class="slbl" data-i18n="siteFilter">사이트 필터</span>
-          <button class="mobile-only sidebar-toggle" onclick="closeSidebar('gantt')" title="닫기" style="font-size:11px;padding:2px 6px">✕</button>
+      <div class="nav-scrim" id="navScrim" onclick="closeGlobalNav()"></div>
+      <div class="view-area">
+        <div class="content" id="view_home">
+          <div class="home-wrap" id="homeWrap"></div>
         </div>
-        <div class="sbody" id="siteList"></div>
-      </div>
-      <div class="main">
-        <div class="gscroll" id="gscroll">
-          <div class="gwrap" id="gwrap">
-            <div class="ghrow">
-              <div class="ghinner">
-                <div class="ghfixed">
-                  <div class="ghc" style="width:68px;min-width:68px;max-width:68px" data-i18n="ghTask">업무</div>
-                  <div class="ghc" data-i18n="ghTraveler">출장자</div>
+        <div class="content" id="view_projects" style="display:none">
+          <div class="pm-wrap" id="mpWrap"></div>
+        </div>
+        <div class="content" id="view_gantt" style="display:none">
+          <div class="sidebar" id="ganttSidebar">
+            <div class="sbhead" style="display:flex;align-items:center;justify-content:space-between">
+              <span class="slbl" data-i18n="siteFilter">사이트 필터</span>
+              <button class="mobile-only sidebar-toggle" onclick="closeSidebar('gantt')" title="닫기" style="font-size:11px;padding:2px 6px">✕</button>
+            </div>
+            <div class="sbody" id="siteList"></div>
+          </div>
+          <div class="main">
+            <div class="gscroll" id="gscroll">
+              <div class="gwrap" id="gwrap">
+                <div class="ghrow">
+                  <div class="ghinner">
+                    <div class="ghfixed">
+                      <div class="ghc" style="width:68px;min-width:68px;max-width:68px" data-i18n="ghTask">업무</div>
+                      <div class="ghc" data-i18n="ghTraveler">출장자</div>
+                    </div>
+                    <div class="ghtl" id="ghTl"></div>
+                  </div>
+                  <div class="ghdb">
+                    <div class="ghdbf"></div>
+                    <div class="ghdbt" id="ghDb"></div>
+                  </div>
                 </div>
-                <div class="ghtl" id="ghTl"></div>
-              </div>
-              <div class="ghdb">
-                <div class="ghdbf"></div>
-                <div class="ghdbt" id="ghDb"></div>
+                <div id="gbody"></div>
               </div>
             </div>
-            <div id="gbody"></div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="content" id="view_person" style="display:none">
-      <div class="pm-wrap" id="pmWrap">
+        <div class="content" id="view_person" style="display:none">
+          <div class="pm-wrap" id="pmWrap">
+            </div>
         </div>
-    </div>
-    <div class="content" id="view_equip" style="display:none">
-      <div class="sidebar" id="equipSidebar"></div>
-      <div class="main" style="overflow:hidden;display:flex;flex-direction:column">
-        <div id="eqSummary"></div>
-        <div class="eq-scroll" id="eqScroll">
-          <div id="eqGrid"></div>
+        <div class="content" id="view_equip" style="display:none">
+          <div class="sidebar" id="equipSidebar"></div>
+          <div class="main" style="overflow:hidden;display:flex;flex-direction:column">
+            <div id="eqSummary"></div>
+            <div class="eq-scroll" id="eqScroll">
+              <div id="eqGrid"></div>
+            </div>
+          </div>
+        </div>
+        <div class="content" id="view_vision" style="display:none">
+          <div class="sidebar vi-sidebar" id="visionSidebar"></div>
+          <div class="main" id="visionMain" style="overflow:hidden;display:flex;flex-direction:column"></div>
         </div>
       </div>
-    </div>
-    <div class="content" id="view_vision" style="display:none">
-      <div class="sidebar vi-sidebar" id="visionSidebar"></div>
-      <div class="main" id="visionMain" style="overflow:hidden;display:flex;flex-direction:column"></div>
     </div>
   </div>
   <div id="mc"></div>
 
   <script src="data.js?v=20260723b"></script>
-  <script src="i18n.js?v=20260916a"></script>
-  <script src="app.js?v=20260908a"></script>
-  <script src="gantt.js?v=20260908b"></script>
+  <script src="i18n.js?v=20260918a"></script>
+  <script src="app.js?v=20260918a"></script>
+  <script src="gantt.js?v=20260918a"></script>
   <script src="modals.js?v=20260901b"></script>
   <script src="projects.js?v=20260916b"></script>
   <script src="person.js?v=20260916a"></script>
   <script src="equip.js?v=20260810w"></script>
   <script src="vision.js?v=20260807a"></script>
   <script src="export.js?v=20260904b"></script>
+  <script src="home.js?v=20260918a"></script>
 </body>
 </html>
