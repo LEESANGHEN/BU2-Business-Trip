@@ -286,7 +286,7 @@ function _mpToggleInfoTip(el){
 }
 // 터치 환경은 mouseleave가 없으므로, 아이콘 바깥을 탭하면 열려있는 안내 툴팁을 닫는다
 document.addEventListener('click',function(e){
-  if(e.target.closest&&e.target.closest('.mp-info-icon')) return;
+  if(e.target.closest&&(e.target.closest('[data-tip]')||e.target.closest('.mp-info-tooltip'))) return;
   _mpHideInfoTip();
 });
 // 관리자 모드에서 표 제목을 자유롭게 바꿀 수 있게 하는 커스텀 오버라이드 (Sheets에 저장되어 모든 접속자에게 반영)

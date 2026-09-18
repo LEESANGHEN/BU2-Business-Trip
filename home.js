@@ -114,25 +114,35 @@ function _homeMonthlyMonths(){
   }
   return months;
 }
-// 출하월(고객사 요청 출하 일정 우선, 없으면 HQ 출하 일정)이 그 달인 프로젝트 수
+// 설비명(프로젝트)·고객사 한 줄로 표시할 항목 라벨
+function _homeMpLabel(mp){ return (mp.projectName||'-')+' · '+(mp.customer||'-'); }
+// 출하월(고객사 요청 출하 일정 우선, 없으면 HQ 출하 일정)이 그 달인 프로젝트 수 + 목록
 function _homeMonthlyShipData(){
   return _homeMonthlyMonths().map(function(m){
-    var n=0; S.masterProjects.forEach(function(mp){ if(_mpShipMonth(mp)===m.ym) n++; });
-    return {label:m.label,value:n};
+    var items=[];
+    S.masterProjects.forEach(function(mp){ if(_mpShipMonth(mp)===m.ym) items.push(_homeMpLabel(mp)); });
+    return {label:m.label,value:items.length,items:items};
   });
 }
-// HQ 셋업 기간이 그 달과 겹치는 프로젝트 수 (월별 집계 탭의 "본사 셋업" 계산과 동일 기준)
+// HQ 셋업 기간이 그 달과 겹치는 프로젝트 수 + 목록 (월별 집계 탭의 "본사 셋업" 계산과 동일 기준)
 function _homeMonthlySetupData(){
   return _homeMonthlyMonths().map(function(m){
-    var n=0; S.masterProjects.forEach(function(mp){ if(_mpMonthOverlap(m.ym,mp.setupStart,mp.setupEnd)) n++; });
-    return {label:m.label,value:n};
+    var items=[];
+    S.masterProjects.forEach(function(mp){ if(_mpMonthOverlap(m.ym,mp.setupStart,mp.setupEnd)) items.push(_homeMpLabel(mp)); });
+    return {label:m.label,value:items.length,items:items};
   });
 }
+// 막대에 마우스를 올리거나(데스크탑) 탭하면(모바일) 그 달의 설비명(프로젝트) 목록을 툴팁으로 보여준다
+// — 열 제목의 ⓘ 안내 아이콘과 동일한 툴팁 매커니즘(_mpShowInfoTip 등, projects.js)을 재사용
 function _homeMonthlyChartCardHtml(title,color,data){
   var max=Math.max.apply(null,data.map(function(d){return d.value;}).concat([1]));
   var cols=data.map(function(d){
     var h=d.value>0?Math.max(Math.round(d.value/max*100),6):2;
-    return '<div class="home-chart-col"><div class="home-chart-val">'+d.value+'</div><div class="home-chart-bar" style="height:'+h+'%;background:'+color+'"></div><div class="home-chart-mo">'+_esc(d.label)+'</div></div>';
+    var tip=(d.items&&d.items.length)?d.items.join('\n'):'해당 월에 등록된 설비가 없습니다.';
+    var tipAttr=tip.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return '<div class="home-chart-col"><div class="home-chart-val">'+d.value+'</div>'
+      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+tipAttr+'" onmouseenter="_mpShowInfoTip(this)" onmouseleave="_mpHideInfoTip()" onclick="event.stopPropagation();_mpToggleInfoTip(this)"></div>'
+      +'<div class="home-chart-mo">'+_esc(d.label)+'</div></div>';
   }).join('');
   return '<div class="home-card" style="margin-bottom:14px"><p class="home-card-h">'+_esc(title)+'</p><div class="home-chart-wrap">'+cols+'</div></div>';
 }
