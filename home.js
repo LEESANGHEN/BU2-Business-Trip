@@ -76,33 +76,51 @@ function _homeQuickActionsCardHtml(){
 
 var HOME_PALETTE=['#5a9aee','#4aaa70','#e0972e','#b39ddb','#e05a8a','#2ecccc','#999'];
 
+function _homeEscAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// 국가(지역)별로 등록된 고객사(사이트)를 함께 모아서, 막대에 마우스를 올리면 목록을 보여준다
 function _homeCountryCardHtml(){
-  var counts={};
-  S.masterProjects.forEach(function(mp){ var r=tRegion(mp.region||'기타'); counts[r]=(counts[r]||0)+1; });
-  var arr=Object.keys(counts).map(function(k){return {label:k,count:counts[k]};}).sort(function(a,b){return b.count-a.count;});
+  var data={};
+  S.masterProjects.forEach(function(mp){
+    var r=tRegion(mp.region||'기타');
+    if(!data[r]) data[r]={count:0,sites:{}};
+    data[r].count++;
+    if(mp.customer) data[r].sites[mp.customer]=true;
+  });
+  var arr=Object.keys(data).map(function(k){
+    return {label:k,count:data[k].count,sites:Object.keys(data[k].sites).sort(function(a,b){return a.localeCompare(b,'ko');})};
+  }).sort(function(a,b){return b.count-a.count;});
   var max=arr.length?arr[0].count:1;
   var body=arr.length?arr.map(function(a,i){
     var pct=Math.max(Math.round(a.count/max*100),4);
     var c=HOME_PALETTE[i%HOME_PALETTE.length];
+    var tip=a.sites.length?a.sites.join('\n'):'등록된 고객사(사이트)가 없습니다.';
     return '<div class="home-bar-row"><span class="home-bar-dot" style="background:'+c+'"></span><span class="home-bar-lbl">'+_esc(a.label)+'</span>'
-      +'<div class="home-bar-track"><div class="home-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div><span class="home-bar-n">'+a.count+'</span></div>';
+      +'<div class="home-bar-track" style="cursor:pointer" data-tip="'+_homeEscAttr(tip)+'" onmouseenter="_homeShowChartTip(this)" onmouseleave="_homeHideChartTip()"><div class="home-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div><span class="home-bar-n">'+a.count+'</span></div>';
   }).join(''):'<div class="home-empty">등록된 프로젝트가 없습니다.</div>';
-  return '<div class="home-card"><p class="home-card-h">🌏 국가별 프로젝트 현황</p>'+body+'</div>';
+  return '<div class="home-card"><p class="home-card-h">🌏 국가별 프로젝트 현황</p>'
+    +(arr.length?'<p class="home-hint">막대에 마우스를 올리면 고객사(사이트) 목록을 볼 수 있습니다.</p>':'')
+    +body+'</div>';
 }
 
+// 인원유형별로 실제 출장자 이름을 함께 모아서, 막대에 마우스를 올리면 명단을 보여준다
 function _homeTypeCardHtml(){
   var all=aggregatePersonTrips();
   var counts={hq:0,outsource:0,localOutsource:0,tech:0,vision:0,host:0};
-  Object.keys(all).forEach(function(n){ var ty=all[n].type; if(counts[ty]!==undefined) counts[ty]++; });
+  var names={hq:[],outsource:[],localOutsource:[],tech:[],vision:[],host:[]};
+  Object.keys(all).forEach(function(n){ var ty=all[n].type; if(counts[ty]!==undefined){ counts[ty]++; names[ty].push(n); } });
   var order=['hq','outsource','localOutsource','tech','vision','host'];
   var max=Math.max.apply(null,order.map(function(k){return counts[k];}).concat([1]));
   var body=order.map(function(k){
     var n=counts[k], pct=Math.max(Math.round(n/max*100),4);
     var c=TYPE_COLOR[k]||'#888';
+    var tip=names[k].length?names[k].sort(function(a,b){return a.localeCompare(b,'ko');}).join('\n'):'해당 유형으로 등록된 출장자가 없습니다.';
     return '<div class="home-bar-row"><span class="home-bar-dot" style="background:'+c+'"></span><span class="home-bar-lbl">'+_esc(TYPE_LBL[k]||k)+'</span>'
-      +'<div class="home-bar-track"><div class="home-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div><span class="home-bar-n">'+n+'</span></div>';
+      +'<div class="home-bar-track" style="cursor:pointer" data-tip="'+_homeEscAttr(tip)+'" onmouseenter="_homeShowChartTip(this)" onmouseleave="_homeHideChartTip()"><div class="home-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div><span class="home-bar-n">'+n+'</span></div>';
   }).join('');
-  return '<div class="home-card"><p class="home-card-h">👥 인원유형별 출장 현황</p>'+body+'</div>';
+  return '<div class="home-card"><p class="home-card-h">👥 인원유형별 출장 현황</p>'
+    +'<p class="home-hint">막대에 마우스를 올리면 출장자 명단을 볼 수 있습니다.</p>'
+    +body+'</div>';
 }
 
 // 이번 달부터 6개월 치 연-월(ym) 목록 — 출하/셋업 그래프 공용
@@ -171,9 +189,8 @@ function _homeMonthlyChartCardHtml(title,color,data){
   var cols=data.map(function(d){
     var h=d.value>0?Math.max(Math.round(d.value/max*100),6):2;
     var tip=(d.items&&d.items.length)?d.items.join('\n'):'해당 월에 등록된 설비가 없습니다.';
-    var tipAttr=tip.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     return '<div class="home-chart-col"><div class="home-chart-val">'+d.value+'</div>'
-      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+tipAttr+'" onclick="event.stopPropagation();_homeToggleChartTip(this)"></div>'
+      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+_homeEscAttr(tip)+'" onclick="event.stopPropagation();_homeToggleChartTip(this)"></div>'
       +'<div class="home-chart-mo">'+_esc(d.label)+'</div></div>';
   }).join('');
   return '<div class="home-card" style="margin-bottom:14px"><p class="home-card-h">'+_esc(title)+'</p>'
