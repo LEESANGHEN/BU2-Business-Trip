@@ -85,10 +85,12 @@ function _homeCountryCardHtml(){
     var r=tRegion(mp.region||'기타');
     if(!data[r]) data[r]={count:0,sites:{}};
     data[r].count++;
-    if(mp.customer) data[r].sites[mp.customer]=true;
+    if(mp.customer) data[r].sites[mp.customer]=(data[r].sites[mp.customer]||0)+1;
   });
   var arr=Object.keys(data).map(function(k){
-    return {label:k,count:data[k].count,sites:Object.keys(data[k].sites).sort(function(a,b){return a.localeCompare(b,'ko');})};
+    var sites=Object.keys(data[k].sites).sort(function(a,b){return a.localeCompare(b,'ko');})
+      .map(function(s){return s+'('+data[k].sites[s]+')';});
+    return {label:k,count:data[k].count,sites:sites};
   }).sort(function(a,b){return b.count-a.count;});
   var max=arr.length?arr[0].count:1;
   var body=arr.length?arr.map(function(a,i){
