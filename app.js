@@ -1209,12 +1209,14 @@ document.addEventListener('click', function(e){
 function openSidebar(view){
   var sb=view==='gantt'?document.getElementById('ganttSidebar')
         :view==='equip'?document.getElementById('equipSidebar')
+        :view==='setup'?document.getElementById('setupSidebar')
         :document.getElementById('visionSidebar');
   if(sb) sb.classList.add('open');
 }
 function closeSidebar(view){
   var sb=view==='gantt'?document.getElementById('ganttSidebar')
         :view==='equip'?document.getElementById('equipSidebar')
+        :view==='setup'?document.getElementById('setupSidebar')
         :document.getElementById('visionSidebar');
   if(sb) sb.classList.remove('open');
 }
@@ -1313,12 +1315,14 @@ function switchTab(tab){
   _activeTab=tab;
   document.getElementById('view_home').style.display=tab==='home'?'flex':'none';
   document.getElementById('view_projects').style.display=tab==='projects'?'flex':'none';
+  document.getElementById('view_setup').style.display=tab==='setup'?'flex':'none';
   document.getElementById('view_gantt').style.display=tab==='gantt'?'flex':'none';
   document.getElementById('view_person').style.display=tab==='person'?'flex':'none';
   document.getElementById('view_equip').style.display=tab==='equip'?'flex':'none';
   document.getElementById('view_vision').style.display=tab==='vision'?'flex':'none';
   document.getElementById('tab_home').className='nav-item'+(tab==='home'?' on':'');
   document.getElementById('tab_projects').className='nav-item'+(tab==='projects'?' on':'');
+  document.getElementById('tab_setup').className='nav-item'+(tab==='setup'?' on':'');
   document.getElementById('tab_gantt').className='nav-item'+(tab==='gantt'?' on':'');
   document.getElementById('tab_person').className='nav-item'+(tab==='person'?' on':'');
   document.getElementById('tab_equip').className='nav-item'+(tab==='equip'?' on':'');
@@ -1327,6 +1331,7 @@ function switchTab(tab){
   document.getElementById('equipTools').style.display=tab==='equip'?'flex':'none';
   if(tab==='home') renderHomeTab();
   if(tab==='projects') renderProjectsTab();
+  if(tab==='setup') renderSetupTab();
   if(tab==='person') renderPersonTab();
   if(tab==='equip') renderEquipTab();
   if(tab==='vision') renderMonthlyAggTab();

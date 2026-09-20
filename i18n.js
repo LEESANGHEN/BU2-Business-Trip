@@ -10,7 +10,7 @@ var I18N={
 ko:{
   appTitle:'출장 일정 관리', connOk:'연결 정상', connChecking:'연결 확인', themeToggleTitle:'다크/라이트 모드 전환',
   langSelectTitle:'언어 선택',
-  tabHome:'🏠 홈', tabProjects:'🗂️ 프로젝트 관리', tabGantt:'📅 간트 차트', tabPerson:'👤 인원 출장일', tabVision:'📊 월별 집계',
+  tabHome:'🏠 홈', tabProjects:'🗂️ 프로젝트 관리', tabSetup:'🛠️ 설비 셋업 진행 현황', tabGantt:'📅 간트 차트', tabPerson:'👤 인원 출장일', tabVision:'📊 월별 집계',
   btnExcel:'⬇ 엑셀', btnSheetsSettings:'⚙ Sheets 설정', btnSiteMgr:'사이트 관리', btnAddEvent:'★ 이벤트 등록', btnAddSchedule:'+ 출장 등록',
   btnHidden:'숨김 보기', searchPh:'검색', zoomWeek:'주', zoomBiweek:'격주', zoomMonth:'월',
   filterSchedule:'출장일정', filterEvent:'이벤트', filterWork:'작업',
@@ -42,7 +42,7 @@ ko:{
 en:{
   appTitle:'Trip Schedule Management', connOk:'Connected', connChecking:'Checking...', themeToggleTitle:'Toggle dark/light mode',
   langSelectTitle:'Select language',
-  tabHome:'🏠 Home', tabProjects:'🗂️ Projects', tabGantt:'📅 Gantt Chart', tabPerson:'👤 Trip Days', tabVision:'📊 Monthly Summary',
+  tabHome:'🏠 Home', tabProjects:'🗂️ Projects', tabSetup:'🛠️ Equipment Setup Progress', tabGantt:'📅 Gantt Chart', tabPerson:'👤 Trip Days', tabVision:'📊 Monthly Summary',
   btnExcel:'⬇ Excel', btnSheetsSettings:'⚙ Sheets Settings', btnSiteMgr:'Site Mgmt', btnAddEvent:'★ Add Event', btnAddSchedule:'+ Add Trip',
   btnHidden:'Show Hidden', searchPh:'Search', zoomWeek:'Week', zoomBiweek:'2-Week', zoomMonth:'Month',
   filterSchedule:'Trips', filterEvent:'Events', filterWork:'Work',
@@ -74,7 +74,7 @@ en:{
 zhHans:{
   appTitle:'出差日程管理', connOk:'连接正常', connChecking:'检查中...', themeToggleTitle:'切换深色/浅色模式',
   langSelectTitle:'选择语言',
-  tabHome:'🏠 首页', tabProjects:'🗂️ 项目管理', tabGantt:'📅 甘特图', tabPerson:'👤 人员出差日', tabVision:'📊 月度汇总',
+  tabHome:'🏠 首页', tabProjects:'🗂️ 项目管理', tabSetup:'🛠️ 设备安装进度', tabGantt:'📅 甘特图', tabPerson:'👤 人员出差日', tabVision:'📊 月度汇总',
   btnExcel:'⬇ 导出Excel', btnSheetsSettings:'⚙ Sheets设置', btnSiteMgr:'站点管理', btnAddEvent:'★ 添加事件', btnAddSchedule:'+ 添加出差',
   btnHidden:'显示隐藏', searchPh:'搜索', zoomWeek:'周', zoomBiweek:'双周', zoomMonth:'月',
   filterSchedule:'出差日程', filterEvent:'事件', filterWork:'工作',
@@ -106,7 +106,7 @@ zhHans:{
 zhHant:{
   appTitle:'出差日程管理', connOk:'連線正常', connChecking:'檢查中...', themeToggleTitle:'切換深色/淺色模式',
   langSelectTitle:'選擇語言',
-  tabHome:'🏠 首頁', tabProjects:'🗂️ 專案管理', tabGantt:'📅 甘特圖', tabPerson:'👤 人員出差日', tabVision:'📊 月度彙總',
+  tabHome:'🏠 首頁', tabProjects:'🗂️ 專案管理', tabSetup:'🛠️ 設備安裝進度', tabGantt:'📅 甘特圖', tabPerson:'👤 人員出差日', tabVision:'📊 月度彙總',
   btnExcel:'⬇ 匯出Excel', btnSheetsSettings:'⚙ Sheets設定', btnSiteMgr:'站點管理', btnAddEvent:'★ 新增事件', btnAddSchedule:'+ 新增出差',
   btnHidden:'顯示隱藏', searchPh:'搜尋', zoomWeek:'週', zoomBiweek:'雙週', zoomMonth:'月',
   filterSchedule:'出差日程', filterEvent:'事件', filterWork:'工作',
@@ -138,7 +138,7 @@ zhHant:{
 ja:{
   appTitle:'出張スケジュール管理', connOk:'接続正常', connChecking:'確認中...', themeToggleTitle:'ダーク/ライトモード切替',
   langSelectTitle:'言語選択',
-  tabHome:'🏠 ホーム', tabProjects:'🗂️ プロジェクト管理', tabGantt:'📅 ガントチャート', tabPerson:'👤 出張日数', tabVision:'📊 月別集計',
+  tabHome:'🏠 ホーム', tabProjects:'🗂️ プロジェクト管理', tabSetup:'🛠️ 設備セットアップ進捗', tabGantt:'📅 ガントチャート', tabPerson:'👤 出張日数', tabVision:'📊 月別集計',
   btnExcel:'⬇ Excel', btnSheetsSettings:'⚙ Sheets設定', btnSiteMgr:'サイト管理', btnAddEvent:'★ イベント登録', btnAddSchedule:'+ 出張登録',
   btnHidden:'非表示を表示', searchPh:'検索', zoomWeek:'週', zoomBiweek:'隔週', zoomMonth:'月',
   filterSchedule:'出張予定', filterEvent:'イベント', filterWork:'作業',
