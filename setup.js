@@ -44,6 +44,13 @@ function _spFilteredProjects(){
     if(_spFilterCustomer!=='all'&&(mp.customer||'')!==_spFilterCustomer) return false;
     if(_spIsHiddenByDefault(mp)&&!S.showHidden) return false;
     return true;
+  }).sort(function(a,b){
+    // 이관일이 가까운 프로젝트가 위로 오도록 정렬(D-7 자동 노출 순서와 일치) — 이관일 없는 프로젝트는 맨 뒤로
+    var ta=_mpEffectiveTransferDate(a), tb=_mpEffectiveTransferDate(b);
+    if(!ta&&!tb) return 0;
+    if(!ta) return 1;
+    if(!tb) return -1;
+    return pd(ta)-pd(tb);
   });
 }
 
