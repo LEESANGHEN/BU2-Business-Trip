@@ -15,6 +15,7 @@ var _spZoom='week';
 var SP_WPX_MAP={week:42,biweek:22,month:12};
 var _spWPX=42,_spMonths=[],_spTotPx=0,_spSd=null;
 var _spFilterRegion='all', _spFilterCustomer='all';
+var _spScrollBootstrapped=false; // 최초 1회만 '오늘' 위치로 자동 스크롤(Field 셋업 간트 차트와 동일 방식), 이후 재렌더는 사용자 위치 유지
 
 function setSpZoom(z){ _spZoom=z; renderSetupTab(); }
 
@@ -99,6 +100,20 @@ function renderSetupHeader(){
   if(wrap) wrap.style.width=(_spFixedW()+_spTotPx)+'px';
 }
 
+// 사이드바 국가 그룹 접기/펼치기 상태 (새로고침 후에도 유지 — Field 셋업 간트 차트와 동일 방식)
+var _SP_GRP_COLLAPSED_LS_KEY='bu2_setup_grp_collapsed';
+var _spGrpCollapsed=(function(){
+  try{ return JSON.parse(localStorage.getItem(_SP_GRP_COLLAPSED_LS_KEY)||'{}')||{}; }catch(e){ return {}; }
+})();
+function _spSaveGrpCollapsed(){
+  try{ localStorage.setItem(_SP_GRP_COLLAPSED_LS_KEY,JSON.stringify(_spGrpCollapsed)); }catch(e){}
+}
+function toggleSpGrpCollapse(region){
+  _spGrpCollapsed[region]=!_spGrpCollapsed[region];
+  _spSaveGrpCollapsed();
+  renderSetupSidebar();
+}
+
 // 사이드바: 간트 차트와 같은 스타일(전체 보기 → 국가 그룹 → 고객사) — 단, S.sites가 아니라
 // S.masterProjects의 region/customer 값을 그대로 그룹핑 기준으로 쓴다(별개 데이터라서)
 function renderSetupSidebar(){
@@ -118,12 +133,16 @@ function renderSetupSidebar(){
     var regionMps=S.masterProjects.filter(function(mp){return (mp.region||'기타')===r.value;});
     if(!regionMps.length) return;
     var isRegionActive=(_spFilterRegion===r.value&&_spFilterCustomer==='all');
+    var collapsed=!!_spGrpCollapsed[r.value];
     var lbl=document.createElement('div');
     lbl.className='grplbl'+(isRegionActive?' on':'');
-    lbl.style.cssText='cursor:pointer;display:flex;align-items:center;justify-content:space-between';
-    lbl.innerHTML='<span>'+_esc(r.label)+'</span><span class="scnt'+(regionMps.length>0?' has':'')+'">'+regionMps.length+'</span>';
+    lbl.style.cssText='cursor:pointer;display:flex;align-items:center;gap:4px';
+    lbl.innerHTML='<span class="grp-toggle" style="flex-shrink:0;font-size:8px;color:var(--tx-faint)">'+(collapsed?'▶':'▼')+'</span>'
+      +'<span style="flex:1">'+_esc(r.label)+'</span><span class="scnt'+(regionMps.length>0?' has':'')+'">'+regionMps.length+'</span>';
+    lbl.querySelector('.grp-toggle').onclick=(function(rv){return function(e){ e.stopPropagation(); toggleSpGrpCollapse(rv); };})(r.value);
     lbl.onclick=function(){_spFilterRegion=r.value;_spFilterCustomer='all';renderSetupTab();};
     el.appendChild(lbl);
+    if(collapsed) return;
 
     var customers={};
     regionMps.forEach(function(mp){ if(mp.customer) customers[mp.customer]=(customers[mp.customer]||0)+1; });
@@ -156,7 +175,6 @@ function spToggleShip(mpId,checked){ _spSetProgress(mpId,{shipDone:checked}); }
 function spSetSetupPct(mpId,val){ _spSetProgress(mpId,{setupPct:Math.max(0,Math.min(100,parseInt(val,10)||0))}); }
 
 function _spRenderRow(mp,idx){
-  var admin=_isAdminMode();
   var p=_spProgress(mp);
   var transferDate=_mpEffectiveTransferDate(mp);
   var shipDate=_mpEffectiveShipDate(mp);
@@ -167,17 +185,14 @@ function _spRenderRow(mp,idx){
     +'<span style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(mp.projectName||'')+'</span></div>'
     +'<div style="font-size:10px;color:var(--tx-muted)">'+_esc(mp.customer||'')+' · '+_esc(tRegion(mp.region||'기타'))+'</div>';
 
-  if(admin){
-    fixedHtml+='<div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx-second);flex-wrap:wrap">'
-      +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.transferDone?'checked':'')+' onchange="spToggleTransfer(\''+idAttr+'\',this.checked)" style="accent-color:#5a9aee">이관</label>'
-      +'<span style="display:flex;align-items:center;gap:4px">셋업'
-      +'<input type="range" min="0" max="100" value="'+(p.setupPct||0)+'" oninput="this.nextElementSibling.textContent=this.value+\'%\'" onchange="spSetSetupPct(\''+idAttr+'\',this.value)" style="width:56px;accent-color:#4aaa70">'
-      +'<span>'+(p.setupPct||0)+'%</span></span>'
-      +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.shipDone?'checked':'')+' onchange="spToggleShip(\''+idAttr+'\',this.checked)" style="accent-color:#b39ddb">출하</label>'
-      +'</div>';
-  }else{
-    fixedHtml+='<div style="font-size:10px;color:var(--tx-second)">이관 '+(p.transferDone?'✓':'-')+' · 셋업 '+(p.setupPct||0)+'% · 출하 '+(p.shipDone?'✓':'-')+'</div>';
-  }
+  // 관리자/일반 모드 구분 없이 누구나 진행 상태를 체크·조정할 수 있게 한다
+  fixedHtml+='<div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx-second);flex-wrap:wrap">'
+    +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.transferDone?'checked':'')+' onchange="spToggleTransfer(\''+idAttr+'\',this.checked)" style="accent-color:#5a9aee">이관</label>'
+    +'<span style="display:flex;align-items:center;gap:4px">셋업'
+    +'<input type="range" min="0" max="100" value="'+(p.setupPct||0)+'" oninput="this.nextElementSibling.textContent=this.value+\'%\'" onchange="spSetSetupPct(\''+idAttr+'\',this.value)" style="width:56px;accent-color:#4aaa70">'
+    +'<span>'+(p.setupPct||0)+'%</span></span>'
+    +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.shipDone?'checked':'')+' onchange="spToggleShip(\''+idAttr+'\',this.checked)" style="accent-color:#b39ddb">출하</label>'
+    +'</div>';
   fixedHtml+='</div>';
 
   var segHtml='';
@@ -222,8 +237,19 @@ function renderSetupBody(){
 }
 
 function renderSetupTab(){
+  var scrollEl=document.getElementById('spGscroll');
+  var sTop=scrollEl?scrollEl.scrollTop:0, sLeft=scrollEl?scrollEl.scrollLeft:0;
   _spInitTL();
   renderSetupSidebar();
   renderSetupHeader();
   renderSetupBody();
+  var newScrollEl=document.getElementById('spGscroll');
+  if(!newScrollEl) return;
+  if(!_spScrollBootstrapped){
+    // Field 셋업 간트 차트(gantt.js)와 같은 공식: 고정 컬럼 폭의 4/3만큼 여유를 두고 오늘 위치로 스크롤
+    newScrollEl.scrollLeft=Math.max(0,_spTpx()-Math.round(_spFixedW()*4/3));
+    _spScrollBootstrapped=true;
+  }else{
+    newScrollEl.scrollTop=sTop; newScrollEl.scrollLeft=sLeft;
+  }
 }
