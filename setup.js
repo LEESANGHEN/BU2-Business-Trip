@@ -258,9 +258,13 @@ function _spRenderRow(mp,idx){
   var shipDate=_mpEffectiveShipDate(mp);
   var idAttr=mp.id.replace(/'/g,"\\'");
 
+  var unitInfo=mp.prodUnit?(mp.prodUnit+(mp.customerUnit?'('+mp.customerUnit+')':'')):(mp.customerUnit||'');
+  var nameExtra=[mp.serial||'',unitInfo].filter(Boolean).join(' · ');
+
   var fixedHtml='<div class="gfix" style="flex-direction:column;align-items:flex-start;height:auto;padding:6px 8px;gap:3px">'
     +'<div style="display:flex;align-items:center;gap:6px;width:100%;overflow:hidden">'+_mpCategoryBadge(mp.category)
-    +'<span style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(mp.projectName||'')+'</span></div>'
+    +'<span style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(mp.projectName||'')
+    +(nameExtra?' <span style="font-weight:400;color:var(--tx-faint);font-size:10px">'+_esc(nameExtra)+'</span>':'')+'</span></div>'
     +'<div style="font-size:10px;color:var(--tx-muted)">'+_esc(mp.customer||'')+' · '+_esc(tRegion(mp.region||'기타'))+(p.manager?' · '+_esc(p.manager):'')+'</div>';
 
   // 이관·출하 완료 여부/날짜는 프로젝트 관리에 적용된 일정(최초 일정 또는 변경된 일정) 기준으로
