@@ -19,13 +19,19 @@ var _spScrollBootstrapped=false; // 최초 1회만 '오늘' 위치로 자동 스
 
 function setSpZoom(z){ _spZoom=z; renderSetupTab(); }
 
-// 출하 체크됨 + 출하일 다음날이 지난 프로젝트는 Field 셋업 간트 차트의 "완료" 숨김 처리와 동일하게
-// 기본적으로 목록에서 숨긴다(상단 "숨김 보기" 토글로 다시 볼 수 있음 — S.showHidden 공용 상태)
+// 출하일(최초 일정 또는 프로젝트 관리에서 변경 적용된 일정) 다음날이 지난 프로젝트는
+// Field 셋업 간트 차트의 "완료" 숨김 처리와 동일하게 기본적으로 목록에서 숨긴다
+// (상단 "숨김 보기" 토글로 다시 볼 수 있음 — S.showHidden 공용 상태)
 function _spIsPastComplete(mp){
-  var p=_spProgress(mp);
   var ship=_mpEffectiveShipDate(mp);
-  if(!p.shipDone||!ship) return false;
+  if(!ship) return false;
   return TODAY>pd(ship);
+}
+// 출하 완료 여부도 이관과 동일하게 수동 체크가 아니라 프로젝트 관리에 적용된 출하일
+// (최초 일정 또는 변경된 일정) 기준으로 자동 판정한다
+function _spShipDone(mp){
+  var sh=_mpEffectiveShipDate(mp);
+  return !!(sh&&TODAY>=pd(sh));
 }
 // 이관 이전(아직 먼) 프로젝트는 이관일이 7일 이내로 다가오기 전까지는 목록에 안 보이게 한다
 // (너무 이른 프로젝트로 목록이 붐비지 않도록 — 이관일 기준 D-7 시점에 자동 노출)
@@ -195,12 +201,13 @@ function renderSetupSidebar(){
 }
 
 // 이관/셋업/출하 진행 데이터 — 각 프로젝트 레코드에 새 필드로 저장(마이그레이션 불필요, 없으면 기본값)
-// 이관 완료 여부는 더 이상 수동 체크값을 저장하지 않는다 — _spTransferDone(mp)가 이관일 기준으로 매번 계산
-var SP_PROGRESS_DEFAULT={setupPct:0,shipDone:false,shipCheckedDate:'',manager:'',dept:'',midInspectionDate:'',finalInspectionDate:'',checklist:{},notes:'',attachments:[]};
+// 이관·출하 완료 여부는 더 이상 수동 체크값을 저장하지 않는다 — _spTransferDone/_spShipDone이
+// 프로젝트 관리에 적용된 날짜(최초 일정 또는 변경된 일정) 기준으로 매번 자동 계산한다
+var SP_PROGRESS_DEFAULT={setupPct:0,manager:'',dept:'',midInspectionDate:'',finalInspectionDate:'',checklist:{},notes:'',attachments:[]};
 function _spProgress(mp){ return Object.assign({},SP_PROGRESS_DEFAULT,mp.progress||{}); }
 function _spOverallPct(mp){
   var p=_spProgress(mp);
-  return Math.round(((_spTransferDone(mp)?100:0)+(p.setupPct||0)+(p.shipDone?100:0))/3);
+  return Math.round(((_spTransferDone(mp)?100:0)+(p.setupPct||0)+(_spShipDone(mp)?100:0))/3);
 }
 function _spSetProgress(mpId,patch){
   var mp=S.masterProjects.find(function(x){return x.id===mpId;});
@@ -209,8 +216,6 @@ function _spSetProgress(mpId,patch){
   _touch(mp); saveData();
   renderSetupBody();
 }
-function _spTodayIso(){ return TODAY.getFullYear()+'-'+String(TODAY.getMonth()+1).padStart(2,'0')+'-'+String(TODAY.getDate()).padStart(2,'0'); }
-function spToggleShip(mpId,checked){ _spSetProgress(mpId,{shipDone:checked,shipCheckedDate:checked?_spTodayIso():''}); }
 function spSetSetupPct(mpId,val){ _spSetProgress(mpId,{setupPct:Math.max(0,Math.min(100,parseInt(val,10)||0))}); }
 
 // 셋업 간트 바는 항상 출하 하루 전까지를 종료 시점으로 맞춘다 — 출하일이 늦춰지면 연장되고,
@@ -258,13 +263,13 @@ function _spRenderRow(mp,idx){
     +'<span style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(mp.projectName||'')+'</span></div>'
     +'<div style="font-size:10px;color:var(--tx-muted)">'+_esc(mp.customer||'')+' · '+_esc(tRegion(mp.region||'기타'))+(p.manager?' · '+_esc(p.manager):'')+'</div>';
 
-  // 이관 완료 여부/날짜는 프로젝트 관리에 등록된 이관일 기준으로 자동 계산한다(수동 체크 없음 —
-  // 날짜를 바꾸고 싶으면 프로젝트 관리에서 이관일 자체를 수정). 출하는 실제 출하 확인이 필요하므로 계속 수동 체크.
+  // 이관·출하 완료 여부/날짜는 프로젝트 관리에 적용된 일정(최초 일정 또는 변경된 일정) 기준으로
+  // 자동 계산한다(수동 체크 없음 — 날짜를 바꾸고 싶으면 프로젝트 관리에서 해당 일정 자체를 수정)
   var transferDone=_spTransferDone(mp);
   var transferDateShown=transferDone?transferDate:'';
-  var shipDateShown=p.shipDone?(p.shipCheckedDate||shipDate):'';
+  var shipDone=_spShipDone(mp);
+  var shipDateShown=shipDone?shipDate:'';
 
-  // 관리자/일반 모드 구분 없이 누구나 진행 상태를 체크·조정할 수 있게 한다
   fixedHtml+='<div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx-second);flex-wrap:wrap">'
     +'<label style="display:flex;align-items:center;gap:3px" title="프로젝트 관리의 이관일 기준으로 자동 체크됩니다"><input type="checkbox" '+(transferDone?'checked':'')+' disabled style="accent-color:#5a9aee">이관'
     +(transferDateShown?' <span style="color:var(--tx-faint)">'+fmtFull(transferDateShown)+'</span>':'')+'</label>'
@@ -272,7 +277,7 @@ function _spRenderRow(mp,idx){
     +'<input type="range" min="0" max="100" value="'+(p.setupPct||0)+'" oninput="this.nextElementSibling.textContent=this.value+\'%\'" onchange="spSetSetupPct(\''+idAttr+'\',this.value)" style="width:56px;accent-color:#4aaa70">'
     +'<span onclick="spEditSetupPct(this,\''+idAttr+'\')" style="cursor:pointer;min-width:28px;display:inline-block;text-align:right" title="클릭하여 직접 입력">'+(p.setupPct||0)+'%</span>'
     +(mp.setupStart&&mp.setupEnd?' <span style="color:var(--tx-faint)">('+fmtFull(mp.setupStart)+'~'+fmtFull(mp.setupEnd)+')</span>':'')+'</span>'
-    +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.shipDone?'checked':'')+' onchange="spToggleShip(\''+idAttr+'\',this.checked)" style="accent-color:#b39ddb">출하'
+    +'<label style="display:flex;align-items:center;gap:3px" title="프로젝트 관리의 출하일 기준으로 자동 체크됩니다"><input type="checkbox" '+(shipDone?'checked':'')+' disabled style="accent-color:#b39ddb">출하'
     +(shipDateShown?' <span style="color:var(--tx-faint)">'+fmtFull(shipDateShown)+'</span>':'')+'</label>'
     +'</div>';
   fixedHtml+='</div>';
@@ -293,7 +298,7 @@ function _spRenderRow(mp,idx){
   }
   if(shipDate){
     var sx=_spD2px(shipDate);
-    segHtml+='<div title="출하 '+fmtFull(shipDate)+(p.shipDone?' (완료)':'')+'" style="position:absolute;top:6px;left:'+(sx-4)+'px;width:8px;height:20px;border-radius:2px;background:'+(p.shipDone?'#b39ddb':'var(--bg-hover)')+';border:1px solid '+(p.shipDone?'#8a6ac0':'var(--bd-main)')+';z-index:3"></div>';
+    segHtml+='<div title="출하 '+fmtFull(shipDate)+(shipDone?' (완료)':'')+'" style="position:absolute;top:6px;left:'+(sx-4)+'px;width:8px;height:20px;border-radius:2px;background:'+(shipDone?'#b39ddb':'var(--bg-hover)')+';border:1px solid '+(shipDone?'#8a6ac0':'var(--bd-main)')+';z-index:3"></div>';
   }
   if(p.midInspectionDate){
     var mx=_spD2px(p.midInspectionDate);
