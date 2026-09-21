@@ -191,7 +191,7 @@ function renderSetupSidebar(){
 }
 
 // 이관/셋업/출하 진행 데이터 — 각 프로젝트 레코드에 새 필드로 저장(마이그레이션 불필요, 없으면 기본값)
-var SP_PROGRESS_DEFAULT={transferDone:false,setupPct:0,shipDone:false,manager:'',dept:'',midInspectionDate:'',finalInspectionDate:'',checklist:{},notes:'',attachments:[]};
+var SP_PROGRESS_DEFAULT={transferDone:false,transferCheckedDate:'',setupPct:0,shipDone:false,shipCheckedDate:'',manager:'',dept:'',midInspectionDate:'',finalInspectionDate:'',checklist:{},notes:'',attachments:[]};
 function _spProgress(mp){ return Object.assign({},SP_PROGRESS_DEFAULT,mp.progress||{}); }
 function _spOverallPct(mp){
   var p=_spProgress(mp);
@@ -204,8 +204,9 @@ function _spSetProgress(mpId,patch){
   _touch(mp); saveData();
   renderSetupBody();
 }
-function spToggleTransfer(mpId,checked){ _spSetProgress(mpId,{transferDone:checked}); }
-function spToggleShip(mpId,checked){ _spSetProgress(mpId,{shipDone:checked}); }
+function _spTodayIso(){ return TODAY.getFullYear()+'-'+String(TODAY.getMonth()+1).padStart(2,'0')+'-'+String(TODAY.getDate()).padStart(2,'0'); }
+function spToggleTransfer(mpId,checked){ _spSetProgress(mpId,{transferDone:checked,transferCheckedDate:checked?_spTodayIso():''}); }
+function spToggleShip(mpId,checked){ _spSetProgress(mpId,{shipDone:checked,shipCheckedDate:checked?_spTodayIso():''}); }
 function spSetSetupPct(mpId,val){ _spSetProgress(mpId,{setupPct:Math.max(0,Math.min(100,parseInt(val,10)||0))}); }
 
 // 셋업 간트 바는 항상 출하 하루 전까지를 종료 시점으로 맞춘다 — 출하일이 늦춰지면 연장되고,
@@ -255,11 +256,14 @@ function _spRenderRow(mp,idx){
 
   // 관리자/일반 모드 구분 없이 누구나 진행 상태를 체크·조정할 수 있게 한다
   fixedHtml+='<div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx-second);flex-wrap:wrap">'
-    +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.transferDone?'checked':'')+' onchange="spToggleTransfer(\''+idAttr+'\',this.checked)" style="accent-color:#5a9aee">이관</label>'
+    +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.transferDone?'checked':'')+' onchange="spToggleTransfer(\''+idAttr+'\',this.checked)" style="accent-color:#5a9aee">이관'
+    +(p.transferDone&&p.transferCheckedDate?' <span style="color:var(--tx-faint)">'+fmtFull(p.transferCheckedDate)+'</span>':'')+'</label>'
     +'<span style="display:flex;align-items:center;gap:4px">셋업'
     +'<input type="range" min="0" max="100" value="'+(p.setupPct||0)+'" oninput="this.nextElementSibling.textContent=this.value+\'%\'" onchange="spSetSetupPct(\''+idAttr+'\',this.value)" style="width:56px;accent-color:#4aaa70">'
-    +'<span onclick="spEditSetupPct(this,\''+idAttr+'\')" style="cursor:pointer;min-width:28px;display:inline-block;text-align:right" title="클릭하여 직접 입력">'+(p.setupPct||0)+'%</span></span>'
-    +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.shipDone?'checked':'')+' onchange="spToggleShip(\''+idAttr+'\',this.checked)" style="accent-color:#b39ddb">출하</label>'
+    +'<span onclick="spEditSetupPct(this,\''+idAttr+'\')" style="cursor:pointer;min-width:28px;display:inline-block;text-align:right" title="클릭하여 직접 입력">'+(p.setupPct||0)+'%</span>'
+    +(mp.setupStart&&mp.setupEnd?' <span style="color:var(--tx-faint)">('+fmtFull(mp.setupStart)+'~'+fmtFull(mp.setupEnd)+')</span>':'')+'</span>'
+    +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.shipDone?'checked':'')+' onchange="spToggleShip(\''+idAttr+'\',this.checked)" style="accent-color:#b39ddb">출하'
+    +(p.shipDone&&p.shipCheckedDate?' <span style="color:var(--tx-faint)">'+fmtFull(p.shipCheckedDate)+'</span>':'')+'</label>'
     +'</div>';
   fixedHtml+='</div>';
 
