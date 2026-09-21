@@ -29,9 +29,12 @@ function _spIsPastComplete(mp){
 }
 // 이관 이전(아직 먼) 프로젝트는 이관일이 7일 이내로 다가오기 전까지는 목록에 안 보이게 한다
 // (너무 이른 프로젝트로 목록이 붐비지 않도록 — 이관일 기준 D-7 시점에 자동 노출)
+// 이관일이 아예 등록되지 않은 프로젝트도 "아직 일정 확정 전"으로 보고 동일하게 숨긴다
+// (단, 이관 체크가 이미 완료된 경우는 날짜 등록 여부와 무관하게 노출)
 function _spIsFarFutureTransfer(mp){
+  if(_spProgress(mp).transferDone) return false;
   var tr=_mpEffectiveTransferDate(mp);
-  if(!tr) return false;
+  if(!tr) return true;
   var daysUntil=Math.round((pd(tr)-TODAY)/86400000);
   return daysUntil>=7;
 }
