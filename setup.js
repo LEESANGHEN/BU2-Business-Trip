@@ -65,6 +65,9 @@ function _spCalcRange(){
     if(mp.setupStart) all.push(mp.setupStart);
     if(mp.setupEnd) all.push(mp.setupEnd);
     var sh=_mpEffectiveShipDate(mp); if(sh) all.push(sh);
+    var p=_spProgress(mp);
+    if(p.midInspectionDate) all.push(p.midInspectionDate);
+    if(p.finalInspectionDate) all.push(p.finalInspectionDate);
   });
   if(all.length){
     var sorted=all.map(function(d){return pd(d);}).sort(function(a,b){return a-b;});
@@ -277,6 +280,14 @@ function _spRenderRow(mp,idx){
   if(shipDate){
     var sx=_spD2px(shipDate);
     segHtml+='<div title="출하 '+fmtFull(shipDate)+(p.shipDone?' (완료)':'')+'" style="position:absolute;top:6px;left:'+(sx-4)+'px;width:8px;height:20px;border-radius:2px;background:'+(p.shipDone?'#b39ddb':'var(--bg-hover)')+';border:1px solid '+(p.shipDone?'#8a6ac0':'var(--bd-main)')+';z-index:3"></div>';
+  }
+  if(p.midInspectionDate){
+    var mx=_spD2px(p.midInspectionDate);
+    segHtml+='<div title="고객사 중간 검수 '+fmtFull(p.midInspectionDate)+'" style="position:absolute;top:6px;left:'+(mx-4)+'px;width:8px;height:20px;border-radius:2px;background:#d9a441;border:1px solid #a67d1a;z-index:3"></div>';
+  }
+  if(p.finalInspectionDate){
+    var fx=_spD2px(p.finalInspectionDate);
+    segHtml+='<div title="고객사 최종 검수 '+fmtFull(p.finalInspectionDate)+'" style="position:absolute;top:6px;left:'+(fx-4)+'px;width:8px;height:20px;border-radius:2px;background:#e0735a;border:1px solid #b34a32;z-index:3"></div>';
   }
 
   var row=document.createElement('div');
