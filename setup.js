@@ -174,6 +174,24 @@ function spToggleTransfer(mpId,checked){ _spSetProgress(mpId,{transferDone:check
 function spToggleShip(mpId,checked){ _spSetProgress(mpId,{shipDone:checked}); }
 function spSetSetupPct(mpId,val){ _spSetProgress(mpId,{setupPct:Math.max(0,Math.min(100,parseInt(val,10)||0))}); }
 
+// 셋업 %를 슬라이더 대신 클릭해서 직접 숫자로 입력할 수 있게(임시로 <input type=number>로 치환)
+function spEditSetupPct(spanEl,mpId){
+  var cur=parseInt(spanEl.textContent,10)||0;
+  var input=document.createElement('input');
+  input.type='number'; input.min=0; input.max=100; input.value=cur;
+  input.style.cssText='width:42px;font-size:10px;padding:0 2px;border-radius:3px;border:1px solid var(--bd-main);background:var(--bg-deep);color:var(--tx-main)';
+  spanEl.replaceWith(input);
+  input.focus(); input.select();
+  var done=false;
+  function commit(){ if(done) return; done=true; spSetSetupPct(mpId,input.value); }
+  function cancel(){ if(done) return; done=true; renderSetupBody(); }
+  input.addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); commit(); }
+    else if(e.key==='Escape'){ e.preventDefault(); cancel(); }
+  });
+  input.addEventListener('blur',commit);
+}
+
 function _spRenderRow(mp,idx){
   var p=_spProgress(mp);
   var transferDate=_mpEffectiveTransferDate(mp);
@@ -190,7 +208,7 @@ function _spRenderRow(mp,idx){
     +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.transferDone?'checked':'')+' onchange="spToggleTransfer(\''+idAttr+'\',this.checked)" style="accent-color:#5a9aee">이관</label>'
     +'<span style="display:flex;align-items:center;gap:4px">셋업'
     +'<input type="range" min="0" max="100" value="'+(p.setupPct||0)+'" oninput="this.nextElementSibling.textContent=this.value+\'%\'" onchange="spSetSetupPct(\''+idAttr+'\',this.value)" style="width:56px;accent-color:#4aaa70">'
-    +'<span>'+(p.setupPct||0)+'%</span></span>'
+    +'<span onclick="spEditSetupPct(this,\''+idAttr+'\')" style="cursor:pointer;min-width:28px;display:inline-block;text-align:right" title="클릭하여 직접 입력">'+(p.setupPct||0)+'%</span></span>'
     +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.shipDone?'checked':'')+' onchange="spToggleShip(\''+idAttr+'\',this.checked)" style="accent-color:#b39ddb">출하</label>'
     +'</div>';
   fixedHtml+='</div>';
