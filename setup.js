@@ -251,7 +251,7 @@ function _spRenderRow(mp,idx){
   var fixedHtml='<div class="gfix" style="flex-direction:column;align-items:flex-start;height:auto;padding:6px 8px;gap:3px">'
     +'<div style="display:flex;align-items:center;gap:6px;width:100%;overflow:hidden">'+_mpCategoryBadge(mp.category)
     +'<span style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(mp.projectName||'')+'</span></div>'
-    +'<div style="font-size:10px;color:var(--tx-muted)">'+_esc(mp.customer||'')+' · '+_esc(tRegion(mp.region||'기타'))+'</div>';
+    +'<div style="font-size:10px;color:var(--tx-muted)">'+_esc(mp.customer||'')+' · '+_esc(tRegion(mp.region||'기타'))+(p.manager?' · '+_esc(p.manager):'')+'</div>';
 
   // 관리자/일반 모드 구분 없이 누구나 진행 상태를 체크·조정할 수 있게 한다
   fixedHtml+='<div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx-second);flex-wrap:wrap">'
