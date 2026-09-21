@@ -30,6 +30,7 @@
 
 var SHEET_NAME = 'BU2_TRIP_DATA';
 var CHUNK_SIZE = 40000; // Google Sheets 셀 1개 최대 5만자 제한보다 여유있게 설정
+var ATTACH_FOLDER_NAME = 'BU2_TRIP_ATTACHMENTS'; // 셋업 진행 첨부파일 저장용 Drive 폴더(자동 생성)
 
 var FIELDS = ['groups', 'sites', 'projects', 'schedules', 'events', 'workTasks',
               'equipItems', 'equipUnits', 'equipSiteOrder', 'equipProjects',
@@ -76,6 +77,12 @@ function _json_(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+function _getAttachFolder_() {
+  var folders = DriveApp.getFoldersByName(ATTACH_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(ATTACH_FOLDER_NAME);
+}
+
 function doGet(e) {
   var action = e && e.parameter && e.parameter.action;
   if (action === 'load') {
@@ -106,6 +113,27 @@ function doPost(e) {
       if (body.deletedIds !== undefined) state.deletedIds = body.deletedIds;
       if (body.deletedScheduleIds !== undefined) state.deletedScheduleIds = body.deletedScheduleIds;
       _writeState_(state);
+      return _json_({ ok: true });
+    }
+    if (body.action === 'uploadFile') {
+      var folder = _getAttachFolder_();
+      var bytes = Utilities.base64Decode(body.base64Data);
+      var blob = Utilities.newBlob(bytes, body.mimeType || 'application/octet-stream', body.fileName || 'file');
+      var file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      return _json_({
+        ok: true,
+        fileId: file.getId(),
+        name: file.getName(),
+        size: file.getSize(),
+        downloadUrl: 'https://drive.google.com/uc?export=download&id=' + file.getId(),
+        viewUrl: file.getUrl()
+      });
+    }
+    if (body.action === 'deleteFile') {
+      try {
+        DriveApp.getFileById(body.fileId).setTrashed(true);
+      } catch (e2) {}
       return _json_({ ok: true });
     }
     return _json_({ error: 'unknown action: ' + body.action });

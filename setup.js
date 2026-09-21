@@ -158,7 +158,8 @@ function renderSetupSidebar(){
 }
 
 // 이관/셋업/출하 진행 데이터 — 각 프로젝트 레코드에 새 필드로 저장(마이그레이션 불필요, 없으면 기본값)
-function _spProgress(mp){ return mp.progress||{transferDone:false,setupPct:0,shipDone:false}; }
+var SP_PROGRESS_DEFAULT={transferDone:false,setupPct:0,shipDone:false,manager:'',dept:'',checklist:{},attachments:[]};
+function _spProgress(mp){ return Object.assign({},SP_PROGRESS_DEFAULT,mp.progress||{}); }
 function _spOverallPct(mp){
   var p=_spProgress(mp);
   return Math.round(((p.transferDone?100:0)+(p.setupPct||0)+(p.shipDone?100:0))/3);
@@ -166,13 +167,27 @@ function _spOverallPct(mp){
 function _spSetProgress(mpId,patch){
   var mp=S.masterProjects.find(function(x){return x.id===mpId;});
   if(!mp) return;
-  mp.progress=Object.assign({transferDone:false,setupPct:0,shipDone:false},mp.progress||{},patch);
+  mp.progress=Object.assign({},SP_PROGRESS_DEFAULT,mp.progress||{},patch);
   _touch(mp); saveData();
   renderSetupBody();
 }
 function spToggleTransfer(mpId,checked){ _spSetProgress(mpId,{transferDone:checked}); }
 function spToggleShip(mpId,checked){ _spSetProgress(mpId,{shipDone:checked}); }
 function spSetSetupPct(mpId,val){ _spSetProgress(mpId,{setupPct:Math.max(0,Math.min(100,parseInt(val,10)||0))}); }
+
+// 출하 일정이 셋업 종료일보다 늦어지면(연장되면), 셋업 간트 바를 출하 하루 전까지 시각적으로 연장한다
+// (실제 mp.setupEnd 값은 건드리지 않고, 렌더 시점에만 계산 — 출하일이 다시 당겨지면 자동으로 원복됨)
+function _spEffectiveSetupEnd(mp){
+  var end=mp.setupEnd;
+  var ship=_mpEffectiveShipDate(mp);
+  if(ship){
+    var shipMinus1=new Date(pd(ship).getTime()-86400000);
+    var y=shipMinus1.getFullYear(),m=String(shipMinus1.getMonth()+1).padStart(2,'0'),d=String(shipMinus1.getDate()).padStart(2,'0');
+    var shipMinus1Str=y+'-'+m+'-'+d;
+    if(!end||pd(shipMinus1Str)>pd(end)) end=shipMinus1Str;
+  }
+  return end;
+}
 
 // 셋업 %를 슬라이더 대신 클릭해서 직접 숫자로 입력할 수 있게(임시로 <input type=number>로 치환)
 function spEditSetupPct(spanEl,mpId){
@@ -215,10 +230,12 @@ function _spRenderRow(mp,idx){
 
   var segHtml='';
   if(mp.setupStart&&mp.setupEnd){
-    var x1=_spD2px(mp.setupStart), x2=_spD2px(mp.setupEnd)+Math.round(_spWPX/7);
+    var effEnd=_spEffectiveSetupEnd(mp);
+    var x1=_spD2px(mp.setupStart), x2=_spD2px(effEnd)+Math.round(_spWPX/7);
     var w=Math.max(x2-x1,4);
     var fillPct=Math.max(0,Math.min(100,p.setupPct||0));
-    segHtml+='<div title="셋업 '+fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)+' ('+(p.setupPct||0)+'%)" style="position:absolute;top:8px;left:'+x1+'px;width:'+w+'px;height:16px;border-radius:4px;background:var(--bg-deep);border:1px solid var(--bd-main);overflow:hidden;z-index:2">'
+    var extNote=(effEnd!==mp.setupEnd)?' · 출하일정 반영 연장':'';
+    segHtml+='<div onclick="openSpProgressModal(\''+idAttr+'\')" title="셋업 '+fmtFull(mp.setupStart)+' ~ '+fmtFull(effEnd)+' ('+(p.setupPct||0)+'%)'+extNote+' · 클릭하여 상세 기록" style="position:absolute;top:8px;left:'+x1+'px;width:'+w+'px;height:16px;border-radius:4px;background:var(--bg-deep);border:1px solid var(--bd-main);overflow:hidden;z-index:2;cursor:pointer">'
       +'<div style="height:100%;width:'+fillPct+'%;background:#4aaa70"></div></div>';
   }
   if(transferDate){
@@ -252,6 +269,164 @@ function renderSetupBody(){
   var frag=document.createDocumentFragment();
   rows.forEach(function(mp,idx){ frag.appendChild(_spRenderRow(mp,idx)); });
   body.appendChild(frag);
+}
+
+// ── 셋업 진행 기록 모달 (담당자/소속 + 체크리스트 + 첨부파일) ──
+var SP_CHECKLIST_ITEMS=['I/O 확인','Motion 확인','PC, Controller Setting','SW 설치','Vision 상태 확인',
+  '설비 초기화','Jig Table 평탄, Isolator Setting','Handler Teaching','Dry Run Test','광학계 Tuning',
+  'Recipe Setup','Data 검증','Full Run Test','고객사 요청 사항 점검(사양서)','Outgoing Report'];
+var SP_MAX_FILE_MB=15;
+var _spModalMpId=null; // 현재 열려있는 셋업 진행 모달의 대상 mp id
+
+function _spFmtFileSize(bytes){
+  if(!bytes&&bytes!==0) return '';
+  if(bytes<1024) return bytes+'B';
+  if(bytes<1024*1024) return Math.round(bytes/1024)+'KB';
+  return (bytes/1024/1024).toFixed(1)+'MB';
+}
+
+function _spAttachListHtml(attachments){
+  if(!attachments||!attachments.length) return '<div style="font-size:11px;color:var(--tx-faint)">첨부된 파일이 없습니다.</div>';
+  return attachments.map(function(a){
+    var fidAttr=String(a.id).replace(/'/g,"\\'");
+    return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:6px;padding:5px 8px">'
+      +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(a.name||'')+'</span>'
+      +'<span style="color:var(--tx-faint);flex-shrink:0">'+_spFmtFileSize(a.size)+'</span>'
+      +'<a href="'+_esc(a.downloadUrl||a.viewUrl||'#')+'" target="_blank" rel="noopener" class="btn sm" style="flex-shrink:0;text-decoration:none">다운로드</a>'
+      +'<button class="btn sm red" style="flex-shrink:0" onclick="spDeleteAttachment(\''+_spModalMpId.replace(/'/g,"\\'")+'\',\''+fidAttr+'\')">삭제</button>'
+      +'</div>';
+  }).join('');
+}
+
+function openSpProgressModal(mpId){
+  var mp=S.masterProjects.find(function(x){return x.id===mpId;});
+  if(!mp) return;
+  _spModalMpId=mpId;
+  var p=_spProgress(mp);
+  var idAttr=mpId.replace(/'/g,"\\'");
+  var doneCnt=SP_CHECKLIST_ITEMS.filter(function(item,i){return !!p.checklist[i];}).length;
+
+  var html='<div class="mtit">🛠️ 셋업 진행 기록 — '+_esc(mp.projectName||'')+'</div>';
+  html+='<div style="font-size:11px;color:var(--tx-muted);margin-bottom:10px">'+_esc(mp.customer||'')+' · '+_esc(tRegion(mp.region||'기타'))+'</div>';
+
+  html+='<div style="display:flex;gap:10px;margin-bottom:10px">'
+    +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" value="'+_esc(p.manager||'')+'" placeholder="담당자명" onchange="spSaveField(\''+idAttr+'\',\'manager\',this.value)"></div>'
+    +'<div class="fg" style="flex:1"><label class="fl">소속</label><input type="text" value="'+_esc(p.dept||'')+'" placeholder="소속" onchange="spSaveField(\''+idAttr+'\',\'dept\',this.value)"></div>'
+    +'</div>';
+
+  html+='<div class="fg"><label class="fl" id="sp_cl_count">체크리스트 ('+doneCnt+'/'+SP_CHECKLIST_ITEMS.length+')</label>'
+    +'<div style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;border:1px solid var(--bd-main);border-radius:6px;padding:8px">'
+    +SP_CHECKLIST_ITEMS.map(function(item,i){
+      var checked=!!p.checklist[i];
+      return '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;padding:2px 0">'
+        +'<input type="checkbox" '+(checked?'checked':'')+' onchange="spToggleChecklist(\''+idAttr+'\','+i+',this.checked)">'
+        +'<span style="color:'+(checked?'var(--tx-muted)':'var(--tx-main)')+';text-decoration:'+(checked?'line-through':'none')+'">'+(i+1)+'. '+_esc(item)+'</span>'
+        +'</label>';
+    }).join('')
+    +'</div></div>';
+
+  html+='<div class="fg"><label class="fl">첨부파일 (이미지/파일)</label>'
+    +'<div id="sp_attach_list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'+_spAttachListHtml(p.attachments)+'</div>'
+    +'<button class="btn sm" onclick="spTriggerFileUpload(\''+idAttr+'\')">+ 파일 추가</button>'
+    +'<span id="sp_attach_status" style="font-size:11px;color:var(--tx-muted);margin-left:8px"></span>'
+    +'</div>';
+
+  html+='<div class="mfoot"><button class="btn sm pri" onclick="cm()">닫기</button></div>';
+  mw(html,true);
+}
+
+function spSaveField(mpId,field,val){
+  var patch={}; patch[field]=val;
+  _spSetProgress(mpId,patch);
+}
+
+function spToggleChecklist(mpId,idx,checked){
+  var mp=S.masterProjects.find(function(x){return x.id===mpId;});
+  if(!mp) return;
+  var p=_spProgress(mp);
+  var checklist=Object.assign({},p.checklist);
+  if(checked) checklist[idx]=true; else delete checklist[idx];
+  _spSetProgress(mpId,{checklist:checklist});
+  var doneCnt=SP_CHECKLIST_ITEMS.filter(function(item,i){return !!checklist[i];}).length;
+  var lbl=document.getElementById('sp_cl_count');
+  if(lbl) lbl.textContent='체크리스트 ('+doneCnt+'/'+SP_CHECKLIST_ITEMS.length+')';
+}
+
+function spTriggerFileUpload(mpId){
+  _spModalMpId=mpId;
+  var input=document.getElementById('spAttachFileInput');
+  if(input) input.click();
+}
+
+function _spRefreshAttachList(){
+  var mp=S.masterProjects.find(function(x){return x.id===_spModalMpId;});
+  var listEl=document.getElementById('sp_attach_list');
+  if(!mp||!listEl) return;
+  listEl.innerHTML=_spAttachListHtml(_spProgress(mp).attachments);
+}
+
+function spHandleFileUpload(inputEl){
+  var files=Array.prototype.slice.call(inputEl.files||[]);
+  inputEl.value='';
+  if(!files.length) return;
+  var mpId=_spModalMpId;
+  if(!S.masterProjects.find(function(x){return x.id===mpId;})) return;
+  var url=getSheetsUrl();
+  if(!url){ alert('Sheets 연동 URL이 설정되어 있지 않아 파일을 업로드할 수 없습니다.'); return; }
+  var statusEl=document.getElementById('sp_attach_status');
+  var remaining=files.length;
+  files.forEach(function(file){
+    if(file.size>SP_MAX_FILE_MB*1024*1024){
+      alert(file.name+' 파일이 '+SP_MAX_FILE_MB+'MB를 초과하여 업로드할 수 없습니다.');
+      remaining--; if(remaining===0&&statusEl) statusEl.textContent='';
+      return;
+    }
+    if(statusEl) statusEl.textContent=file.name+' 업로드 중...';
+    var reader=new FileReader();
+    reader.onload=function(){
+      var base64Data=String(reader.result).split(',')[1]||'';
+      fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'uploadFile',fileName:file.name,mimeType:file.type||'application/octet-stream',base64Data:base64Data})
+      }).then(function(r){return r.json();})
+      .then(function(data){
+        remaining--;
+        if(data.error){ alert('업로드 실패: '+data.error); }
+        else{
+          var m=S.masterProjects.find(function(x){return x.id===mpId;});
+          if(m){
+            var p=_spProgress(m);
+            var attachments=(p.attachments||[]).slice();
+            attachments.push({id:data.fileId,name:data.name,size:data.size,downloadUrl:data.downloadUrl,viewUrl:data.viewUrl,uploadedAt:Date.now()});
+            _spSetProgress(mpId,{attachments:attachments});
+            _spRefreshAttachList();
+          }
+        }
+        if(remaining===0&&statusEl) statusEl.textContent='';
+      })
+      .catch(function(err){
+        remaining--;
+        alert('업로드 실패: '+err.message);
+        if(remaining===0&&statusEl) statusEl.textContent='';
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function spDeleteAttachment(mpId,fileId){
+  if(!confirm('첨부파일을 삭제할까요?')) return;
+  var mp=S.masterProjects.find(function(x){return x.id===mpId;});
+  if(!mp) return;
+  var p=_spProgress(mp);
+  var attachments=(p.attachments||[]).filter(function(a){return String(a.id)!==String(fileId);});
+  _spSetProgress(mpId,{attachments:attachments});
+  _spRefreshAttachList();
+  var url=getSheetsUrl();
+  if(url){
+    fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify({action:'deleteFile',fileId:fileId})
+    }).catch(function(){});
+  }
 }
 
 function renderSetupTab(){
