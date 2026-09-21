@@ -377,7 +377,7 @@ function openSpProgressModal(mpId){
     +'</div></div>';
 
   html+='<div class="fg"><label class="fl">특이사항</label>'
-    +'<textarea rows="10" cols="50" placeholder="특이사항을 입력하세요" onchange="spSaveField(\''+idAttr+'\',\'notes\',this.value)" style="font-family:monospace;font-size:12px;resize:none;overflow-y:auto;background:var(--bg-deep);color:var(--tx-main);border:1px solid var(--bd-main);border-radius:6px;padding:8px">'+_esc(p.notes||'')+'</textarea>'
+    +'<textarea rows="10" placeholder="특이사항을 입력하세요" onchange="spSaveField(\''+idAttr+'\',\'notes\',this.value)" style="font-family:monospace;font-size:12px;resize:none;overflow-y:auto;width:100%;box-sizing:border-box;background:var(--bg-deep);color:var(--tx-main);border:1px solid var(--bd-main);border-radius:6px;padding:8px">'+_esc(p.notes||'')+'</textarea>'
     +'</div>';
 
   html+='<div class="fg"><label class="fl">첨부파일 (이미지/파일)</label>'
