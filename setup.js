@@ -19,10 +19,19 @@ var _spScrollBootstrapped=false; // 최초 1회만 '오늘' 위치로 자동 스
 
 function setSpZoom(z){ _spZoom=z; renderSetupTab(); }
 
+// 출하 체크됨 + 출하일 다음날이 지난 프로젝트는 Field 셋업 간트 차트의 "완료" 숨김 처리와 동일하게
+// 기본적으로 목록에서 숨긴다(상단 "숨김 보기" 토글로 다시 볼 수 있음 — S.showHidden 공용 상태)
+function _spIsPastComplete(mp){
+  var p=_spProgress(mp);
+  var ship=_mpEffectiveShipDate(mp);
+  if(!p.shipDone||!ship) return false;
+  return TODAY>pd(ship);
+}
 function _spFilteredProjects(){
   return S.masterProjects.filter(function(mp){
     if(_spFilterRegion!=='all'&&(mp.region||'기타')!==_spFilterRegion) return false;
     if(_spFilterCustomer!=='all'&&(mp.customer||'')!==_spFilterCustomer) return false;
+    if(_spIsPastComplete(mp)&&!S.showHidden) return false;
     return true;
   });
 }
@@ -123,14 +132,14 @@ function renderSetupSidebar(){
   var isAll=(_spFilterRegion==='all');
   var allDiv=document.createElement('div');
   allDiv.className='sit-all'+(isAll?' on':'');
-  var totalCnt=S.masterProjects.length;
+  var totalCnt=S.masterProjects.filter(function(mp){return !_spIsPastComplete(mp)||S.showHidden;}).length;
   allDiv.innerHTML='<div class="sdot" style="background:#666"></div><span class="sname">'+_esc(t('optAll'))+'</span><span class="scnt'+(totalCnt>0?' has':'')+'">'+totalCnt+'</span>';
   allDiv.onclick=function(){_spFilterRegion='all';_spFilterCustomer='all';renderSetupTab();};
   el.appendChild(allDiv);
 
   var regionOpts=_MP_MS_DEFS.region();
   regionOpts.forEach(function(r){
-    var regionMps=S.masterProjects.filter(function(mp){return (mp.region||'기타')===r.value;});
+    var regionMps=S.masterProjects.filter(function(mp){return (mp.region||'기타')===r.value&&(!_spIsPastComplete(mp)||S.showHidden);});
     if(!regionMps.length) return;
     var isRegionActive=(_spFilterRegion===r.value&&_spFilterCustomer==='all');
     var collapsed=!!_spGrpCollapsed[r.value];
@@ -260,6 +269,9 @@ function _spRenderRow(mp,idx){
 function renderSetupBody(){
   var body=document.getElementById('spGbody');
   if(!body) return;
+  // 숨김 보기 버튼 상태 동기화(Field 셋업 간트 차트와 동일 방식) — showHidden이 localStorage에서 복원된 경우 반영
+  var _btn=document.getElementById('btnHiddenSetup');
+  if(_btn){_btn.textContent=S.showHidden?'숨김 숨기기':'숨김 보기';_btn.className='btn'+(S.showHidden?' warn':'');}
   var rows=_spFilteredProjects();
   body.innerHTML='';
   if(!rows.length){
