@@ -195,16 +195,18 @@ function spToggleTransfer(mpId,checked){ _spSetProgress(mpId,{transferDone:check
 function spToggleShip(mpId,checked){ _spSetProgress(mpId,{shipDone:checked}); }
 function spSetSetupPct(mpId,val){ _spSetProgress(mpId,{setupPct:Math.max(0,Math.min(100,parseInt(val,10)||0))}); }
 
-// 출하 일정이 셋업 종료일보다 늦어지면(연장되면), 셋업 간트 바를 출하 하루 전까지 시각적으로 연장한다
-// (실제 mp.setupEnd 값은 건드리지 않고, 렌더 시점에만 계산 — 출하일이 다시 당겨지면 자동으로 원복됨)
+// 셋업 간트 바는 항상 출하 하루 전까지를 종료 시점으로 맞춘다 — 출하일이 늦춰지면 연장되고,
+// 반대로 출하일이 등록된 셋업 종료일보다 앞당겨지면 셋업 바도 그만큼 단축된다.
+// (실제 mp.setupEnd 값은 건드리지 않고, 렌더 시점에만 계산 — 출하일이 다시 바뀌면 자동으로 재조정됨)
 function _spEffectiveSetupEnd(mp){
   var end=mp.setupEnd;
   var ship=_mpEffectiveShipDate(mp);
   if(ship){
     var shipMinus1=new Date(pd(ship).getTime()-86400000);
     var y=shipMinus1.getFullYear(),m=String(shipMinus1.getMonth()+1).padStart(2,'0'),d=String(shipMinus1.getDate()).padStart(2,'0');
-    var shipMinus1Str=y+'-'+m+'-'+d;
-    if(!end||pd(shipMinus1Str)>pd(end)) end=shipMinus1Str;
+    end=y+'-'+m+'-'+d;
+    // 셋업 시작일보다 앞서지 않도록 보정(출하일이 셋업 시작일보다도 빠른 극단적인 경우)
+    if(mp.setupStart&&pd(end)<pd(mp.setupStart)) end=mp.setupStart;
   }
   return end;
 }
@@ -254,7 +256,7 @@ function _spRenderRow(mp,idx){
     var x1=_spD2px(mp.setupStart), x2=_spD2px(effEnd)+Math.round(_spWPX/7);
     var w=Math.max(x2-x1,4);
     var fillPct=Math.max(0,Math.min(100,p.setupPct||0));
-    var extNote=(effEnd!==mp.setupEnd)?' · 출하일정 반영 연장':'';
+    var extNote=effEnd===mp.setupEnd?'':(pd(effEnd)>pd(mp.setupEnd)?' · 출하일정 반영 연장':' · 출하일정 반영 단축');
     segHtml+='<div onclick="openSpProgressModal(\''+idAttr+'\')" title="셋업 '+fmtFull(mp.setupStart)+' ~ '+fmtFull(effEnd)+' ('+(p.setupPct||0)+'%)'+extNote+' · 클릭하여 상세 기록" style="position:absolute;top:8px;left:'+x1+'px;width:'+w+'px;height:16px;border-radius:4px;background:var(--bg-deep);border:1px solid var(--bd-main);overflow:hidden;z-index:2;cursor:pointer">'
       +'<div style="height:100%;width:'+fillPct+'%;background:#4aaa70"></div></div>';
   }
