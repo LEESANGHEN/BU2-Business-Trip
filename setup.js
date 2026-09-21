@@ -188,7 +188,7 @@ function renderSetupSidebar(){
 }
 
 // 이관/셋업/출하 진행 데이터 — 각 프로젝트 레코드에 새 필드로 저장(마이그레이션 불필요, 없으면 기본값)
-var SP_PROGRESS_DEFAULT={transferDone:false,setupPct:0,shipDone:false,manager:'',dept:'',checklist:{},attachments:[]};
+var SP_PROGRESS_DEFAULT={transferDone:false,setupPct:0,shipDone:false,manager:'',dept:'',midInspectionDate:'',finalInspectionDate:'',checklist:{},notes:'',attachments:[]};
 function _spProgress(mp){ return Object.assign({},SP_PROGRESS_DEFAULT,mp.progress||{}); }
 function _spOverallPct(mp){
   var p=_spProgress(mp);
@@ -349,6 +349,11 @@ function openSpProgressModal(mpId){
     +'<div class="fg" style="flex:1"><label class="fl">소속</label><input type="text" value="'+_esc(p.dept||'')+'" placeholder="소속" onchange="spSaveField(\''+idAttr+'\',\'dept\',this.value)"></div>'
     +'</div>';
 
+  html+='<div style="display:flex;gap:10px;margin-bottom:10px">'
+    +'<div class="fg" style="flex:1"><label class="fl">고객사 중간 검수일</label><input type="date" value="'+_esc(p.midInspectionDate||'')+'" onchange="spSaveField(\''+idAttr+'\',\'midInspectionDate\',this.value)"></div>'
+    +'<div class="fg" style="flex:1"><label class="fl">고객사 최종 검수일</label><input type="date" value="'+_esc(p.finalInspectionDate||'')+'" onchange="spSaveField(\''+idAttr+'\',\'finalInspectionDate\',this.value)"></div>'
+    +'</div>';
+
   html+='<div class="fg"><label class="fl" id="sp_cl_count">체크리스트 ('+doneCnt+'/'+SP_CHECKLIST_ITEMS.length+')</label>'
     +'<div style="display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;border:1px solid var(--bd-main);border-radius:6px;padding:8px">'
     +SP_CHECKLIST_ITEMS.map(function(item,i){
@@ -359,6 +364,10 @@ function openSpProgressModal(mpId){
         +'</label>';
     }).join('')
     +'</div></div>';
+
+  html+='<div class="fg"><label class="fl">특이사항</label>'
+    +'<textarea rows="10" cols="50" placeholder="특이사항을 입력하세요" onchange="spSaveField(\''+idAttr+'\',\'notes\',this.value)" style="font-family:monospace;font-size:12px;resize:none;overflow-y:auto;background:var(--bg-deep);color:var(--tx-main);border:1px solid var(--bd-main);border-radius:6px;padding:8px">'+_esc(p.notes||'')+'</textarea>'
+    +'</div>';
 
   html+='<div class="fg"><label class="fl">첨부파일 (이미지/파일)</label>'
     +'<div id="sp_attach_list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'+_spAttachListHtml(p.attachments)+'</div>'
