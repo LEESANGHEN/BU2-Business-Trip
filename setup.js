@@ -254,16 +254,21 @@ function _spRenderRow(mp,idx){
     +'<span style="font-size:11px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(mp.projectName||'')+'</span></div>'
     +'<div style="font-size:10px;color:var(--tx-muted)">'+_esc(mp.customer||'')+' · '+_esc(tRegion(mp.region||'기타'))+(p.manager?' · '+_esc(p.manager):'')+'</div>';
 
+  // 체크된 시점의 날짜가 기록되어 있으면 그 날짜를, 체크는 됐는데 과거(체크 기능 추가 이전)라 기록이
+  // 없으면 등록된 이관일/출하일을 대신 보여준다(이미 완료 처리된 기존 프로젝트도 날짜가 보이도록)
+  var transferDateShown=p.transferDone?(p.transferCheckedDate||transferDate):'';
+  var shipDateShown=p.shipDone?(p.shipCheckedDate||shipDate):'';
+
   // 관리자/일반 모드 구분 없이 누구나 진행 상태를 체크·조정할 수 있게 한다
   fixedHtml+='<div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx-second);flex-wrap:wrap">'
     +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.transferDone?'checked':'')+' onchange="spToggleTransfer(\''+idAttr+'\',this.checked)" style="accent-color:#5a9aee">이관'
-    +(p.transferDone&&p.transferCheckedDate?' <span style="color:var(--tx-faint)">'+fmtFull(p.transferCheckedDate)+'</span>':'')+'</label>'
+    +(transferDateShown?' <span style="color:var(--tx-faint)">'+fmtFull(transferDateShown)+'</span>':'')+'</label>'
     +'<span style="display:flex;align-items:center;gap:4px">셋업'
     +'<input type="range" min="0" max="100" value="'+(p.setupPct||0)+'" oninput="this.nextElementSibling.textContent=this.value+\'%\'" onchange="spSetSetupPct(\''+idAttr+'\',this.value)" style="width:56px;accent-color:#4aaa70">'
     +'<span onclick="spEditSetupPct(this,\''+idAttr+'\')" style="cursor:pointer;min-width:28px;display:inline-block;text-align:right" title="클릭하여 직접 입력">'+(p.setupPct||0)+'%</span>'
     +(mp.setupStart&&mp.setupEnd?' <span style="color:var(--tx-faint)">('+fmtFull(mp.setupStart)+'~'+fmtFull(mp.setupEnd)+')</span>':'')+'</span>'
     +'<label style="display:flex;align-items:center;gap:3px;cursor:pointer"><input type="checkbox" '+(p.shipDone?'checked':'')+' onchange="spToggleShip(\''+idAttr+'\',this.checked)" style="accent-color:#b39ddb">출하'
-    +(p.shipDone&&p.shipCheckedDate?' <span style="color:var(--tx-faint)">'+fmtFull(p.shipCheckedDate)+'</span>':'')+'</label>'
+    +(shipDateShown?' <span style="color:var(--tx-faint)">'+fmtFull(shipDateShown)+'</span>':'')+'</label>'
     +'</div>';
   fixedHtml+='</div>';
 
