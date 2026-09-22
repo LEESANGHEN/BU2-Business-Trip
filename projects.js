@@ -573,8 +573,8 @@ function importExcelSeedMasterProjects(){
    월별 집계 (구 "이력관리" 탭 자리) — S.masterProjects에서 매번 파생 계산
 ══════════════════════════════════════════ */
 function renderMonthlyAggTab(){
-  var sidebar=document.getElementById('visionSidebar');
-  var main=document.getElementById('visionMain');
+  var sidebar=document.getElementById('aggSidebar');
+  var main=document.getElementById('aggMain');
   if(sidebar)sidebar.innerHTML='';
   if(!main)return;
   var _prevScroll=document.getElementById('maScroll');

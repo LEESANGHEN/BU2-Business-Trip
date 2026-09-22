@@ -1212,14 +1212,14 @@ function openSidebar(view){
   var sb=view==='gantt'?document.getElementById('ganttSidebar')
         :view==='equip'?document.getElementById('equipSidebar')
         :view==='setup'?document.getElementById('setupSidebar')
-        :document.getElementById('visionSidebar');
+        :document.getElementById('aggSidebar');
   if(sb) sb.classList.add('open');
 }
 function closeSidebar(view){
   var sb=view==='gantt'?document.getElementById('ganttSidebar')
         :view==='equip'?document.getElementById('equipSidebar')
         :view==='setup'?document.getElementById('setupSidebar')
-        :document.getElementById('visionSidebar');
+        :document.getElementById('aggSidebar');
   if(sb) sb.classList.remove('open');
 }
 
@@ -1321,7 +1321,7 @@ function switchTab(tab){
   document.getElementById('view_gantt').style.display=tab==='gantt'?'flex':'none';
   document.getElementById('view_person').style.display=tab==='person'?'flex':'none';
   document.getElementById('view_equip').style.display=tab==='equip'?'flex':'none';
-  document.getElementById('view_vision').style.display=tab==='vision'?'flex':'none';
+  document.getElementById('view_agg').style.display=tab==='vision'?'flex':'none';
   document.getElementById('tab_home').className='nav-item'+(tab==='home'?' on':'');
   document.getElementById('tab_projects').className='nav-item'+(tab==='projects'?' on':'');
   document.getElementById('tab_setup').className='nav-item'+(tab==='setup'?' on':'');
@@ -1351,97 +1351,3 @@ function closeGlobalNav(){
   if(nav) nav.classList.remove('open');
 }
 
-/* 이력관리 전용 Sheets Pull (visionEquips/visionTemplate 중심 갱신)
-   가드: ① 미저장 변경(dirty) 있으면 pull 대신 push-merge — 로컬 수정 보호
-         ② 상세 폼 편집 중이면 skip — 입력 중 데이터 교체 방지 */
-function refreshVisionFromSheets(silent){
-  var url=getSheetsUrl();
-  if(!url||location.protocol==='file:'){
-    if(!silent) alert('Sheets 연결이 설정되지 않았습니다.\n⚙ Sheets 설정에서 URL을 확인해주세요.');
-    return;
-  }
-  // 가드 ①: dirty면 pull 금지 → push 경로(_flushToSheets)가 read-before-write merge 수행
-  var _vDirty=false;
-  try{_vDirty=!!localStorage.getItem(CACHE_DIRTY_KEY);}catch(e){}
-  if(_vDirty){
-    console.warn('[Vision 갱신] 미저장 변경 감지 → pull 대신 push-merge 실행');
-    _flushToSheets();
-    return;
-  }
-  // 가드 ②: 상세 폼 편집 중(입력 발생 or 폼에 포커스)이면 skip — 다음 주기에 재시도
-  if(typeof _visionView!=='undefined'&&_visionView==='detail'){
-    var _formEl=document.getElementById('visionFormWrap');
-    var _editing=(typeof _viFormDirty!=='undefined'&&_viFormDirty)||(_formEl&&_formEl.contains(document.activeElement));
-    if(_editing){
-      console.warn('[Vision 갱신] 상세 폼 편집 중 → 이번 주기 skip');
-      return;
-    }
-  }
-  fetch(url+'?action=load')
-    .then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
-    .then(function(data){
-      if(data.error)throw new Error(data.error);
-      // tombstone 흡수 + 로컬 정리
-      _absorbTombs(data.deletedIds);
-      if(data.deletedScheduleIds&&data.deletedScheduleIds.length){
-        data.deletedScheduleIds.forEach(function(id){if(!_isDeletedSc(id))_markDeletedSc(id);});
-      }
-      _purgeTombstoned();
-      var updated=false;
-      var localOnly=[];
-      if(data.visionEquips&&data.visionEquips.length){
-        var sheetsIds={};
-        data.visionEquips.forEach(function(e){sheetsIds[e.id]=true;});
-        localOnly=(S.visionEquips||[]).filter(function(e){return !sheetsIds[e.id]&&!_isDeletedVi(e.id);});
-        S.visionEquips=_mergeArr('visionEquips',S.visionEquips,data.visionEquips,{
-          protectField:'data',postMerge:_viPostMerge,
-          normFn:function(ve){if(ve.data&&typeof ve.data!=='object')ve.data={};return ve;}
-        });
-        updated=true;
-      }
-      if(data.visionTemplate&&data.visionTemplate.categories&&data.visionTemplate.categories.length){
-        if((typeof _visionEditMode==='undefined'||!_visionEditMode)
-          &&Number(data.visionTemplate.mt||0)>=Number((S.visionTemplate||{}).mt||0)){
-          S.visionTemplate=data.visionTemplate;
-          _migrateVisionTemplate();
-          updated=true;
-        }
-      }
-      if(updated){
-        // Sheets에서 방금 받은 데이터로 schedules/events/workTasks도 동기화
-        // (stale한 로컬 일정이 Sheets에 push되는 것 방지 — 핵심 데이터 보호)
-        if(data.schedules&&data.schedules.length){
-          S.schedules=_mergeArr('schedules',S.schedules,data.schedules,{normFn:_normSchedRec});
-        }
-        if(data.events&&data.events.length) S.events=_mergeArr('events',S.events,data.events,{normFn:_normEventRec});
-        if(data.workTasks&&data.workTasks.length) S.workTasks=_mergeArr('workTasks',S.workTasks,data.workTasks,{normFn:_normWtRec});
-        // localOnly equips가 있을 때만 Sheets에 push (그렇지 않으면 캐시만 갱신)
-        // → 매 2분마다 불필요한 Sheets write + stale 데이터 push를 완전 차단
-        if(localOnly.length>0){
-          saveData(); // read-before-write merge 후 Sheets 저장
-        } else {
-          saveCache({groups:S.groups,sites:S.sites,projects:S.projects,schedules:S.schedules,events:S.events,workTasks:S.workTasks,equipItems:S.equipItems,equipUnits:S.equipUnits,equipSiteOrder:S.equipSiteOrder,equipProjects:S.equipProjects,visionTemplate:S.visionTemplate,visionEquips:S.visionEquips,masterProjects:S.masterProjects,appTitle:S.appTitle,labelOverrides:S.labelOverrides});
-        }
-        // Vision 탭 렌더링: 모달이 열려 있지 않을 때만 갱신 (입력 중 초기화 방지)
-        var _mc=document.getElementById('mc');
-        if(_activeTab==='vision'&&typeof renderVisionTab==='function'&&(!_mc||!_mc.innerHTML)){
-          // 사이드바는 항상 갱신, 그리드 뷰는 renderVisionMain()(스크롤 보존 포함)만 호출
-          if(typeof renderVisionSidebar==='function') renderVisionSidebar();
-          if(typeof _visionView==='undefined'||_visionView!=='detail'){
-            if(typeof renderVisionMain==='function') renderVisionMain();
-          }
-        }
-      }
-      if(!silent){
-        var sheetsCount=(data.visionEquips&&data.visionEquips.length)||0;
-        if(sheetsCount===0){
-          alert('Sheets에 이력관리 설비 데이터가 없습니다.\n\nApps Script가 배포되지 않았을 수 있습니다.\n(Backup 폴더 → Apps Script 업데이트_Vision이력관리.txt 참조)');
-        } else {
-          alert('Sheets에서 '+sheetsCount+'개 설비를 가져왔습니다. (현재 총 '+S.visionEquips.length+'개)');
-        }
-      }
-    })
-    .catch(function(err){
-      if(!silent) alert('Sheets 불러오기 실패: '+err.message);
-    });
-}

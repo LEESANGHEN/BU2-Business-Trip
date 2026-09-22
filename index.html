@@ -62,18 +62,6 @@
           <button class="btn ev" id="btnAddEvent" data-i18n="btnAddEvent" onclick="openModal('event')">★ 이벤트 등록</button>
           <button class="btn pri" id="btnAddSchedule" data-i18n="btnAddSchedule" onclick="openModal('schedule')">+ 출장 등록</button>
         </div>
-        <div id="visionTools" style="display:none;gap:5px;align-items:center;flex-wrap:wrap">
-          <button class="mobile-only sidebar-toggle" onclick="openSidebar('vision')" title="사이트 필터">☰</button>
-          <button class="btn" id="btnVisionTplEdit" onclick="toggleVisionTemplateEdit()">템플릿 편집</button>
-          <button class="btn" onclick="openVisionImport()">진행율 가져오기</button>
-          <button class="btn" onclick="refreshVisionFromSheets(false)" title="Sheets에서 지금 바로 최신 이력관리 데이터를 가져옵니다">⟳ 동기화</button>
-          <span style="display:inline-block;width:1px;height:16px;background:#3a3a44;flex-shrink:0"></span>
-          <button class="btn" onclick="openViColumnSettings()">열 설정</button>
-          <button class="btn" onclick="openVisionCsvTemplate()" title="빈 양식 CSV 다운로드 (일괄 입력용)">CSV 양식</button>
-          <button class="btn" onclick="exportVisionCSV()">CSV 내보내기</button>
-          <button class="btn" onclick="openVisionCsvImport()">CSV 가져오기</button>
-          <input type="file" id="viCsvFileInput" accept=".csv" style="display:none" onchange="handleVisionCsvFile(this)">
-        </div>
         <div id="setupTools" style="display:none;gap:5px;align-items:center;flex-wrap:wrap">
           <button class="btn" id="btnHiddenSetup" onclick="toggleShowHidden()">숨김 보기</button>
         </div>
@@ -180,9 +168,9 @@
             </div>
           </div>
         </div>
-        <div class="content" id="view_vision" style="display:none">
-          <div class="sidebar vi-sidebar" id="visionSidebar"></div>
-          <div class="main" id="visionMain" style="overflow:hidden;display:flex;flex-direction:column"></div>
+        <div class="content" id="view_agg" style="display:none">
+          <div class="sidebar vi-sidebar" id="aggSidebar"></div>
+          <div class="main" id="aggMain" style="overflow:hidden;display:flex;flex-direction:column"></div>
         </div>
       </div>
     </div>
@@ -192,14 +180,13 @@
 
   <script src="data.js?v=20260723b"></script>
   <script src="i18n.js?v=20260921b"></script>
-  <script src="app.js?v=20260921b"></script>
+  <script src="app.js?v=20260922a"></script>
   <script src="gantt.js?v=20260921a"></script>
   <script src="modals.js?v=20260901b"></script>
-  <script src="projects.js?v=20260918a"></script>
+  <script src="projects.js?v=20260922a"></script>
   <script src="setup.js?v=20260921t"></script>
   <script src="person.js?v=20260916a"></script>
   <script src="equip.js?v=20260810w"></script>
-  <script src="vision.js?v=20260807a"></script>
   <script src="export.js?v=20260904b"></script>
   <script src="home.js?v=20260918i"></script>
 </body>
