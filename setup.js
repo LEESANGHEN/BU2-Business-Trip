@@ -371,6 +371,7 @@ function openSpProgressModal(mpId){
   var mp=S.masterProjects.find(function(x){return x.id===mpId;});
   if(!mp) return;
   _spModalMpId=mpId;
+  _spNotesSavedRange=null;
   var p=_spProgress(mp);
   var idAttr=mpId.replace(/'/g,"\\'");
   var doneCnt=SP_CHECKLIST_ITEMS.filter(function(item,i){return !!p.checklist[i];}).length;
@@ -401,20 +402,19 @@ function openSpProgressModal(mpId){
 
   html+='<div class="fg"><label class="fl">특이사항</label>'
     +'<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:6px;background:var(--bg-deep);border:1px solid var(--bd-main);border-bottom:none;border-radius:6px 6px 0 0">'
-    +'<select onmousedown="event.preventDefault()" onchange="spNotesExec(\'fontName\',this.value);this.selectedIndex=0" style="font-size:11px;max-width:100px" title="글꼴">'
+    +'<select onchange="spNotesExec(\'fontName\',this.value);this.selectedIndex=0" style="font-size:11px;max-width:100px" title="글꼴">'
     +'<option value="">글꼴</option><option value="맑은 고딕">맑은 고딕</option><option value="굴림">굴림</option><option value="돋움">돋움</option><option value="바탕">바탕</option><option value="monospace">monospace</option><option value="Arial">Arial</option>'
     +'</select>'
-    +'<select onmousedown="event.preventDefault()" onchange="spNotesFontSize(this.value);this.selectedIndex=0" style="font-size:11px;width:52px" title="크기">'
+    +'<select onchange="spNotesFontSize(this.value);this.selectedIndex=0" style="font-size:11px;width:64px" title="크기">'
     +'<option value="">크기</option><option value="11">11</option><option value="12">12</option><option value="14">14</option><option value="16">16</option><option value="18">18</option><option value="24">24</option>'
     +'</select>'
     +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="spNotesExec(\'bold\')" style="font-weight:700" title="굵게">B</button>'
     +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="spNotesExec(\'italic\')" style="font-style:italic" title="기울임">I</button>'
     +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="spNotesExec(\'underline\')" style="text-decoration:underline" title="밑줄">U</button>'
-    +'<input type="color" onmousedown="event.preventDefault()" onchange="spNotesExec(\'foreColor\',this.value)" value="#e8e8ec" style="width:26px;height:24px;padding:0;border:1px solid var(--bd-main);border-radius:4px;background:none;cursor:pointer" title="글자색">'
+    +'<input type="color" onchange="spNotesExec(\'foreColor\',this.value)" value="#e8e8ec" style="width:26px;height:24px;padding:0;border:1px solid var(--bd-main);border-radius:4px;background:none;cursor:pointer" title="글자색">'
     +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="spNotesExec(\'removeFormat\')" title="서식 지우기">지우기</button>'
     +'</div>'
-    +'<div id="sp_notes_editor" class="rte-editor" contenteditable="true" data-placeholder="특이사항을 입력하세요" onblur="spSaveField(\''+idAttr+'\',\'notes\',this.innerHTML)" style="font-size:12px;white-space:pre-wrap;word-break:break-word;height:200px;overflow-y:auto;background:var(--bg-deep);color:var(--tx-main);border:1px solid var(--bd-main);border-radius:0 0 6px 6px;padding:8px">'+_spNotesHtml(p.notes)+'</div>'
-    +'</div>'
+    +'<div id="sp_notes_editor" class="rte-editor" contenteditable="true" data-placeholder="특이사항을 입력하세요" onmouseup="_spNotesSaveSelection()" onkeyup="_spNotesSaveSelection()" onblur="spSaveField(\''+idAttr+'\',\'notes\',this.innerHTML)" style="font-size:12px;white-space:pre-wrap;word-break:break-word;height:200px;overflow-y:auto;background:var(--bg-deep);color:var(--tx-main);border:1px solid var(--bd-main);border-radius:0 0 6px 6px;padding:8px">'+_spNotesHtml(p.notes)+'</div>'
     +'</div>';
 
   html+='<div class="fg"><label class="fl">첨부파일 (이미지/파일) : Tuning Image, Data 검증 Raw data, Outgoing Report 등의 파일을 업로드해주세요.</label>'
@@ -440,17 +440,39 @@ function _spNotesHtml(raw){
   if(/<[a-z][\s\S]*>/i.test(raw)) return raw;
   return _esc(raw);
 }
+// 글꼴/크기 select와 색상 picker는 클릭하는 순간 브라우저가 네이티브 목록을 열기 위해
+// contenteditable의 포커스·선택 영역을 가져가 버린다(그래서 mousedown에 preventDefault를
+// 걸면 반대로 네이티브 목록 자체가 안 열림). 그래서 에디터에서 커서를 움직일 때마다
+// 선택 영역을 따로 기억해뒀다가, 서식 명령 실행 직전에 그 선택 영역을 되살린다.
+var _spNotesSavedRange=null;
+function _spNotesSaveSelection(){
+  var editor=document.getElementById('sp_notes_editor');
+  var sel=window.getSelection();
+  if(editor&&sel.rangeCount>0&&editor.contains(sel.anchorNode)){
+    _spNotesSavedRange=sel.getRangeAt(0).cloneRange();
+  }
+}
+function _spNotesRestoreSelection(){
+  var editor=document.getElementById('sp_notes_editor');
+  editor.focus();
+  if(_spNotesSavedRange){
+    var sel=window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(_spNotesSavedRange);
+  }
+}
 // 특이사항 서식 툴바 — 굵게/기울임/밑줄/글꼴/글자색은 표준 execCommand로 처리
 function spNotesExec(cmd,value){
-  document.getElementById('sp_notes_editor').focus();
+  _spNotesRestoreSelection();
   document.execCommand(cmd,false,value||null);
+  _spNotesSaveSelection();
 }
 // execCommand('fontSize')는 1~7 스케일만 지원해서 실제 px 크기를 못 받으므로,
 // 일단 최대값(7)으로 적용해 생성된 <font size="7">를 찾아 원하는 px로 바꿔치기한다(표준 트릭)
 function spNotesFontSize(px){
   if(!px) return;
   var editor=document.getElementById('sp_notes_editor');
-  editor.focus();
+  _spNotesRestoreSelection();
   document.execCommand('fontSize',false,'7');
   var fonts=editor.getElementsByTagName('font');
   for(var i=0;i<fonts.length;i++){
@@ -459,6 +481,7 @@ function spNotesFontSize(px){
       fonts[i].style.fontSize=px+'px';
     }
   }
+  _spNotesSaveSelection();
 }
 
 function spToggleChecklist(mpId,idx,checked){
