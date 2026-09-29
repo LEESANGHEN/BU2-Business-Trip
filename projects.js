@@ -252,7 +252,12 @@ function renderProjectsBody(){
   }
   rows.sort(function(a,b){
     var k=_mpSortKey,v;
-    v=String(a[k]||'').localeCompare(String(b[k]||''),'ko');
+    // 이관일/출하일은 "변경" 값이 있으면 그 값이 화면에 보이므로, 정렬도 실제 보이는(적용되는)
+    // 값 기준으로 해야 화면 순서와 어긋나지 않는다. 호기는 숫자 섞인 텍스트라 숫자 크기로 비교한다
+    if(k==='transferDate') v=String(_mpEffectiveTransferDate(a)||'').localeCompare(String(_mpEffectiveTransferDate(b)||''),'ko');
+    else if(k==='shipDate') v=String(_mpEffectiveShipDate(a)||'').localeCompare(String(_mpEffectiveShipDate(b)||''),'ko');
+    else if(k==='prodUnit'||k==='customerUnit') v=_mpUnitCompare(a[k],b[k]);
+    else v=String(a[k]||'').localeCompare(String(b[k]||''),'ko');
     if(!_mpSortAsc) v=-v;
     if(v!==0) return v;
     // 정렬 기준이 같으면 구분→지역→고객사→프로젝트→생산/고객사 호기 순으로 세부 배치
@@ -345,14 +350,12 @@ function renderProjectsTable(rows){
     html+='<th style="width:28px"><input type="checkbox" '+(_allSelected?'checked':'')+' onclick="event.stopPropagation()" onchange="toggleMpSelectAll(this.checked)" title="화면에 보이는 전체 선택"></th>';
   }
   html+=thS('category','colCategory',t('colCategory'))+thS('region','colRegionHdr',t('mpRegion'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
-  html+=thP('colSerial',t('colSerial'));
-  html+=thP('colUnitCombined',t('colUnitCombined'));
-  html+=thP('colTransferDate',t('colTransferDate'));
-  html+=thP('colTransferDateOverride',t('colTransferDateOverride'));
+  html+=thS('serial','colSerial',t('colSerial'));
+  html+=thS('prodUnit','colUnitCombined',t('colUnitCombined'));
+  html+=thS('transferDate','colTransferDate',t('colTransferDate'));
   html+=thS('setupStart','colSetupPeriod',t('colSetupPeriod'),t('tipSetupPeriod'));
-  html+=thP('colSetupLocation',t('colSetupLocation'));
+  html+=thS('setupLocation','colSetupLocation',t('colSetupLocation'));
   html+=thS('shipDate','colShipDate',t('colShipDate'));
-  html+=thP('colCustomerReqShip',t('colCustomerReqShipL1')+'<br>'+t('colCustomerReqShipL2'),t('tipCustomerReqShip'));
   html+=thS('status','colStatusHdr',t('mpStatus'));
   if(_isAdminMode()) html+=thP('colManage',t('colManage'));
   html+='</tr></thead><tbody>';
@@ -398,23 +401,14 @@ function _mpStatusBadge(st){ return _mpBadge(st,_MP_STATUS_BADGE_STYLE,tStatus(s
 
 function renderProjectRow(mp){
   var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)+'('+dd(mp.setupStart,mp.setupEnd)+'일)'):'-';
-  var shipLbl=mp.shipDate?fmtFull(mp.shipDate):'-';
-  // 출하 요청일이 있으면 셋업 시작일부터 출하 전날까지(출하 당일 제외)의 일수를 뒤에 표시
-  var custReqShipLbl='-';
-  if(mp.customerReqShipDate){
-    custReqShipLbl=fmtFull(mp.customerReqShipDate);
-    if(mp.setupStart){
-      var custSetupDays=Math.round((pd(mp.customerReqShipDate)-pd(mp.setupStart))/86400000);
-      custReqShipLbl+='('+custSetupDays+'일)';
-    }
-  }
   // 생산 호기는 입력값에 "생산"을 붙이지 않고 저장(예: "70호기")하므로, 화면 표시할 때만 "생산 "을 붙인다
   var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
   var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
-  // 생산 이관일은 최초 등록 시 한 번만 "셋업 시작일 - 1일"로 정해져 저장되고, 이후 변경 이관일/셋업
-  // 시작일이 바뀌어도 그대로 유지된다(최초 이관 예정일 기록용) — saveAddMasterProject/saveEditMasterProject 참고
-  var transferLbl=mp.transferDate?fmtFull(mp.transferDate):'-';
-  var transferOverrideLbl=mp.transferDateOverride?fmtFull(mp.transferDateOverride):'-';
+  // 이관일/출하일은 "변경" 값(override)이 있으면 그 값을, 없으면 최초 등록값을 보여준다 — 편집
+  // 모달에는 최초값/변경값 입력란이 각각 따로 있지만, 목록 화면은 열 수를 줄이려고 한 칸에
+  // "지금 적용되는" 값만 표시한다(_mpEffectiveTransferDate/_mpEffectiveShipDate)
+  var transferLbl=_mpEffectiveTransferDate(mp)?fmtFull(_mpEffectiveTransferDate(mp)):'-';
+  var shipLbl=_mpEffectiveShipDate(mp)?fmtFull(_mpEffectiveShipDate(mp)):'-';
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
     +(admin?'<td onclick="event.stopPropagation()"><input type="checkbox" '+(_mpSelectedIds[mp.id]?'checked':'')+' onchange="toggleMpRowSelect(\''+mp.id+'\',this.checked)"></td>':'')
@@ -425,11 +419,9 @@ function renderProjectRow(mp){
     +'<td>'+_esc(mp.serial||'')+'</td>'
     +'<td>'+_esc(unitLbl)+'</td>'
     +'<td>'+transferLbl+'</td>'
-    +'<td>'+transferOverrideLbl+'</td>'
     +'<td>'+setupLbl+'</td>'
     +'<td>'+_esc(mp.setupLocation||'-')+'</td>'
     +'<td>'+shipLbl+'</td>'
-    +'<td>'+custReqShipLbl+'</td>'
     +'<td>'+_mpStatusBadge(_mpEffectiveStatus(mp))+'</td>'
     +(admin?('<td onclick="event.stopPropagation()">'
       +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">'+t('btnEdit')+'</button> '
@@ -517,6 +509,7 @@ function _mpFormHtml(mp){
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>'
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_customerReqShipDate','고객사 요청 출하 일정',ie?mp.customerReqShipDate:'')+'</div>'
     +'</div>';
+  html+='<div style="font-size:10px;color:var(--tx-muted);margin:-4px 0 10px">출하 일정(고객사 요청 출하 일정이 있으면 그 값 우선)을 입력하면, 위 셋업 "종료"일이 그 하루 전날로 자동 변경됩니다.</div>';
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="PO 대기"><option value="PO 발행"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
@@ -544,13 +537,24 @@ function _mpApplyTransferOverride(f){
   if(f.transferDateOverride) f.setupStart=_addDaysStr(f.transferDateOverride,1);
   return f;
 }
+// 출하 일정(최초 또는 변경)이 등록되어 있으면, 셋업 종료일을 그 하루 전날로 자동 맞춘다
+// (셋업 시작일보다 앞서지는 않도록 보정) — HQ 셋업 간트 차트의 셋업 바 연장/단축 로직과 같은 원칙
+function _mpApplyShipToSetupEnd(f){
+  var effShip=f.customerReqShipDate||f.shipDate;
+  if(effShip){
+    var newEnd=_addDaysStr(effShip,-1);
+    if(f.setupStart&&pd(newEnd)<pd(f.setupStart)) newEnd=f.setupStart;
+    f.setupEnd=newEnd;
+  }
+  return f;
+}
 // renderProjectsTab() 자체가 스크롤 위치를 기억했다가 복원하므로 그냥 호출하면 된다
 // (예전엔 이 함수에서 직접 처리했으나 모든 재렌더 경로에 적용되도록 renderProjectsTab()으로 옮김)
 function _mpRenderTabKeepScroll(){
   renderProjectsTab();
 }
 function saveAddMasterProject(){
-  var f=_mpApplyTransferOverride(_mpReadForm());
+  var f=_mpApplyShipToSetupEnd(_mpApplyTransferOverride(_mpReadForm()));
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   if(!f.transferDate&&f.setupStart) f.transferDate=_addDaysStr(f.setupStart,-1);
   var mp=_touch(f);
@@ -561,7 +565,7 @@ function saveAddMasterProject(){
 function saveEditMasterProject(id){
   var mp=S.masterProjects.find(function(m){return m.id===id;});
   if(!mp)return;
-  var f=_mpApplyTransferOverride(_mpReadForm());
+  var f=_mpApplyShipToSetupEnd(_mpApplyTransferOverride(_mpReadForm()));
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   Object.keys(f).forEach(function(k){mp[k]=f[k];});
   if(!mp.transferDate&&mp.setupStart) mp.transferDate=_addDaysStr(mp.setupStart,-1);
