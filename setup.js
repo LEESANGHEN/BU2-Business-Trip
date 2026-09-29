@@ -411,10 +411,13 @@ function openSpProgressModal(mpId){
     +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="spNotesExec(\'bold\')" style="font-weight:700" title="굵게">B</button>'
     +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="spNotesExec(\'italic\')" style="font-style:italic" title="기울임">I</button>'
     +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="spNotesExec(\'underline\')" style="text-decoration:underline" title="밑줄">U</button>'
-    +'<input type="color" onchange="spNotesExec(\'foreColor\',this.value)" value="#e8e8ec" style="width:26px;height:24px;padding:0;border:1px solid var(--bd-main);border-radius:4px;background:none;cursor:pointer" title="글자색">'
+    +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="event.stopPropagation();spToggleColorPicker(\'fore\',this)" title="글자색" style="display:flex;flex-direction:column;align-items:center;padding:2px 6px;line-height:1.1;gap:1px">'
+    +'<span>가</span><span id="sp_fore_indicator" style="display:block;width:14px;height:3px;background:#e8e8ec;border-radius:1px"></span></button>'
+    +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="event.stopPropagation();spToggleColorPicker(\'back\',this)" title="배경색(강조)" style="display:flex;flex-direction:column;align-items:center;padding:2px 6px;line-height:1.1;gap:1px">'
+    +'<span>채색</span><span id="sp_back_indicator" style="display:block;width:14px;height:3px;background:transparent;border:1px solid var(--bd-main);border-radius:1px"></span></button>'
     +'<button type="button" class="btn sm" onmousedown="event.preventDefault()" onclick="spNotesExec(\'removeFormat\')" title="서식 지우기">지우기</button>'
     +'</div>'
-    +'<div id="sp_notes_editor" class="rte-editor" contenteditable="true" data-placeholder="특이사항을 입력하세요" onmouseup="_spNotesSaveSelection()" onkeyup="_spNotesSaveSelection()" onblur="spSaveField(\''+idAttr+'\',\'notes\',this.innerHTML)" style="font-size:12px;white-space:pre-wrap;word-break:break-word;height:200px;overflow-y:auto;background:var(--bg-deep);color:var(--tx-main);border:1px solid var(--bd-main);border-radius:0 0 6px 6px;padding:8px">'+_spNotesHtml(p.notes)+'</div>'
+    +'<div id="sp_notes_editor" class="rte-editor" contenteditable="true" data-placeholder="특이사항을 입력하세요" onmouseup="_spNotesSaveSelection()" onkeyup="_spNotesSaveSelection()" onblur="spSaveField(\''+idAttr+'\',\'notes\',this.innerHTML)" style="font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;height:200px;overflow-y:auto;background:var(--bg-deep);color:var(--tx-main);border:1px solid var(--bd-main);border-radius:0 0 6px 6px;padding:8px">'+_spNotesHtml(p.notes)+'</div>'
     +'</div>';
 
   html+='<div class="fg"><label class="fl">첨부파일 (이미지/파일) : Tuning Image, Data 검증 Raw data, Outgoing Report 등의 파일을 업로드해주세요.</label>'
@@ -455,10 +458,14 @@ function _spNotesSaveSelection(){
 function _spNotesRestoreSelection(){
   var editor=document.getElementById('sp_notes_editor');
   editor.focus();
-  if(_spNotesSavedRange){
-    var sel=window.getSelection();
+  var sel=window.getSelection();
+  // 드래그로 선택한 게 없으면(커서만 있는 상태) 서식 버튼을 눌러도 눈에 보이는 변화가 없어서
+  // "안 바뀐다"로 오인하기 쉽다 — 이 경우 전체 내용에 적용되도록 기본값으로 전체 선택한다
+  if(_spNotesSavedRange&&!_spNotesSavedRange.collapsed){
     sel.removeAllRanges();
     sel.addRange(_spNotesSavedRange);
+  } else if(editor.textContent.length>0){
+    document.execCommand('selectAll',false,null);
   }
 }
 // 특이사항 서식 툴바 — 굵게/기울임/밑줄/글꼴/글자색은 표준 execCommand로 처리
@@ -481,6 +488,79 @@ function spNotesFontSize(px){
       fonts[i].style.fontSize=px+'px';
     }
   }
+  _spNotesSaveSelection();
+}
+
+// 엑셀 글꼴 색/채우기 색 팔레트와 비슷한 형태 — 표준 색 10개 + 최근 사용한 색(localStorage) +
+// "다른 색"(네이티브 색상 선택기). 배경색은 "채우기 없음"으로 지울 수도 있다.
+var SP_STD_COLORS=['#C00000','#FF0000','#FFC000','#FFFF00','#92D050','#00B050','#00B0F0','#0070C0','#002060','#7030A0'];
+var SP_RECENT_KEY={fore:'bu2_setup_recent_fore_colors',back:'bu2_setup_recent_back_colors'};
+function _spRecentColors(kind){
+  try{ return JSON.parse(localStorage.getItem(SP_RECENT_KEY[kind])||'[]'); }catch(e){ return []; }
+}
+function _spAddRecentColor(kind,color){
+  var list=_spRecentColors(kind).filter(function(c){return c!==color;});
+  list.unshift(color);
+  try{ localStorage.setItem(SP_RECENT_KEY[kind],JSON.stringify(list.slice(0,10))); }catch(e){}
+}
+function _spSwatchesHtml(kind,colors){
+  return '<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:8px">'
+    +colors.map(function(c){
+      return '<div onmousedown="event.preventDefault()" onclick="_spPickColor(\''+kind+'\',\''+c+'\')" title="'+c+'" style="width:26px;height:22px;background:'+c+';border-radius:3px;cursor:pointer;border:1px solid rgba(255,255,255,.15)"></div>';
+    }).join('')
+    +'</div>';
+}
+function spToggleColorPicker(kind,btnEl){
+  var existing=document.getElementById('sp_color_picker');
+  if(existing){
+    var wasKind=existing.getAttribute('data-kind');
+    existing.remove();
+    document.removeEventListener('mousedown',_spColorPickerOutsideClick,true);
+    if(wasKind===kind) return; // 같은 버튼 다시 클릭하면 닫기만
+  }
+  _spNotesSaveSelection(); // 패널이 뜨기 전 마지막 선택 영역을 한 번 더 확정
+  var rect=btnEl.getBoundingClientRect();
+  var panel=document.createElement('div');
+  panel.id='sp_color_picker';
+  panel.setAttribute('data-kind',kind);
+  panel.style.cssText='position:fixed;top:'+(rect.bottom+4)+'px;left:'+rect.left+'px;z-index:999;background:var(--bg-panel);border:1px solid var(--bd-strong);border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.5);padding:10px;width:186px';
+  var html='';
+  if(kind==='back'){
+    html+='<div onmousedown="event.preventDefault()" onclick="_spPickColor(\'back\',\'\')" style="font-size:11px;padding:4px 6px;cursor:pointer;border-radius:4px;margin-bottom:6px">채우기 없음</div>';
+  }
+  html+='<div style="font-size:10px;color:var(--tx-faint);margin-bottom:4px">표준 색</div>'
+    +_spSwatchesHtml(kind,SP_STD_COLORS);
+  var recent=_spRecentColors(kind);
+  if(recent.length){
+    html+='<div style="font-size:10px;color:var(--tx-faint);margin-bottom:4px">최근에 사용한 색</div>'
+      +_spSwatchesHtml(kind,recent);
+  }
+  html+='<input type="color" onmousedown="event.stopPropagation()" onchange="_spPickColor(\''+kind+'\',this.value)" style="width:100%;height:26px;padding:0;border:1px solid var(--bd-main);border-radius:4px;background:none;cursor:pointer" title="다른 색">';
+  panel.innerHTML=html;
+  document.body.appendChild(panel);
+  setTimeout(function(){ document.addEventListener('mousedown',_spColorPickerOutsideClick,true); },0);
+}
+function _spColorPickerOutsideClick(e){
+  var panel=document.getElementById('sp_color_picker');
+  if(panel&&!panel.contains(e.target)){
+    panel.remove();
+    document.removeEventListener('mousedown',_spColorPickerOutsideClick,true);
+  }
+}
+function _spPickColor(kind,color){
+  var panel=document.getElementById('sp_color_picker');
+  if(panel){ panel.remove(); document.removeEventListener('mousedown',_spColorPickerOutsideClick,true); }
+  _spNotesRestoreSelection();
+  if(kind==='fore'){
+    document.execCommand('foreColor',false,color||'inherit');
+  } else {
+    document.execCommand('styleWithCSS',false,true);
+    var ok=document.execCommand('hiliteColor',false,color||'transparent');
+    if(!ok) document.execCommand('backColor',false,color||'transparent');
+  }
+  var indicator=document.getElementById(kind==='fore'?'sp_fore_indicator':'sp_back_indicator');
+  if(indicator) indicator.style.background=color||'transparent';
+  if(color) _spAddRecentColor(kind,color);
   _spNotesSaveSelection();
 }
 
