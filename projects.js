@@ -321,6 +321,7 @@ function renderProjectsTable(rows){
   html+=thP('colTransferDate',t('colTransferDate'));
   html+=thP('colTransferDateOverride',t('colTransferDateOverride'));
   html+=thS('setupStart','colSetupPeriod',t('colSetupPeriod'),t('tipSetupPeriod'));
+  html+=thP('colSetupLocation',t('colSetupLocation'));
   html+=thS('shipDate','colShipDate',t('colShipDate'));
   html+=thP('colCustomerReqShip',t('colCustomerReqShipL1')+'<br>'+t('colCustomerReqShipL2'),t('tipCustomerReqShip'));
   html+=thS('status','colStatusHdr',t('mpStatus'));
@@ -396,6 +397,7 @@ function renderProjectRow(mp){
     +'<td>'+transferLbl+'</td>'
     +'<td>'+transferOverrideLbl+'</td>'
     +'<td>'+setupLbl+'</td>'
+    +'<td>'+_esc(mp.setupLocation||'-')+'</td>'
     +'<td>'+shipLbl+'</td>'
     +'<td>'+custReqShipLbl+'</td>'
     +'<td>'+_mpStatusBadge(_mpEffectiveStatus(mp))+'</td>'
@@ -479,6 +481,7 @@ function _mpFormHtml(mp){
     +dateFld('mp_setupStart','시작',ie?mp.setupStart:'')
     +dateFld('mp_setupEnd','종료',ie?mp.setupEnd:'')
     +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_setupManager" value="'+v('setupManager')+'" autocomplete="off"></div>'
+    +'<div class="fg" style="flex:1"><label class="fl">셋업 장소</label><input type="text" id="mp_setupLocation" value="'+v('setupLocation')+'" autocomplete="off"></div>'
     +'</div>';
   html+='<div style="display:flex;gap:8px">'
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>'
@@ -499,7 +502,7 @@ function _mpReadForm(){
   return {
     category:v('mp_category'), region:_mpReadRegionField(), customer:v('mp_customer'), projectName:v('mp_projectName'),
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
-    setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'),
+    setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'), setupLocation:v('mp_setupLocation'),
     shipDate:v('mp_shipDate'), customerReqShipDate:v('mp_customerReqShipDate'),
     transferDate:v('mp_transferDate'), transferDateOverride:v('mp_transferDateOverride'),
     status:v('mp_status')
