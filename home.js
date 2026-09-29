@@ -110,12 +110,29 @@ function _homeCountryCardHtml(){
     +body+'</div>';
 }
 
+// Field 셋업 간트 차트 기본 화면과 동일한 기준(숨김 아님 + 과거 아님)으로 "지금 실제로
+// 이름이 올라오는" 출장자만 걸러낸다 — aggregatePersonTrips()는 인원 출장일 탭 용도라
+// 숨김/과거 일정까지 전부 잡히는데, 그대로 쓰면 이미 끝난 출장자가 계속 카운트에 남아
+// 간트 차트에 보이는 인원 수와 어긋난다
+function _homeVisibleTripNames(){
+  var todayISO=_homeIsoStr(TODAY);
+  var set={};
+  S.schedules.forEach(function(sc){
+    var isPast=sc.end&&sc.end<todayISO;
+    if(!sc.hidden&&!isPast) set[sc.name]=true;
+  });
+  return set;
+}
 // 인원유형별로 실제 출장자 이름을 함께 모아서, 막대에 마우스를 올리면 명단을 보여준다
 function _homeTypeCardHtml(){
   var all=aggregatePersonTrips();
+  var visibleNames=_homeVisibleTripNames();
   var counts={hq:0,outsource:0,localOutsource:0,tech:0,vision:0,host:0};
   var names={hq:[],outsource:[],localOutsource:[],tech:[],vision:[],host:[]};
-  Object.keys(all).forEach(function(n){ var ty=all[n].type; if(counts[ty]!==undefined){ counts[ty]++; names[ty].push(n); } });
+  Object.keys(all).forEach(function(n){
+    if(!visibleNames[n]) return;
+    var ty=all[n].type; if(counts[ty]!==undefined){ counts[ty]++; names[ty].push(n); }
+  });
   var order=[['hq','pmTypeHq'],['outsource','pmTypeOutsource'],['localOutsource','pmTypeLocalOutsource'],['tech','pmTypeTech'],['vision','pmTypeVision'],['host','pmTypeHost']];
   var max=Math.max.apply(null,order.map(function(o){return counts[o[0]];}).concat([1]));
   var body=order.map(function(o){
