@@ -528,8 +528,11 @@ function spToggleColorPicker(kind,btnEl){
   if(kind==='back'){
     html+='<div onmousedown="event.preventDefault()" onclick="_spPickColor(\'back\',\'\')" style="font-size:11px;padding:4px 6px;cursor:pointer;border-radius:4px;margin-bottom:6px">채우기 없음</div>';
   }
+  // 글자색은 기본값이 흰색에 가까운 밝은 회색(#e8e8ec)이라, 다른 색을 적용했다가
+  // 원래대로 되돌리고 싶을 때 쓸 수 있게 흰색을 맨 앞에 추가해둔다
+  var stdColors=kind==='fore'?['#FFFFFF'].concat(SP_STD_COLORS):SP_STD_COLORS;
   html+='<div style="font-size:10px;color:var(--tx-faint);margin-bottom:4px">표준 색</div>'
-    +_spSwatchesHtml(kind,SP_STD_COLORS);
+    +_spSwatchesHtml(kind,stdColors);
   var recent=_spRecentColors(kind);
   if(recent.length){
     html+='<div style="font-size:10px;color:var(--tx-faint);margin-bottom:4px">최근에 사용한 색</div>'
