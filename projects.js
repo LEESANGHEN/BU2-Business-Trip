@@ -88,6 +88,15 @@ function renderProjectsTab(){
 }
 
 function setMpSearch(v){_mpSearch=v.trim().toLowerCase();renderProjectsBody();}
+// 홈 대시보드 상태 카드 클릭 시 호출 — 다른 필터를 전부 초기화하고 해당 상태만 골라서
+// 프로젝트 관리 탭으로 이동한다("전체" 카드는 status를 빈 값으로). 진행중만 보기가 켜져
+// 있으면 완료/PO 대기 등의 상태가 가려져 아무것도 안 보일 수 있어 항상 꺼준다
+function homeGoToProjectsByStatus(status){
+  _mpMS={region:[],customer:[],project:[],status:status?[status]:[],transferMonth:[],shipMonth:[]};
+  _mpHideInactive=false;
+  _mpSearch='';
+  switchTab('projects');
+}
 function togglePmHideInactive(){
   _mpHideInactive=!_mpHideInactive;
   var btn=document.getElementById('mpHideInactiveBtn');
@@ -185,6 +194,14 @@ function _mpMsToggle(key,value){
   var arr=_mpMS[key];
   var idx=arr.indexOf(value);
   if(idx>=0) arr.splice(idx,1); else arr.push(value);
+  // 상태 필터를 고르는 순간에는 "진행중만 보기"가 켜져 있으면 고른 상태(완료/PO 대기 등)가
+  // 숨김 대상이라 아무것도 안 보일 수 있다 — 상태를 새로 선택하면 그 필터를 자동으로 꺼서
+  // 고른 상태의 프로젝트가 바로 보이게 한다
+  if(key==='status'&&idx<0&&_mpHideInactive){
+    _mpHideInactive=false;
+    var btn=document.getElementById('mpHideInactiveBtn');
+    if(btn) btn.className='pm-filter-btn';
+  }
   _mpMsRefresh(key);
   renderProjectsBody();
 }

@@ -35,7 +35,7 @@ ko:{
   homeQuickTitle:'⚡ 빠른 작업', homeBtnExcel:'⬇ 엑셀 다운로드',
   homeCountryTitle:'🌏 국가별 프로젝트 현황', homeCountryHint:'막대에 마우스를 올리면 고객사(사이트) 목록을 볼 수 있습니다.', homeCountryTipEmpty:'등록된 고객사(사이트)가 없습니다.', homeEmptyProjects:'등록된 프로젝트가 없습니다.',
   homeTypeTitle:'👥 인원유형별 출장 현황', homeTypeHint:'막대에 마우스를 올리면 출장자 명단을 볼 수 있습니다.', homeTypeTipEmpty:'해당 유형으로 등록된 출장자가 없습니다.',
-  homeShipChartTitle:'🚚 월별 출하 설비 수 (이번 달 기준 6개월)', homeSetupChartTitle:'🔧 월별 설비 셋업 수량 (이번 달 기준 6개월)', homeChartHint:'막대를 클릭하면 해당 월의 설비명(프로젝트) 목록을 볼 수 있습니다.', homeChartTipEmpty:'해당 월에 등록된 설비가 없습니다.',
+  homeShipChartTitle:'🚚 월별 출하 설비 수 (이번 달 기준 6개월)', homeSetupChartTitle:'🔧 월별 설비 셋업 수량 (이번 달 기준 6개월)', homeChartHint:'막대를 클릭하면 해당 월의 설비명(프로젝트) 목록을 볼 수 있습니다.', homeChartTipEmpty:'해당 월에 등록된 설비가 없습니다.', homeStatClickHint:'클릭하면 해당 상태의 프로젝트 관리 목록으로 이동합니다.',
   homeRecentTitle:'🕓 최근 등록/수정 프로젝트',
   homeHighlightTitle:'✨ 이번달 하이라이트', homeHighlightNew:'신규 등록 프로젝트', homeHighlightDone:'완료 처리', homeCountSuffix:'건'
 },
@@ -67,7 +67,7 @@ en:{
   homeQuickTitle:'⚡ Quick actions', homeBtnExcel:'⬇ Download Excel',
   homeCountryTitle:'🌏 Projects by country', homeCountryHint:'Hover a bar to see registered customers (sites).', homeCountryTipEmpty:'No customers (sites) registered.', homeEmptyProjects:'No projects registered.',
   homeTypeTitle:'👥 Trips by personnel type', homeTypeHint:'Hover a bar to see traveler names.', homeTypeTipEmpty:'No travelers registered for this type.',
-  homeShipChartTitle:'🚚 Monthly shipments (6 months from this month)', homeSetupChartTitle:'🔧 Monthly setups (6 months from this month)', homeChartHint:"Click a bar to see that month's equipment (project) list.", homeChartTipEmpty:'No equipment registered for this month.',
+  homeShipChartTitle:'🚚 Monthly shipments (6 months from this month)', homeSetupChartTitle:'🔧 Monthly setups (6 months from this month)', homeChartHint:"Click a bar to see that month's equipment (project) list.", homeChartTipEmpty:'No equipment registered for this month.', homeStatClickHint:'Click to go to Project Management filtered by this status.',
   homeRecentTitle:'🕓 Recently added/updated projects',
   homeHighlightTitle:"✨ This month's highlights", homeHighlightNew:'New projects', homeHighlightDone:'Completed', homeCountSuffix:''
 },
@@ -99,7 +99,7 @@ zhHans:{
   homeQuickTitle:'⚡ 快捷操作', homeBtnExcel:'⬇ 下载Excel',
   homeCountryTitle:'🌏 各国家项目现况', homeCountryHint:'将鼠标悬停在柱状图上可查看已登记的客户(现场)列表。', homeCountryTipEmpty:'没有已登记的客户(现场)。', homeEmptyProjects:'没有已登记的项目。',
   homeTypeTitle:'👥 各人员类型出差现况', homeTypeHint:'将鼠标悬停在柱状图上可查看出差人员名单。', homeTypeTipEmpty:'该类型没有已登记的出差人员。',
-  homeShipChartTitle:'🚚 月度出货设备数(以本月为准的6个月)', homeSetupChartTitle:'🔧 月度设备安装数量(以本月为准的6个月)', homeChartHint:'点击柱状图可查看该月的设备名(项目)列表。', homeChartTipEmpty:'该月没有已登记的设备。',
+  homeShipChartTitle:'🚚 月度出货设备数(以本月为准的6个月)', homeSetupChartTitle:'🔧 月度设备安装数量(以本月为准的6个月)', homeChartHint:'点击柱状图可查看该月的设备名(项目)列表。', homeChartTipEmpty:'该月没有已登记的设备。', homeStatClickHint:'点击可跳转到按该状态筛选的项目管理列表。',
   homeRecentTitle:'🕓 最近新增/修改的项目',
   homeHighlightTitle:'✨ 本月亮点', homeHighlightNew:'新增项目', homeHighlightDone:'完成处理', homeCountSuffix:'个'
 },
@@ -131,7 +131,7 @@ zhHant:{
   homeQuickTitle:'⚡ 快捷操作', homeBtnExcel:'⬇ 下載Excel',
   homeCountryTitle:'🌏 各國家專案現況', homeCountryHint:'將滑鼠懸停在長條圖上可查看已登記的客戶(現場)清單。', homeCountryTipEmpty:'沒有已登記的客戶(現場)。', homeEmptyProjects:'沒有已登記的專案。',
   homeTypeTitle:'👥 各人員類型出差現況', homeTypeHint:'將滑鼠懸停在長條圖上可查看出差人員名單。', homeTypeTipEmpty:'該類型沒有已登記的出差人員。',
-  homeShipChartTitle:'🚚 月度出貨設備數(以本月為準的6個月)', homeSetupChartTitle:'🔧 月度設備安裝數量(以本月為準的6個月)', homeChartHint:'點擊長條圖可查看該月的設備名(專案)清單。', homeChartTipEmpty:'該月沒有已登記的設備。',
+  homeShipChartTitle:'🚚 月度出貨設備數(以本月為準的6個月)', homeSetupChartTitle:'🔧 月度設備安裝數量(以本月為準的6個月)', homeChartHint:'點擊長條圖可查看該月的設備名(專案)清單。', homeChartTipEmpty:'該月沒有已登記的設備。', homeStatClickHint:'點擊可跳轉到按該狀態篩選的專案管理清單。',
   homeRecentTitle:'🕓 最近新增/修改的專案',
   homeHighlightTitle:'✨ 本月亮點', homeHighlightNew:'新增專案', homeHighlightDone:'完成處理', homeCountSuffix:'個'
 },
@@ -163,7 +163,7 @@ ja:{
   homeQuickTitle:'⚡ クイック操作', homeBtnExcel:'⬇ Excelダウンロード',
   homeCountryTitle:'🌏 国別プロジェクト現況', homeCountryHint:'棒グラフにマウスを乗せると顧客(サイト)一覧が表示されます。', homeCountryTipEmpty:'登録された顧客(サイト)がありません。', homeEmptyProjects:'登録されたプロジェクトがありません。',
   homeTypeTitle:'👥 人員タイプ別出張現況', homeTypeHint:'棒グラフにマウスを乗せると出張者名簿が表示されます。', homeTypeTipEmpty:'該当タイプで登録された出張者がいません。',
-  homeShipChartTitle:'🚚 月別出荷設備数(今月から6ヶ月間)', homeSetupChartTitle:'🔧 月別設備セットアップ数量(今月から6ヶ月間)', homeChartHint:'棒グラフをクリックするとその月の設備名(プロジェクト)一覧が表示されます。', homeChartTipEmpty:'この月に登録された設備はありません。',
+  homeShipChartTitle:'🚚 月別出荷設備数(今月から6ヶ月間)', homeSetupChartTitle:'🔧 月別設備セットアップ数量(今月から6ヶ月間)', homeChartHint:'棒グラフをクリックするとその月の設備名(プロジェクト)一覧が表示されます。', homeChartTipEmpty:'この月に登録された設備はありません。', homeStatClickHint:'クリックするとその状態で絞り込んだプロジェクト管理一覧に移動します。',
   homeRecentTitle:'🕓 最近登録/更新されたプロジェクト',
   homeHighlightTitle:'✨ 今月のハイライト', homeHighlightNew:'新規登録プロジェクト', homeHighlightDone:'完了処理', homeCountSuffix:'件'
 }

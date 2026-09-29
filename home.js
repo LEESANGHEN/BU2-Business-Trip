@@ -47,9 +47,10 @@ function _homeStatRowHtml(){
     if(counts[st]!==undefined) counts[st]++;
   });
   var html='<div class="home-stat-row">';
-  html+='<div class="home-stat-card"><div class="home-stat-num">'+S.masterProjects.length+'</div><div class="home-stat-lbl">'+_esc(t('optAll'))+'</div></div>';
+  html+='<div class="home-stat-card" style="cursor:pointer" onclick="homeGoToProjectsByStatus(\'\')" title="'+_esc(t('homeStatClickHint')||'')+'"><div class="home-stat-num">'+S.masterProjects.length+'</div><div class="home-stat-lbl">'+_esc(t('optAll'))+'</div></div>';
   HOME_STATUS_ORDER.forEach(function(k){
-    html+='<div class="home-stat-card"><div class="home-stat-num" style="color:'+HOME_STATUS_COLOR[k]+'">'+counts[k]+'</div><div class="home-stat-lbl">'+_esc(tStatus(k))+'</div></div>';
+    var kAttr=k.replace(/'/g,"\\'");
+    html+='<div class="home-stat-card" style="cursor:pointer" onclick="homeGoToProjectsByStatus(\''+kAttr+'\')" title="'+_esc(t('homeStatClickHint')||'')+'"><div class="home-stat-num" style="color:'+HOME_STATUS_COLOR[k]+'">'+counts[k]+'</div><div class="home-stat-lbl">'+_esc(tStatus(k))+'</div></div>';
   });
   html+='</div>';
   return html;
