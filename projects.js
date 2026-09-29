@@ -13,6 +13,7 @@ var _mpSortKey='category';
 var _mpSortAsc=false;
 var _mpHideInactive=true;     // 완료/LOI 접수/PO 대기/PO 발행 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
 var _MP_HIDDEN_STATUSES=['완료','LOI 접수','PO 대기','PO 발행'];
+var _mpSelectedIds={};        // 일괄 삭제용 체크된 프로젝트 id 모음(id -> true)
 
 // "생산 98호기"처럼 숫자가 섞인 호기 텍스트를 숫자 크기로 비교 (둘 다 숫자면 숫자 비교, 아니면 문자열 비교)
 function _mpUnitNum(v){
@@ -72,7 +73,11 @@ function renderProjectsTab(){
   if(!S.masterProjects.length){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
   }
-  if(_isAdminMode()) html+='<button class="btn pri sm" onclick="openAddMasterProject()">'+t('mpAddProject')+'</button>';
+  if(_isAdminMode()){
+    var _selN=Object.keys(_mpSelectedIds).length;
+    html+='<button class="btn red sm" id="mpBulkDeleteBtn" onclick="deleteMpSelected()" style="display:'+(_selN>0?'inline-flex':'none')+'">선택 삭제 ('+_selN+')</button>';
+    html+='<button class="btn pri sm" onclick="openAddMasterProject()">'+t('mpAddProject')+'</button>';
+  }
   html+='</div>';
   html+='</div>';
   html+='<div class="pm-body-scroll"><div id="mpBody"></div></div>';
@@ -202,10 +207,8 @@ document.addEventListener('click',function(e){
   document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
 });
 
-function renderProjectsBody(){
-  var body=document.getElementById('mpBody');
-  if(!body)return;
-  var rows=S.masterProjects.filter(function(mp){
+function _mpFilteredProjects(){
+  return S.masterProjects.filter(function(mp){
     if(_mpMS.region.length&&_mpMS.region.indexOf(mp.region||'기타')<0)return false;
     if(_mpMS.customer.length&&_mpMS.customer.indexOf(mp.customer||'')<0)return false;
     if(_mpMS.project.length&&_mpMS.project.indexOf(mp.projectName||'')<0)return false;
@@ -219,6 +222,11 @@ function renderProjectsBody(){
     }
     return true;
   });
+}
+function renderProjectsBody(){
+  var body=document.getElementById('mpBody');
+  if(!body)return;
+  var rows=_mpFilteredProjects();
   if(!rows.length){
     body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">'
       +(S.masterProjects.length?'해당 조건의 프로젝트가 없습니다.':'등록된 프로젝트가 없습니다. 엑셀 데이터를 가져오거나 새로 등록하세요.')
@@ -315,6 +323,10 @@ function _editColLabel(key){
 
 function renderProjectsTable(rows){
   var html='<table class="pm-person-table"><thead><tr>';
+  if(_isAdminMode()){
+    var _allSelected=rows.length>0&&rows.every(function(mp){return !!_mpSelectedIds[mp.id];});
+    html+='<th style="width:28px"><input type="checkbox" '+(_allSelected?'checked':'')+' onclick="event.stopPropagation()" onchange="toggleMpSelectAll(this.checked)" title="화면에 보이는 전체 선택"></th>';
+  }
   html+=thS('category','colCategory',t('colCategory'))+thS('region','colRegionHdr',t('mpRegion'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
   html+=thP('colSerial',t('colSerial'));
   html+=thP('colUnitCombined',t('colUnitCombined'));
@@ -388,6 +400,7 @@ function renderProjectRow(mp){
   var transferOverrideLbl=mp.transferDateOverride?fmtFull(mp.transferDateOverride):'-';
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
+    +(admin?'<td onclick="event.stopPropagation()"><input type="checkbox" '+(_mpSelectedIds[mp.id]?'checked':'')+' onchange="toggleMpRowSelect(\''+mp.id+'\',this.checked)"></td>':'')
     +'<td>'+_mpCategoryBadge(mp.category)+'</td>'
     +'<td>'+_esc(tRegion(mp.region||''))+'</td>'
     +'<td>'+_esc(mp.customer||'')+'</td>'
@@ -543,6 +556,36 @@ function delMasterProject(id){
   S.masterProjects=S.masterProjects.filter(function(m){return m.id!==id;});
   _markDeleted('masterProjects',id);
   saveData();cm();_mpRenderTabKeepScroll();
+}
+
+/* ── 여러 프로젝트 한번에 선택/삭제 ── */
+function _mpUpdateBulkBar(){
+  var btn=document.getElementById('mpBulkDeleteBtn');
+  if(!btn) return;
+  var n=Object.keys(_mpSelectedIds).length;
+  btn.style.display=n>0?'inline-flex':'none';
+  btn.textContent='선택 삭제 ('+n+')';
+}
+function toggleMpRowSelect(id,checked){
+  if(checked) _mpSelectedIds[id]=true; else delete _mpSelectedIds[id];
+  _mpUpdateBulkBar();
+}
+// 헤더 체크박스 — 현재 필터 조건으로 화면에 보이는 행만 기준으로 전체 선택/해제한다
+function toggleMpSelectAll(checked){
+  _mpFilteredProjects().forEach(function(mp){
+    if(checked) _mpSelectedIds[mp.id]=true; else delete _mpSelectedIds[mp.id];
+  });
+  renderProjectsBody();
+  _mpUpdateBulkBar();
+}
+function deleteMpSelected(){
+  var ids=Object.keys(_mpSelectedIds);
+  if(!ids.length) return;
+  if(!confirm(ids.length+'개 프로젝트 항목을 삭제하시겠습니까? 되돌릴 수 없습니다.'))return;
+  ids.forEach(function(id){ _markDeleted('masterProjects',id); });
+  S.masterProjects=S.masterProjects.filter(function(m){return !_mpSelectedIds[m.id];});
+  _mpSelectedIds={};
+  saveData();_mpRenderTabKeepScroll();
 }
 
 /* ── 엑셀 데이터 1회성 가져오기 ──
