@@ -10,6 +10,19 @@
     (function(){var t=localStorage.getItem('trip_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
   </script>
   <link rel="stylesheet" href="style.css?v=20260929a">
+  <!-- PWA: Chrome/Edge에서 "앱 설치"로 독립된 창(PC 앱)처럼 쓸 수 있게 한다.
+       항상 이 주소를 그대로 불러오는 구조라 git push로 배포한 최신 내용이 그대로 반영된다. -->
+  <link rel="manifest" href="manifest.json?v=20261001a">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#5a4ab7">
+  <script>
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',function(){
+        navigator.serviceWorker.register('service-worker.js').catch(function(e){console.warn('서비스 워커 등록 실패:',e);});
+      });
+    }
+  </script>
 </head>
 <body>
   <div class="app">

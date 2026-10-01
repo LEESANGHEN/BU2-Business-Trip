@@ -1,0 +1,15 @@
+{
+  "name": "BU2 출장 일정 관리",
+  "short_name": "BU2 일정",
+  "description": "BU2 기술운영1그룹 출장/셋업 일정 관리",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#18181e",
+  "theme_color": "#5a4ab7",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
