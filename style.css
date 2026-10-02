@@ -1000,7 +1000,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 }
 
 /* ── Pedestal 이력 관리 ── */
-.pd-table{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1700px;width:100%}
+.pd-table{border-collapse:separate;border-spacing:0;font-size:12px;min-width:2300px;width:100%}
 .pd-table th,.pd-table td{border-right:1px solid var(--bd-main);border-bottom:1px solid var(--bd-main);padding:0;background:var(--bg-base)}
 .pd-table thead th{position:sticky;z-index:2;background:var(--bg-grp);color:var(--tx-second);font-weight:700;text-align:center;padding:7px 6px;border-top:1px solid var(--bd-main)}
 .pd-table thead tr.pd-h1 th{top:0;height:32px}
@@ -1021,3 +1021,15 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .pd-file{display:flex;align-items:center;gap:8px;background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:6px;padding:6px 8px}
 .pd-thumb{width:56px;height:56px;object-fit:cover;border-radius:4px;border:1px solid var(--bd-main);background:var(--bg-deep);flex-shrink:0}
 .pd-fname{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pd-table .pd-link{width:76px;min-width:76px;text-align:center;cursor:pointer}
+.pd-link-in{padding:8px 4px;font-size:11px;color:var(--tx-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
+.pd-link-in.on{color:#7aafee;font-weight:600}
+.pd-link:hover .pd-link-in{background:var(--bg-sel)}
+.pd-table .pd-partdel{width:24px;min-width:24px;text-align:center}
+.pd-table .pd-delcell{width:64px;min-width:64px}
+.pd-addpart{display:block;margin:2px auto;border:1px solid var(--bd-main);background:var(--bg-alt);color:var(--tx-second);border-radius:4px;font-size:10px;padding:2px 5px;cursor:pointer;white-space:nowrap}
+.pd-addpart:hover{background:var(--bg-sel);color:var(--tx-primary)}
+.pd-table tbody tr.pd-row td{border-top:none}
+.pd-table tbody tr.pd-row>td{border-top:2px solid var(--bd-main)}
+.pd-linkitem{display:flex;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--bd-main);border-radius:6px;background:var(--bg-deep);font-size:12px;cursor:pointer}
+.pd-linkitem:hover{background:var(--bg-sel)}
