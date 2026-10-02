@@ -16,12 +16,12 @@ var PD_MAX_MB=15;
 var PD_CURRENCIES=['KRW','USD','CNY','JPY','TWD','EUR'];
 var PD_GROUPS=[
   {label:'고객사 ↔ 인텍플러스',cols:[
-    {key:'customer',label:'고객사',type:'text',w:100,dl:'pdDlCust'},
-    {key:'site',label:'사이트',type:'text',w:100,dl:'pdDlSite'},
-    {key:'equip',label:'설비 정보',type:'text',w:130,dl:'pdDlEquip'},
+    {key:'customer',label:'고객사',type:'text',w:100,ac:1},
+    {key:'site',label:'사이트',type:'text',w:100,ac:1},
+    {key:'equip',label:'설비 정보',type:'text',w:130,ac:1},
     {key:'productInfo',label:'제품 정보',type:'rich',w:130},
-    {key:'productSize',label:'제품 Size',type:'text',w:90},
-    {key:'productName',label:'제품명',type:'text',w:120},
+    {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
+    {key:'productName',label:'제품명',type:'text',w:120,ac:1},
     {key:'trayInfo',label:'Tray 정보',type:'rich',w:120},
     {key:'partList',label:'Part List',type:'rich',w:120},
     {key:'custQuote',label:'견적서',full:'고객사 견적서',type:'doc',w:150},
@@ -37,8 +37,8 @@ var PD_GROUPS=[
 ];
 var PD_PART_COLS=[
   {key:'dwgNo',label:'도번',w:110},
-  {key:'itemName',label:'품명',w:120},
-  {key:'spec',label:'규격',w:120}
+  {key:'itemName',label:'품명',w:120,ac:1},
+  {key:'spec',label:'규격',w:120,ac:1}
 ];
 var PD_PART_GROUP='구매 그룹 ↔ PSMP';
 var _pdCols=[]; PD_GROUPS.forEach(function(g){ g.cols.forEach(function(c){_pdCols.push(c);}); });
@@ -164,7 +164,7 @@ function _pdMainCellHtml(row,col){
   if(col.type==='doc') return _pdDocCellHtml(row,col);
   if(col.type==='rich') return _pdRichCellHtml(row,col);
   return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="text" value="'+_esc(_pdText(row,col))+'"'
-    +(col.dl?' list="'+col.dl+'"':'')+' onchange="pdSetText(this,\''+col.key+'\')" autocomplete="off"></td>';
+    +(col.ac?' oninput="pdAc(this,\x27cell\x27,\x27'+col.key+'\x27)" onfocus="pdAcHide()" onkeydown="pdAcKey(event)" onblur="pdAcHide()"':'')+' onchange="pdSetText(this,\''+col.key+'\')" autocomplete="off"></td>';
 }
 function _pdLinkCellHtml(row){
   var ids=_pdProjectIds(row), mps=_pdProjects(row);
@@ -179,7 +179,7 @@ function _pdLinkCellHtml(row){
 }
 function _pdPartCellsHtml(part){
   return PD_PART_COLS.map(function(pc){
-    return '<td><input class="pd-in" type="text" value="'+_esc(part[pc.key]||'')+'" onchange="pdSetPart(this,\''+pc.key+'\')" autocomplete="off"></td>';
+    return '<td><input class="pd-in" type="text" value="'+_esc(part[pc.key]||'')+'"'+(pc.ac?' oninput="pdAc(this,\x27part\x27,\x27'+pc.key+'\x27)" onfocus="pdAcHide()" onkeydown="pdAcKey(event)" onblur="pdAcHide()"':'')+' onchange="pdSetPart(this,\''+pc.key+'\')" autocomplete="off"></td>';
   }).join('');
 }
 function _pdRowHtml(row,idx,isReal){
@@ -209,17 +209,6 @@ function _pdTableHtml(){
   return h;
 }
 
-function _pdDatalistsHtml(){
-  var cust={}, site={}, equip={};
-  S.masterProjects.forEach(function(mp){
-    var c=mp.customer||'', u=c.indexOf('_');
-    var cn=u>0?c.slice(0,u):c, sn=u>0?c.slice(u+1):'';
-    if(cn) cust[cn]=1; if(sn) site[sn]=1; if(mp.projectName) equip[mp.projectName]=1;
-  });
-  function dl(id,obj){ return '<datalist id="'+id+'">'+Object.keys(obj).sort().map(function(k){return '<option value="'+_esc(k)+'">';}).join('')+'</datalist>'; }
-  return dl('pdDlCust',cust)+dl('pdDlSite',site)+dl('pdDlEquip',equip);
-}
-
 function renderPedestalBody(){
   var tb=document.getElementById('pdTbody'); if(!tb) return;
   var real=_pdSortedRows();
@@ -246,7 +235,7 @@ function renderPedestalTab(){
     +'<button class="btn sm" onclick="pdExportExcel()">⬇ 엑셀 내보내기</button>'
     +'<button class="btn pri sm" onclick="pdAddRows(10)">+ 행 10개 추가</button>'
     +'</div></div>'
-    +'<div class="pm-body-scroll">'+_pdDatalistsHtml()+_pdTableHtml()+'</div>';
+    +'<div class="pm-body-scroll">'+_pdTableHtml()+'</div>';
   wrap.innerHTML=html;
   renderPedestalBody();
   var sc=wrap.querySelector('.pm-body-scroll');
@@ -262,6 +251,90 @@ function renderPedestalTabIfIdle(){
 }
 
 function pdSearch(v){ _pdSearch=v.trim().toLowerCase(); renderPedestalBody(); }
+
+/* ── 입력 자동완성: 이 표에 이미 기입된 값을 제안 (초성 검색 지원) ──
+   콤보박스처럼 목록에서 고르는 게 아니라 직접 입력이 기본이고, 입력하는 동안 비슷한 기존 값이 있으면 아래에 제안한다.
+   한글 값은 초성만으로도 찾는다 (예: 고객사 칸에 ㅇㅇㅌㅍㄹㅅ → 인텍플러스). 영문 값은 일부 글자로 찾는다. */
+var PD_CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+var _pdAcState={input:null,items:[],sel:-1};
+function _pdChoseong(ch){
+  var c=ch.charCodeAt(0);
+  if(c>=0xAC00&&c<=0xD7A3) return PD_CHO[Math.floor((c-0xAC00)/588)];
+  return ch;
+}
+function _pdIsJamo(ch){ var c=ch.charCodeAt(0); return c>=0x3131&&c<=0x314E; }
+// 질문 q가 값 v의 어딘가에 들어 있는지: 일반 글자는 그대로, 초성(ㄱ~ㅎ)은 해당 글자의 초성과 비교
+function _pdAcMatch(v,q){
+  v=v.toLowerCase(); q=q.toLowerCase();
+  if(v.indexOf(q)>=0) return true;
+  for(var i=0;i+q.length<=v.length;i++){
+    var ok=true;
+    for(var j=0;j<q.length;j++){
+      var qc=q[j], vc=v[i+j];
+      if(_pdIsJamo(qc)?(_pdChoseong(vc)!==qc):(qc!==vc)){ ok=false; break; }
+    }
+    if(ok) return true;
+  }
+  return false;
+}
+function _pdAcCandidates(kind,key){
+  var freq={};
+  S.pedestalRows.forEach(function(row){
+    if(kind==='cell'){
+      var c=row.cells&&row.cells[key]; if(typeof c==='string'&&c) freq[c]=(freq[c]||0)+1;
+    }else{
+      _pdParts(row).forEach(function(p){ var v=p[key]; if(v) freq[v]=(freq[v]||0)+1; });
+    }
+  });
+  return Object.keys(freq).sort(function(a,b){return freq[b]-freq[a]||a.localeCompare(b,'ko');});
+}
+function _pdAcBox(){
+  var b=document.getElementById('pdAcBox');
+  if(!b){
+    b=document.createElement('div'); b.id='pdAcBox'; b.className='pd-ac';
+    b.addEventListener('mousedown',function(e){
+      e.preventDefault(); // 입력칸의 포커스를 유지
+      var it=e.target.closest('.pd-ac-item'); if(it) pdAcPick(parseInt(it.getAttribute('data-i'),10));
+    });
+    document.body.appendChild(b);
+  }
+  return b;
+}
+function pdAcHide(){
+  var b=document.getElementById('pdAcBox'); if(b) b.style.display='none';
+  _pdAcState.input=null; _pdAcState.items=[]; _pdAcState.sel=-1;
+}
+function pdAc(inp,kind,key){
+  var q=inp.value.trim();
+  if(!q){ pdAcHide(); return; }
+  var items=_pdAcCandidates(kind,key).filter(function(v){ return v!==inp.value&&_pdAcMatch(v,q); }).slice(0,8);
+  if(!items.length){ pdAcHide(); return; }
+  _pdAcState.input=inp; _pdAcState.items=items; _pdAcState.sel=-1;
+  var b=_pdAcBox(), r=inp.getBoundingClientRect();
+  b.innerHTML=items.map(function(v,i){return '<div class="pd-ac-item" data-i="'+i+'">'+_esc(v)+'</div>';}).join('');
+  b.style.minWidth=Math.max(r.width,120)+'px';
+  b.style.left=Math.round(r.left)+'px';
+  b.style.top=Math.round(r.bottom+2)+'px';
+  b.style.display='block';
+}
+function _pdAcHighlight(){
+  document.querySelectorAll('#pdAcBox .pd-ac-item').forEach(function(el,i){ el.classList.toggle('on',i===_pdAcState.sel); });
+}
+function pdAcKey(e){
+  var st=_pdAcState; if(!st.input||!st.items.length||e.isComposing) return;
+  if(e.key==='ArrowDown'){ e.preventDefault(); st.sel=(st.sel+1)%st.items.length; _pdAcHighlight(); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); st.sel=(st.sel-1+st.items.length)%st.items.length; _pdAcHighlight(); }
+  else if(e.key==='Enter'&&st.sel>=0){ e.preventDefault(); pdAcPick(st.sel); }
+  else if(e.key==='Escape'){ pdAcHide(); }
+}
+function pdAcPick(i){
+  var inp=_pdAcState.input, v=_pdAcState.items[i]; if(!inp||v===undefined) return;
+  inp.value=v;
+  pdAcHide();
+  inp.dispatchEvent(new Event('change',{bubbles:true})); // onchange 핸들러가 저장한다
+}
+// 표를 스크롤하면 제안 목록이 어긋나므로 닫는다
+window.addEventListener('scroll',function(){ pdAcHide(); },true);
 
 /* ── 편집: 텍스트 칸 / 부품 ── */
 function pdSetText(inp,key){
