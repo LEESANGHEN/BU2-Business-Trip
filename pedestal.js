@@ -310,7 +310,7 @@ function openPedestalLink(td){
   _pdModal={rowId:row.id,key:'__link'};
   var mp=_pdProject(row);
   var html='<div class="mtit">프로젝트 관리 데이터와 연결</div>'
-    +'<div style="font-size:11px;color:var(--tx-muted);margin-bottom:8px">고르면 고객사 / 사이트 / 설비 정보가 자동으로 채워집니다(이미 입력한 값은 덮어씁니다).</div>'
+    +'<div style="font-size:11px;color:var(--tx-muted);margin-bottom:8px">고르면 고객사 / 사이트 / 설비 정보가 자동으로 채워집니다(이미 입력한 값은 덮어씁니다). 연결을 해제하면 자동으로 채워진 이 3개 항목도 함께 지워집니다.</div>'
     +(mp?'<div style="font-size:12px;margin-bottom:8px">현재 연결: <b>'+_esc(mp.serial||'(시리얼 없음)')+'</b> · '+_esc(mp.customer||'')+' · '+_esc(mp.projectName||'')+' <button class="btn sm red" onclick="pdLinkProject(\'\')">연결 해제</button></div>':'')
     +'<input type="text" id="pd_link_q" placeholder="시리얼 / 고객사 / 설비명 검색..." oninput="_pdRenderLinkList()" autocomplete="off" style="margin-bottom:8px">'
     +'<div id="pd_link_list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>'
@@ -343,6 +343,8 @@ function pdLinkProject(projectId){
   var row=_pdRowById(_pdModal.rowId); if(!row) return;
   if(!projectId){
     delete row.projectId;
+    // 연결할 때 자동으로 채워진 고객사 / 사이트 / 설비 정보도 함께 지운다
+    if(row.cells){ delete row.cells.customer; delete row.cells.site; delete row.cells.equip; }
   }else{
     var mp=S.masterProjects.find(function(m){return m.id===projectId;}); if(!mp) return;
     row.projectId=mp.id;
