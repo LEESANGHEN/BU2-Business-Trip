@@ -1028,5 +1028,5 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .pd-table .pd-delcell{width:34px;min-width:34px}
 .pd-table tbody tr.pd-row td{border-top:none}
 .pd-table tbody tr.pd-row>td{border-top:2px solid var(--bd-main)}
-.pd-linkitem{display:flex;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--bd-main);border-radius:6px;background:var(--bg-deep);font-size:12px;cursor:pointer}
+.pd-linkitem{display:flex;gap:10px;align-items:center;user-select:none;padding:7px 10px;border:1px solid var(--bd-main);border-radius:6px;background:var(--bg-deep);font-size:12px;cursor:pointer}
 .pd-linkitem:hover{background:var(--bg-sel)}

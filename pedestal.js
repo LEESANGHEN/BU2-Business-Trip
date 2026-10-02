@@ -95,8 +95,13 @@ function _pdEnsureParts(row){
   }
   return row.parts;
 }
-function _pdProject(row){
-  return row.projectId?S.masterProjects.find(function(m){return m.id===row.projectId;}):null;
+// 한 행에 프로젝트를 여러 개 연결할 수 있다(row.projectIds). 예전의 단일 연결(row.projectId)도 읽는다
+function _pdProjectIds(row){
+  if(Array.isArray(row.projectIds)) return row.projectIds;
+  return row.projectId?[row.projectId]:[];
+}
+function _pdProjects(row){
+  return _pdProjectIds(row).map(function(id){return S.masterProjects.find(function(m){return m.id===id;});}).filter(Boolean);
 }
 function _pdFmtDate(d){ return d?fmtFull(d):''; }
 function _pdFmtAmount(c){
@@ -121,7 +126,7 @@ function _pdSearchText(row){
     if(col.type==='doc'){ var c=row.cells&&row.cells[col.key]; if(c) out.push(c.no||'',c.rev||'',c.amount||'',c.date||''); }
   });
   _pdParts(row).forEach(function(p){ out.push(p.dwgNo||'',p.itemName||'',p.spec||''); });
-  var mp=_pdProject(row); if(mp) out.push(mp.serial||'',mp.projectName||'',mp.customer||'');
+  _pdProjects(row).forEach(function(mp){ out.push(mp.serial||'',mp.projectName||'',mp.customer||''); });
   return out.join(' ').toLowerCase();
 }
 
@@ -162,12 +167,15 @@ function _pdMainCellHtml(row,col){
     +(col.dl?' list="'+col.dl+'"':'')+' onchange="pdSetText(this,\''+col.key+'\')" autocomplete="off"></td>';
 }
 function _pdLinkCellHtml(row){
-  var mp=_pdProject(row);
+  var ids=_pdProjectIds(row), mps=_pdProjects(row);
   var label, tip;
-  if(row.projectId&&mp){ label=_esc(mp.serial||'연결됨'); tip=_esc((mp.customer||'')+' · '+(mp.projectName||'')+(mp.serial?' · '+mp.serial:'')); }
-  else if(row.projectId){ label='삭제됨'; tip='연결된 프로젝트가 삭제되었습니다'; }
+  if(mps.length){
+    label=_esc(mps[0].serial||'연결됨')+(mps.length>1?'<br><span style="font-weight:400">외 '+(mps.length-1)+'대</span>':'');
+    tip=_esc(mps.map(function(m){return (m.serial||'(시리얼 없음)')+' · '+(m.customer||'')+' · '+(m.projectName||'');}).join('\n'));
+  }
+  else if(ids.length){ label='삭제됨'; tip='연결된 프로젝트가 삭제되었습니다'; }
   else { label='<span style="color:var(--tx-faint)">🔗</span>'; tip='프로젝트 관리 데이터와 연결'; }
-  return '<td class="pd-link" rowspan="__RS__" title="'+tip+'" onclick="openPedestalLink(this)"><div class="pd-link-in'+(row.projectId?' on':'')+'">'+label+'</div></td>';
+  return '<td class="pd-link" rowspan="__RS__" title="'+tip+'" onclick="openPedestalLink(this)"><div class="pd-link-in'+(ids.length?' on':'')+'">'+label+'</div></td>';
 }
 function _pdPartCellsHtml(part){
   return PD_PART_COLS.map(function(pc){
@@ -301,7 +309,7 @@ function _pdRowHasData(row){
     var c=row.cells[k];
     return typeof c==='string'?!!c:!!(c&&(c.text||c.no||c.amount||c.date||c.rev||(c.files&&c.files.length)));
   });
-  return cells||!!row.projectId||_pdParts(row).some(function(p){return p.dwgNo||p.itemName||p.spec;});
+  return cells||_pdProjectIds(row).length>0||_pdParts(row).some(function(p){return p.dwgNo||p.itemName||p.spec;});
 }
 function pdDeleteRow(btn){
   var tr=btn.closest('tr');
@@ -314,58 +322,88 @@ function pdDeleteRow(btn){
   saveData(); renderPedestalBody();
 }
 
-/* ── 프로젝트 관리 데이터와 연결 ── */
+/* ── 프로젝트 관리 데이터와 연결 (여러 개 묶기 가능) ── */
 function openPedestalLink(td){
   var row=_pdResolveRow(td.closest('tr'));
   _pdModal={rowId:row.id,key:'__link'};
-  var mp=_pdProject(row);
   var html='<div class="mtit">프로젝트 관리 데이터와 연결</div>'
-    +'<div style="font-size:11px;color:var(--tx-muted);margin-bottom:8px">고르면 고객사 / 사이트 / 설비 정보가 자동으로 채워집니다(이미 입력한 값은 덮어씁니다). 연결을 해제하면 자동으로 채워진 이 3개 항목도 함께 지워집니다.</div>'
-    +(mp?'<div style="font-size:12px;margin-bottom:8px">현재 연결: <b>'+_esc(mp.serial||'(시리얼 없음)')+'</b> · '+_esc(mp.customer||'')+' · '+_esc(mp.projectName||'')+' <button class="btn sm red" onclick="pdLinkProject(\'\')">연결 해제</button></div>':'')
-    +'<input type="text" id="pd_link_q" placeholder="시리얼 / 고객사 / 설비명 검색..." oninput="_pdRenderLinkList()" autocomplete="off" style="margin-bottom:8px">'
+    +'<div style="font-size:11px;color:var(--tx-muted);margin-bottom:8px">같은 발주로 묶을 설비를 모두 체크하세요. 고객사 / 사이트 / 설비 정보는 체크한 프로젝트에 맞춰 자동으로 채워집니다(이미 입력한 값은 덮어씁니다). 모두 해제하면 자동으로 채워진 이 3개 항목도 함께 지워집니다.</div>'
+    +'<div id="pd_link_sel" style="font-size:12px;margin-bottom:8px"></div>'
+    +'<div style="display:flex;gap:6px;margin-bottom:8px"><input type="text" id="pd_link_q" placeholder="시리얼 / 고객사 / 설비명 검색..." oninput="_pdRenderLinkList()" autocomplete="off" style="flex:1">'
+    +'<button class="btn sm" onclick="pdLinkAllShown()">검색 결과 모두 선택</button></div>'
     +'<div id="pd_link_list" style="max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"></div>'
-    +'<div class="mfoot"><button class="btn sm pri" onclick="cm()">닫기</button></div>';
+    +'<div class="mfoot"><button class="btn sm red" onclick="pdLinkClear()">모두 해제</button><button class="btn sm pri" onclick="pdLinkClose()">완료</button></div>';
   mw(html,true);
   _pdRenderLinkList();
   var q=document.getElementById('pd_link_q'); if(q) q.focus();
 }
-function _pdRenderLinkList(){
-  var el=document.getElementById('pd_link_list'); if(!el) return;
+function _pdLinkFiltered(){
   var q=((document.getElementById('pd_link_q')||{}).value||'').trim().toLowerCase();
-  var list=S.masterProjects.filter(function(mp){
+  return S.masterProjects.filter(function(mp){
     if(!q) return true;
     return [mp.serial,mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit].join(' ').toLowerCase().indexOf(q)>=0;
   }).sort(function(a,b){
-    return String(a.customer||'').localeCompare(String(b.customer||''),'ko')||String(a.projectName||'').localeCompare(String(b.projectName||''),'ko');
+    return String(a.customer||'').localeCompare(String(b.customer||''),'ko')||String(a.projectName||'').localeCompare(String(b.projectName||''),'ko')||String(a.serial||'').localeCompare(String(b.serial||''));
   });
-  var shown=list.slice(0,150);
+}
+function _pdRenderLinkList(){
+  var el=document.getElementById('pd_link_list'); if(!el) return;
+  var row=_pdModal&&_pdRowById(_pdModal.rowId);
+  var sel={}; (row?_pdProjectIds(row):[]).forEach(function(id){sel[id]=1;});
+  var list=_pdLinkFiltered(), shown=list.slice(0,150);
   el.innerHTML=shown.map(function(mp){
     var idAttr=String(mp.id).replace(/'/g,"\\'");
-    return '<div class="pd-linkitem" onclick="pdLinkProject(\''+idAttr+'\')">'
+    return '<label class="pd-linkitem"><input type="checkbox"'+(sel[mp.id]?' checked':'')+' onchange="pdToggleLink(\''+idAttr+'\',this.checked)">'
       +'<span style="min-width:100px;color:#7aafee">'+_esc(mp.serial||'(시리얼 없음)')+'</span>'
       +'<span style="flex:1">'+_esc(mp.customer||'')+' · '+_esc(mp.projectName||'')+'</span>'
-      +'<span style="color:var(--tx-faint)">'+_esc(mp.prodUnit||'')+'</span></div>';
+      +'<span style="color:var(--tx-faint)">'+_esc(mp.prodUnit||'')+'</span></label>';
   }).join('')+(list.length>shown.length?'<div style="font-size:11px;color:var(--tx-faint);padding:6px">… '+(list.length-shown.length)+'건 더 있음 — 검색어로 좁혀주세요</div>':'')
     +(!list.length?'<div style="font-size:12px;color:var(--tx-faint);padding:10px">일치하는 프로젝트가 없습니다.</div>':'');
-}
-function pdLinkProject(projectId){
-  if(!_pdModal) return;
-  var row=_pdRowById(_pdModal.rowId); if(!row) return;
-  if(!projectId){
-    delete row.projectId;
-    // 연결할 때 자동으로 채워진 고객사 / 사이트 / 설비 정보도 함께 지운다
-    if(row.cells){ delete row.cells.customer; delete row.cells.site; delete row.cells.equip; }
-  }else{
-    var mp=S.masterProjects.find(function(m){return m.id===projectId;}); if(!mp) return;
-    row.projectId=mp.id;
-    if(!row.cells) row.cells={};
-    var c=mp.customer||'', u=c.indexOf('_');
-    row.cells.customer=u>0?c.slice(0,u):c;
-    row.cells.site=u>0?c.slice(u+1):'';
-    row.cells.equip=mp.projectName||'';
+  var st=document.getElementById('pd_link_sel');
+  if(st){
+    var n=row?_pdProjects(row).length:0;
+    st.innerHTML=n?'선택됨 <b>'+n+'대</b>: '+_esc(_pdProjects(row).map(function(m){return m.serial||'(시리얼 없음)';}).join(', ')):'<span style="color:var(--tx-faint)">선택된 프로젝트가 없습니다.</span>';
   }
-  _touch(row); saveData(); cm(); _pdModal=null; renderPedestalBody();
 }
+// 연결된 프로젝트 목록으로 고객사 / 사이트 / 설비 정보를 다시 계산한다
+function _pdApplyLinks(row){
+  var mps=_pdProjects(row);
+  if(!row.cells) row.cells={};
+  if(!mps.length){ delete row.cells.customer; delete row.cells.site; delete row.cells.equip; return; }
+  var custs=[], sites=[], equips=[], eqCount={};
+  mps.forEach(function(mp){
+    var c=mp.customer||'', u=c.indexOf('_');
+    var cn=u>0?c.slice(0,u):c, sn=u>0?c.slice(u+1):'';
+    if(cn&&custs.indexOf(cn)<0) custs.push(cn);
+    if(sn&&sites.indexOf(sn)<0) sites.push(sn);
+    var en=mp.projectName||'';
+    if(en){ if(!eqCount[en]){ eqCount[en]=0; equips.push(en); } eqCount[en]++; }
+  });
+  row.cells.customer=custs.join(' / ');
+  row.cells.site=sites.join(', ');
+  row.cells.equip=equips.map(function(n){return eqCount[n]>1?n+' ×'+eqCount[n]:n;}).join(', ');
+}
+function _pdSetLinks(ids){
+  var row=_pdModal&&_pdRowById(_pdModal.rowId); if(!row) return;
+  row.projectIds=ids; delete row.projectId;
+  _pdApplyLinks(row);
+  _touch(row); saveData();
+  _pdRenderLinkList(); renderPedestalBody();
+}
+function pdToggleLink(projectId,on){
+  var row=_pdModal&&_pdRowById(_pdModal.rowId); if(!row) return;
+  var ids=_pdProjectIds(row).filter(function(id){return id!==projectId;});
+  if(on) ids.push(projectId);
+  _pdSetLinks(ids);
+}
+function pdLinkAllShown(){
+  var row=_pdModal&&_pdRowById(_pdModal.rowId); if(!row) return;
+  var ids=_pdProjectIds(row).slice();
+  _pdLinkFiltered().slice(0,150).forEach(function(mp){ if(ids.indexOf(mp.id)<0) ids.push(mp.id); });
+  _pdSetLinks(ids);
+}
+function pdLinkClear(){ _pdSetLinks([]); }
+function pdLinkClose(){ cm(); _pdModal=null; renderPedestalBody(); }
 
 /* ── 기록 칸 팝업 (글 + 첨부파일, 견적/발주는 번호·리비전·날짜·금액 포함) ── */
 function _pdIsImage(f){
@@ -517,7 +555,7 @@ function _pdDoExport(){
   // 열 정의: main=true는 부품이 여러 줄이어도 한 번만 쓰고 세로 병합, v(row,idx,part)가 값
   var ec=[];
   ec.push({g:'',l:'No',w:6,main:true,v:function(r,i){return i+1;}});
-  ec.push({g:'',l:'프로젝트 시리얼',w:16,main:true,v:function(r){var m=_pdProject(r);return m?(m.serial||''):'';}});
+  ec.push({g:'',l:'프로젝트 시리얼',w:16,main:true,v:function(r){return _pdProjects(r).map(function(m){return m.serial||'';}).filter(Boolean).join(', ');}});
   var firstGroupIdx=ec.length;
   PD_GROUPS.forEach(function(g){
     g.cols.forEach(function(col){
