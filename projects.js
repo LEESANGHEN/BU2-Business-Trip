@@ -520,7 +520,7 @@ function _mpFormHtml(mp){
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>'
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_customerReqShipDate','고객사 요청 출하 일정',ie?mp.customerReqShipDate:'')+'</div>'
     +'</div>';
-  html+='<div style="font-size:10px;color:var(--tx-muted);margin:-4px 0 10px">출하 일정(고객사 요청 출하 일정이 있으면 그 값 우선)을 입력하면, 위 셋업 "종료"일이 그 하루 전날로 자동 변경됩니다.</div>';
+  html+='<div style="font-size:10px;color:var(--tx-muted);margin:-4px 0 10px">셋업 "종료"일은 자동으로 바뀌지 않습니다 — 목록 화면의 출하 일정 옆 (00일)은 셋업 종료일과 무관하게, 셋업 시작일부터 지금 적용되는 출하일 하루 전까지 셋업에 쓸 수 있는 일수를 별도로 계산해서 보여주는 참고용 숫자입니다.</div>';
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="PO 대기"><option value="PO 발행"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
@@ -548,24 +548,13 @@ function _mpApplyTransferOverride(f){
   if(f.transferDateOverride) f.setupStart=_addDaysStr(f.transferDateOverride,1);
   return f;
 }
-// 출하 일정(최초 또는 변경)이 등록되어 있으면, 셋업 종료일을 그 하루 전날로 자동 맞춘다
-// (셋업 시작일보다 앞서지는 않도록 보정) — HQ 셋업 간트 차트의 셋업 바 연장/단축 로직과 같은 원칙
-function _mpApplyShipToSetupEnd(f){
-  var effShip=f.customerReqShipDate||f.shipDate;
-  if(effShip){
-    var newEnd=_addDaysStr(effShip,-1);
-    if(f.setupStart&&pd(newEnd)<pd(f.setupStart)) newEnd=f.setupStart;
-    f.setupEnd=newEnd;
-  }
-  return f;
-}
 // renderProjectsTab() 자체가 스크롤 위치를 기억했다가 복원하므로 그냥 호출하면 된다
 // (예전엔 이 함수에서 직접 처리했으나 모든 재렌더 경로에 적용되도록 renderProjectsTab()으로 옮김)
 function _mpRenderTabKeepScroll(){
   renderProjectsTab();
 }
 function saveAddMasterProject(){
-  var f=_mpApplyShipToSetupEnd(_mpApplyTransferOverride(_mpReadForm()));
+  var f=_mpApplyTransferOverride(_mpReadForm());
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   if(!f.transferDate&&f.setupStart) f.transferDate=_addDaysStr(f.setupStart,-1);
   var mp=_touch(f);
@@ -576,7 +565,7 @@ function saveAddMasterProject(){
 function saveEditMasterProject(id){
   var mp=S.masterProjects.find(function(m){return m.id===id;});
   if(!mp)return;
-  var f=_mpApplyShipToSetupEnd(_mpApplyTransferOverride(_mpReadForm()));
+  var f=_mpApplyTransferOverride(_mpReadForm());
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
   Object.keys(f).forEach(function(k){mp[k]=f[k];});
   if(!mp.transferDate&&mp.setupStart) mp.transferDate=_addDaysStr(mp.setupStart,-1);
