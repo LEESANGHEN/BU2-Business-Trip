@@ -408,7 +408,18 @@ function renderProjectRow(mp){
   // 모달에는 최초값/변경값 입력란이 각각 따로 있지만, 목록 화면은 열 수를 줄이려고 한 칸에
   // "지금 적용되는" 값만 표시한다(_mpEffectiveTransferDate/_mpEffectiveShipDate)
   var transferLbl=_mpEffectiveTransferDate(mp)?fmtFull(_mpEffectiveTransferDate(mp)):'-';
-  var shipLbl=_mpEffectiveShipDate(mp)?fmtFull(_mpEffectiveShipDate(mp)):'-';
+  // 출하 일정 옆 (00일) = 기존 셋업 시작일부터 "지금 적용되는" 출하일 하루 전까지, 셋업 가능한 일수.
+  // 출하일이 바뀌어도 셋업 시작일 자체는 안 건드리고, 그 출하일 기준으로 셋업에 쓸 수 있는 기간이
+  // 얼마나 되는지만 계산해서 보여준다(셋업 종료일 자동 변경과는 별개로, 참고용 일수 표시)
+  var effShip=_mpEffectiveShipDate(mp);
+  var shipLbl='-';
+  if(effShip){
+    shipLbl=fmtFull(effShip);
+    if(mp.setupStart){
+      var shipSetupDays=Math.round((pd(effShip)-pd(mp.setupStart))/86400000);
+      shipLbl+='('+shipSetupDays+'일)';
+    }
+  }
   var admin=_isAdminMode();
   return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
     +(admin?'<td onclick="event.stopPropagation()"><input type="checkbox" '+(_mpSelectedIds[mp.id]?'checked':'')+' onchange="toggleMpRowSelect(\''+mp.id+'\',this.checked)"></td>':'')
