@@ -166,7 +166,7 @@ function _pdPartCellsHtml(part){
   }).join('');
 }
 function _pdRowHtml(row,idx,isReal){
-  var parts=_pdParts(row), n=parts.length;
+  var parts=_pdParts(row), n=1; // 부품은 한 줄만 표시
   var rid=isReal?_esc(row.id):'v'+idx;
   var attrs=' data-rid="'+rid+'" data-idx="'+idx+'"';
   var h='<tr class="pd-row"'+attrs+' data-pi="0">';
@@ -174,13 +174,8 @@ function _pdRowHtml(row,idx,isReal){
   h+=_pdLinkCellHtml(row).replace('__RS__',n);
   _pdCols.forEach(function(col){ h+=_pdMainCellHtml(row,col).replace('__RS__',n); });
   h+=_pdPartCellsHtml(parts[0]);
-  h+='<td class="pd-partdel">'+(n>1?'<button class="pd-del" onclick="pdDeletePart(this)" title="이 부품 줄 삭제">×</button>':'')+'</td>';
-  h+='<td class="pd-delcell" rowspan="'+n+'"><button class="pd-addpart" onclick="pdAddPart(this)" title="이 설비에 구매 부품 줄 추가">+ 부품</button>'
+  h+='<td class="pd-delcell" rowspan="'+n+'">'
     +(isReal?'<button class="pd-del" onclick="pdDeleteRow(this)" title="이 행 삭제">×</button>':'')+'</td></tr>';
-  for(var i=1;i<n;i++){
-    h+='<tr class="pd-part-row"'+attrs+' data-pi="'+i+'">'+_pdPartCellsHtml(parts[i])
-      +'<td class="pd-partdel"><button class="pd-del" onclick="pdDeletePart(this)" title="이 부품 줄 삭제">×</button></td></tr>';
-  }
   return h;
 }
 
@@ -189,7 +184,7 @@ function _pdTableHtml(){
   h+='<tr class="pd-h1"><th rowspan="2" class="pd-no">No</th><th rowspan="2" class="pd-link" style="min-width:76px">프로젝트<br>연결</th>';
   PD_GROUPS.forEach(function(g){ h+='<th colspan="'+g.cols.length+'">'+_esc(g.label)+'</th>'; });
   h+='<th colspan="3">'+_esc(PD_PART_GROUP)+'</th>';
-  h+='<th rowspan="2" class="pd-partdel"></th><th rowspan="2" class="pd-delcell"></th></tr>';
+  h+='<th rowspan="2" class="pd-delcell"></th></tr>';
   h+='<tr class="pd-h2">';
   _pdCols.forEach(function(c){ h+='<th style="min-width:'+c.w+'px">'+_esc(c.label)+'</th>'; });
   PD_PART_COLS.forEach(function(c){ h+='<th style="min-width:'+c.w+'px">'+_esc(c.label)+'</th>'; });
@@ -214,7 +209,7 @@ function renderPedestalBody(){
   var q=_pdSearch, html='';
   if(q){
     real.forEach(function(row,i){ if(_pdSearchText(row).indexOf(q)>=0) html+=_pdRowHtml(row,i,true); });
-    if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+4)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">검색 결과가 없습니다.</td></tr>';
+    if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+3)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">검색 결과가 없습니다.</td></tr>';
   }else{
     real.forEach(function(row,i){ html+=_pdRowHtml(row,i,true); });
     for(var i=real.length;i<PD_MIN_ROWS;i++) html+=_pdRowHtml({cells:{}},i,false);
@@ -274,21 +269,6 @@ function pdSetPart(inp,field){
   parts[pi][field]=val;
   _touch(row); saveData();
 }
-function pdAddPart(btn){
-  var row=_pdResolveRow(btn.closest('tr'));
-  _pdEnsureParts(row).push({dwgNo:'',itemName:'',spec:''});
-  _touch(row); saveData(); renderPedestalBody();
-}
-function pdDeletePart(btn){
-  var tr=btn.closest('tr'), pi=parseInt(tr.getAttribute('data-pi'),10)||0;
-  var row=_pdRowById(tr.getAttribute('data-rid')); if(!row) return;
-  var parts=_pdEnsureParts(row), p=parts[pi]; if(!p) return;
-  if((p.dwgNo||p.itemName||p.spec)&&!confirm('이 부품 줄(도번/품명/규격)을 삭제할까요?')) return;
-  parts.splice(pi,1);
-  if(!parts.length) parts.push({dwgNo:'',itemName:'',spec:''});
-  _touch(row); saveData(); renderPedestalBody();
-}
-
 function pdAddRows(n){
   var target=Math.max(_pdSortedRows().length,PD_MIN_ROWS)+n; // 화면에 보이는 빈 행까지 실제 행으로 만들고 n개 더 추가
   while(S.pedestalRows.length<target) _pdNewRow();

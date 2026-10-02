@@ -1025,10 +1025,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .pd-link-in{padding:8px 4px;font-size:11px;color:var(--tx-faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:110px}
 .pd-link-in.on{color:#7aafee;font-weight:600}
 .pd-link:hover .pd-link-in{background:var(--bg-sel)}
-.pd-table .pd-partdel{width:24px;min-width:24px;text-align:center}
-.pd-table .pd-delcell{width:64px;min-width:64px}
-.pd-addpart{display:block;margin:2px auto;border:1px solid var(--bd-main);background:var(--bg-alt);color:var(--tx-second);border-radius:4px;font-size:10px;padding:2px 5px;cursor:pointer;white-space:nowrap}
-.pd-addpart:hover{background:var(--bg-sel);color:var(--tx-primary)}
+.pd-table .pd-delcell{width:34px;min-width:34px}
 .pd-table tbody tr.pd-row td{border-top:none}
 .pd-table tbody tr.pd-row>td{border-top:2px solid var(--bd-main)}
 .pd-linkitem{display:flex;gap:10px;align-items:center;padding:7px 10px;border:1px solid var(--bd-main);border-radius:6px;background:var(--bg-deep);font-size:12px;cursor:pointer}
