@@ -1223,59 +1223,11 @@ function closeSidebar(view){
   if(sb) sb.classList.remove('open');
 }
 
-/* ── 관리자 모드 ──
-   좌측 상단 타이틀을 Ctrl+Shift를 누른 채 클릭하면 진입/해제된다. 어디에도 저장하지 않는
-   순수 메모리상 상태라서, 페이지를 새로고침하거나 새로 접속하면 누구나 항상 일반 모드로
-   시작한다 — 같은 화면을 동시에 보는 다른 접속자에게는 전혀 영향을 주지 않으며, 그들은
-   계속 일반 모드(조회 전용) 화면만 보게 된다.*/
-var _adminMode=false;
-function _isAdminMode(){ return _adminMode; }
-function _applyAdminVisibility(){
-  var admin=_isAdminMode();
-  ['btnSiteMgr','btnAddEvent','btnAddSchedule','btnSheetsSettings'].forEach(function(id){
-    var el=document.getElementById(id);
-    if(el) el.style.display=admin?'':'none';
-  });
-  var ttl=document.querySelector('.ttl');
-  if(ttl){ ttl.style.cursor=admin?'text':'default'; ttl.title=admin?'클릭하여 타이틀 수정':''; }
-}
-function _setAdminMode(on){
-  _adminMode=on;
-  _applyAdminVisibility();
-  switchTab(_activeTab);
-}
-function _handleTitleClick(e){
-  if(e.ctrlKey){ _setAdminMode(!_isAdminMode()); return; }
-  if(_isAdminMode()) _startEditAppTitle();
-}
-// 관리자 모드에서 타이틀을 직접 입력해 커스텀 이름으로 바꿀 수 있게 함 (Sheets에 저장되어 모든 접속자에게 반영)
-function _startEditAppTitle(){
-  var el=document.querySelector('.ttl');
-  if(!el||el.querySelector('input')) return;
-  var current=S.appTitle||t('appTitle');
-  el.textContent='';
-  var inp=document.createElement('input');
-  inp.type='text'; inp.value=current;
-  inp.style.cssText='font:inherit;font-weight:inherit;color:inherit;background:var(--bg-input,#1e1e26);border:1px solid #3a6bbf;border-radius:4px;padding:1px 6px;width:220px';
-  el.appendChild(inp);
-  inp.focus(); inp.select();
-  inp.onblur=function(){
-    S.appTitle=inp.value.trim();
-    saveData();
-    applyLanguage();
-  };
-  inp.onkeydown=function(ev){
-    if(ev.key==='Enter'){ ev.preventDefault(); inp.blur(); }
-    else if(ev.key==='Escape'){ ev.preventDefault(); inp.onblur=null; applyLanguage(); }
-  };
-}
-
 /* ── 시작 ── */
 // 모든 스크립트 로드 후 실행 (renderAll 등이 gantt.js에 정의되므로 DOMContentLoaded 사용)
 document.addEventListener('DOMContentLoaded', function(){
   initTheme();
   applyLanguage();
-  _applyAdminVisibility();
   loadData();
   applyLanguage(); // 캐시에 저장된 커스텀 타이틀(appTitle) 반영
   renderAll(); // 캐시/DEF 데이터로 즉시 표시

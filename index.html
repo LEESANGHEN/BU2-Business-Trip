@@ -9,7 +9,7 @@
   <script>
     (function(){var t=localStorage.getItem('trip_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
   </script>
-  <link rel="stylesheet" href="style.css?v=20260929a">
+  <link rel="stylesheet" href="style.css?v=20261002a">
   <!-- PWA: Chrome/Edge에서 "앱 설치"로 독립된 창(PC 앱)처럼 쓸 수 있게 한다.
        항상 이 주소를 그대로 불러오는 구조라 git push로 배포한 최신 내용이 그대로 반영된다. -->
   <link rel="manifest" href="manifest.json?v=20261001a">
@@ -29,7 +29,7 @@
     <div class="topbar">
       <div style="display:flex;align-items:center;gap:8px">
         <button class="mobile-only sidebar-toggle" onclick="toggleGlobalNav()" title="메뉴">☰</button>
-        <span class="ttl" data-i18n="appTitle" onclick="_handleTitleClick(event)">출장 일정 관리</span>
+        <span class="ttl" data-i18n="appTitle">출장 일정 관리</span>
         <div class="conn-dot" id="connStatus" onclick="checkConn()" title="클릭하면 연결 상태 확인">
           <div class="conn-led" id="connLed"></div>
           <span id="connTxt">연결 확인</span>
@@ -89,7 +89,7 @@
           <button class="btn warn" id="btnAddEquipItem" onclick="openAddEquipItem()" style="display:none">+ 항목</button>
         </div>
         <button class="btn" data-i18n="btnExcel" onclick="downloadExcel()">⬇ 엑셀</button>
-        <button class="btn" id="btnSheetsSettings" data-i18n="btnSheetsSettings" onclick="openSheetsSettings()">⚙ Sheets 설정</button>
+        <button class="btn" id="btnSheetsSettings" style="display:none" data-i18n="btnSheetsSettings" onclick="openSheetsSettings()">⚙ Sheets 설정</button>
       </div>
     </div>
     <div class="body-row">
@@ -193,14 +193,14 @@
 
   <script src="data.js?v=20260723b"></script>
   <script src="i18n.js?v=20260929b"></script>
-  <script src="app.js?v=20260922a"></script>
+  <script src="app.js?v=20261002a"></script>
   <script src="gantt.js?v=20260921a"></script>
   <script src="modals.js?v=20260901b"></script>
-  <script src="projects.js?v=20261002b"></script>
+  <script src="projects.js?v=20261002c"></script>
   <script src="setup.js?v=20260929d"></script>
   <script src="person.js?v=20260916a"></script>
   <script src="equip.js?v=20260810w"></script>
   <script src="export.js?v=20260904b"></script>
-  <script src="home.js?v=20260929b"></script>
+  <script src="home.js?v=20261002a"></script>
 </body>
 </html>

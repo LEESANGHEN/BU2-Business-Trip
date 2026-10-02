@@ -67,14 +67,9 @@ function _homeUpcomingCardHtml(){
 
 function _homeQuickActionsCardHtml(){
   var html='<div class="home-card"><p class="home-card-h">'+_esc(t('homeQuickTitle'))+'</p>';
-  if(_isAdminMode()){
-    html+='<button class="home-qbtn" onclick="switchTab(\'projects\');openAddMasterProject()">'+_esc(t('mpAddProject'))+'</button>';
-    html+='<button class="home-qbtn" onclick="switchTab(\'gantt\');openModal(\'schedule\')">'+_esc(t('btnAddSchedule'))+'</button>';
-  }
+  html+='<button class="home-qbtn" onclick="switchTab(\'projects\');openAddMasterProject()">'+_esc(t('mpAddProject'))+'</button>';
+  html+='<button class="home-qbtn" onclick="switchTab(\'gantt\');openModal(\'schedule\')">'+_esc(t('btnAddSchedule'))+'</button>';
   html+='<button class="home-qbtn" onclick="downloadExcel()">'+_esc(t('homeBtnExcel'))+'</button>';
-  if(_isAdminMode()){
-    html+='<button class="home-qbtn" onclick="openSheetsSettings()">'+_esc(t('btnSheetsSettings'))+'</button>';
-  }
   html+='</div>';
   return html;
 }

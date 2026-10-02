@@ -73,11 +73,9 @@ function renderProjectsTab(){
   if(!S.masterProjects.length){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
   }
-  if(_isAdminMode()){
-    var _selN=Object.keys(_mpSelectedIds).length;
-    html+='<button class="btn red sm" id="mpBulkDeleteBtn" onclick="deleteMpSelected()" style="display:'+(_selN>0?'inline-flex':'none')+'">선택 삭제 ('+_selN+')</button>';
-    html+='<button class="btn pri sm" onclick="openAddMasterProject()">'+t('mpAddProject')+'</button>';
-  }
+  var _selN=Object.keys(_mpSelectedIds).length;
+  html+='<button class="btn red sm" id="mpBulkDeleteBtn" onclick="deleteMpSelected()" style="display:'+(_selN>0?'inline-flex':'none')+'">선택 삭제 ('+_selN+')</button>';
+  html+='<button class="btn pri sm" onclick="openAddMasterProject()">'+t('mpAddProject')+'</button>';
   html+='</div>';
   html+='</div>';
   html+='<div class="pm-body-scroll"><div id="mpBody"></div></div>';
@@ -280,10 +278,10 @@ function renderProjectsBody(){
 function thS(sortKey,labelKey,defaultLbl,infoText){
   var isOn=_mpSortKey===sortKey;
   var arrow=isOn?(_mpSortAsc?' ▲':' ▼'):'';
-  return '<th class="'+(isOn?'on':'')+'" onclick="setMpSort(\''+sortKey+'\')">'+_colLabel(labelKey,defaultLbl)+(infoText?_mpInfoIconHtml(infoText):'')+arrow+_thEditBtn(labelKey)+'</th>';
+  return '<th class="'+(isOn?'on':'')+'" onclick="setMpSort(\''+sortKey+'\')">'+_colLabel(labelKey,defaultLbl)+(infoText?_mpInfoIconHtml(infoText):'')+arrow+'</th>';
 }
 function thP(labelKey,defaultLbl,infoText){
-  return '<th>'+_colLabel(labelKey,defaultLbl)+(infoText?_mpInfoIconHtml(infoText):'')+_thEditBtn(labelKey)+'</th>';
+  return '<th>'+_colLabel(labelKey,defaultLbl)+(infoText?_mpInfoIconHtml(infoText):'')+'</th>';
 }
 // 열 제목 옆에 붙는 안내 아이콘 — 데스크탑은 호버, 모바일은 탭으로 같은 툴팁을 보여준다
 function _mpInfoIconHtml(text){
@@ -329,26 +327,11 @@ function _colLabel(key,defaultLbl){
   // '/'를 줄바꿈 구분자로 써서 두 줄 이상으로도 표시할 수 있게 함 (예: "고객사 요청/설비 출하 일정")
   return ov.split('/').map(_esc).join('<br>');
 }
-function _thEditBtn(key){
-  return _isAdminMode()?' <span class="mp-th-edit" onclick="event.stopPropagation();_editColLabel(\''+key+'\')" title="제목 수정">✎</span>':'';
-}
-function _editColLabel(key){
-  var current=(S.labelOverrides&&S.labelOverrides[key])||'';
-  var v=prompt('열 제목을 입력하세요 (비우고 확인하면 기본 제목으로 돌아갑니다.\n두 줄로 나누고 싶으면 / 로 구분하세요. 예: 고객사 요청/설비 출하 일정):',current);
-  if(v===null)return;
-  if(!S.labelOverrides)S.labelOverrides={};
-  if(v.trim()==='')delete S.labelOverrides[key];
-  else S.labelOverrides[key]=v.trim();
-  saveData();
-  renderProjectsBody();
-}
 
 function renderProjectsTable(rows){
   var html='<table class="pm-person-table"><thead><tr>';
-  if(_isAdminMode()){
-    var _allSelected=rows.length>0&&rows.every(function(mp){return !!_mpSelectedIds[mp.id];});
-    html+='<th style="width:28px"><input type="checkbox" '+(_allSelected?'checked':'')+' onclick="event.stopPropagation()" onchange="toggleMpSelectAll(this.checked)" title="화면에 보이는 전체 선택"></th>';
-  }
+  var _allSelected=rows.length>0&&rows.every(function(mp){return !!_mpSelectedIds[mp.id];});
+  html+='<th style="width:28px"><input type="checkbox" '+(_allSelected?'checked':'')+' onclick="event.stopPropagation()" onchange="toggleMpSelectAll(this.checked)" title="화면에 보이는 전체 선택"></th>';
   html+=thS('category','colCategory',t('colCategory'))+thS('region','colRegionHdr',t('mpRegion'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
   html+=thS('serial','colSerial',t('colSerial'));
   html+=thS('prodUnit','colUnitCombined',t('colUnitCombined'));
@@ -357,7 +340,6 @@ function renderProjectsTable(rows){
   html+=thS('setupLocation','colSetupLocation',t('colSetupLocation'));
   html+=thS('shipDate','colShipDate',t('colShipDate'));
   html+=thS('status','colStatusHdr',t('mpStatus'));
-  if(_isAdminMode()) html+=thP('colManage',t('colManage'));
   html+='</tr></thead><tbody>';
   rows.forEach(function(mp){html+=renderProjectRow(mp);});
   html+='</tbody></table>';
@@ -420,24 +402,22 @@ function renderProjectRow(mp){
       shipLbl+='('+shipSetupDays+'일)';
     }
   }
-  var admin=_isAdminMode();
-  return '<tr class="pm-person-row"'+(admin?' style="cursor:pointer" onclick="openEditMasterProject(\''+mp.id+'\')"':'')+'>'
-    +(admin?'<td onclick="event.stopPropagation()"><input type="checkbox" '+(_mpSelectedIds[mp.id]?'checked':'')+' onchange="toggleMpRowSelect(\''+mp.id+'\',this.checked)"></td>':'')
+  // 수정은 시리얼 넘버를 클릭했을 때만 가능하다(행 클릭/수정 버튼 없음). 시리얼이 비어있는 행도
+  // 수정할 수 있도록 빈 값일 땐 "(미입력)"을 같은 링크 모양으로 보여준다
+  var serialCell='<span class="mp-serial-link" onclick="openEditMasterProject(\''+mp.id+'\')" title="클릭하여 수정">'+(mp.serial?_esc(mp.serial):'(미입력)')+'</span>';
+  return '<tr class="pm-person-row">'
+    +'<td><input type="checkbox" '+(_mpSelectedIds[mp.id]?'checked':'')+' onchange="toggleMpRowSelect(\''+mp.id+'\',this.checked)"></td>'
     +'<td>'+_mpCategoryBadge(mp.category)+'</td>'
     +'<td>'+_esc(tRegion(mp.region||''))+'</td>'
     +'<td>'+_esc(mp.customer||'')+'</td>'
     +'<td>'+_esc(mp.projectName||'')+'</td>'
-    +'<td>'+_esc(mp.serial||'')+'</td>'
+    +'<td>'+serialCell+'</td>'
     +'<td>'+_esc(unitLbl)+'</td>'
     +'<td>'+transferLbl+'</td>'
     +'<td>'+setupLbl+'</td>'
     +'<td>'+_esc(mp.setupLocation||'-')+'</td>'
     +'<td>'+shipLbl+'</td>'
     +'<td>'+_mpStatusBadge(_mpEffectiveStatus(mp))+'</td>'
-    +(admin?('<td onclick="event.stopPropagation()">'
-      +'<button class="eq-item-edit-btn" onclick="openEditMasterProject(\''+mp.id+'\')">'+t('btnEdit')+'</button> '
-      +'<button class="eq-item-edit-btn" onclick="delMasterProject(\''+mp.id+'\')" style="color:#c04040">'+t('btnDelete')+'</button>'
-      +'</td>'):'')
     +'</tr>';
 }
 
