@@ -1009,8 +1009,8 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .pd-table .pd-no{width:44px;min-width:44px;text-align:center;color:var(--tx-muted);background:var(--bg-alt)}
 .pd-table .pd-delcell{width:30px;min-width:30px;text-align:center;border-right:none}
 .pd-table tbody tr:hover td{background:var(--bg-sel)}
-.pd-in{width:100%;box-sizing:border-box;border:none;background:transparent;color:var(--tx-primary);padding:8px;font-size:12px;outline:none;min-width:90px}
-.pd-in:focus{background:var(--bg-sel);box-shadow:inset 0 0 0 1.5px #3a7ac0}
+.pd-table input.pd-in[type=text]{width:100%;box-sizing:border-box;border:none;border-radius:0;background:transparent;color:var(--tx-primary);padding:8px;font-size:12px;outline:none;min-width:90px}
+.pd-table input.pd-in[type=text]:focus{border-color:transparent;background:var(--bg-sel);box-shadow:inset 0 0 0 1.5px #3a7ac0}
 .pd-rich-td{cursor:pointer}
 .pd-rich{display:flex;align-items:center;gap:6px;padding:8px;min-height:16px}
 .pd-rich:hover{background:var(--bg-sel)}
