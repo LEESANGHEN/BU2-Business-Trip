@@ -140,6 +140,22 @@ function doPost(e) {
         viewUrl: file.getUrl()
       });
     }
+    if (body.action === 'getFile') {
+      // 앱 안 엑셀 편집용: 첨부 폴더(BU2_TRIP_ATTACHMENTS) 안의 파일만 내려준다
+      var gf = DriveApp.getFileById(body.fileId);
+      var attach = _getAttachFolder_();
+      var inAttach = false;
+      var parents = gf.getParents();
+      while (parents.hasNext()) { if (parents.next().getId() === attach.getId()) inAttach = true; }
+      if (!inAttach) return _json_({ error: 'not an attachment file' });
+      var gb = gf.getBlob();
+      return _json_({
+        ok: true,
+        name: gf.getName(),
+        mimeType: gb.getContentType(),
+        base64Data: Utilities.base64Encode(gb.getBytes())
+      });
+    }
     if (body.action === 'deleteFile') {
       try {
         DriveApp.getFileById(body.fileId).setTrashed(true);

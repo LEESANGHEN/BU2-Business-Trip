@@ -425,6 +425,7 @@ function _pdFilesHtml(row,key){
       :'<div class="pd-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📄</div>';
     return '<div class="pd-file">'+thumb
       +'<div style="flex:1;min-width:0"><div class="pd-fname" title="'+_esc(f.name||'')+'">'+_esc(f.name||'')+'</div><div style="font-size:10px;color:var(--tx-faint)">'+_pdFormatSize(f.size)+'</div></div>'
+      +(_pdIsXlsx(f)?'<button class="btn sm pri" onclick="pdEditFile(\''+fid+'\')">편집</button>':'')
       +'<a href="'+_esc(f.downloadUrl||f.viewUrl||'#')+'" target="_blank" rel="noopener" class="btn sm" style="text-decoration:none">다운로드</a>'
       +'<button class="btn sm red" onclick="pdDeleteFile(\''+fid+'\')">삭제</button></div>';
   }).join('');
@@ -541,6 +542,163 @@ function pdDeleteFile(fileId){
   _pdRefreshCell(ctx.rowId,ctx.key); _pdRefreshModalFiles(ctx);
   var url=getSheetsUrl();
   if(url&&String(fileId).indexOf('ref-')!==0) fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'deleteFile',fileId:fileId})}).catch(function(){});
+}
+
+/* ── 첨부 엑셀(.xlsx) 앱 안에서 편집 ──
+   파일을 불러와 표로 보여주고, 저장하면 수정본을 새 파일로 Drive에 올려 그 칸의 첨부파일을 교체한다.
+   기본 제공 양식(ref-)은 원본을 그대로 두고 이 행 전용 복사본이 만들어진다. */
+var PD_XLSX_MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+var _pdXl=null; // {wb,ws,ctx,fileId,fileName,lastRow}
+function _pdIsXlsx(f){ return /\.xlsx$/i.test(f.name||''); }
+function _pdB64ToBuf(b64){
+  var bin=atob(b64), buf=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++) buf[i]=bin.charCodeAt(i);
+  return buf.buffer;
+}
+function _pdFetchFileBuffer(f){
+  if(_pdIsStaticFile(f)) return fetch(new URL(f.downloadUrl,location.href).href,{cache:'no-store'}).then(function(r){ if(!r.ok) throw new Error('파일을 불러오지 못했습니다.'); return r.arrayBuffer(); });
+  var url=getSheetsUrl(); if(!url) return Promise.reject(new Error('Sheets 연동 URL이 설정되어 있지 않습니다.'));
+  return fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'getFile',fileId:f.id})})
+    .then(function(r){return r.json();})
+    .then(function(d){ if(d.error) throw new Error(d.error); return _pdB64ToBuf(d.base64Data); });
+}
+function _pdXlText(cell){
+  var v=cell.value;
+  if(v===null||v===undefined) return '';
+  if(typeof v==='object'){
+    if(v.richText) return v.richText.map(function(t){return t.text;}).join('');
+    if(v.result!==undefined&&v.result!==null) return String(v.result);
+    if(v.text!==undefined) return String(v.text);
+    if(v instanceof Date) return v.toISOString().slice(0,10);
+    return '';
+  }
+  return String(v);
+}
+function _pdXlLastRow(ws){
+  var last=1;
+  ws.eachRow({includeEmpty:false},function(row,n){ row.eachCell({includeEmpty:false},function(c){ if(_pdXlText(c)!=='') last=Math.max(last,n); }); });
+  return last;
+}
+function _pdXlCellCss(cell){
+  var css='', s=cell.style||{};
+  if(s.fill&&s.fill.fgColor&&s.fill.fgColor.argb) css+='background:#'+s.fill.fgColor.argb.slice(-6)+';color:#111;';
+  if(s.font&&s.font.bold) css+='font-weight:700;';
+  var h=s.alignment&&s.alignment.horizontal; if(h==='center'||h==='centerContinuous') css+='text-align:center;'; else if(h==='right') css+='text-align:right;';
+  return css;
+}
+function pdEditFile(fileId){
+  var ctx=_pdModal; if(!ctx) return;
+  var row=_pdRowById(ctx.rowId); if(!row) return;
+  var f=_pdFiles(row,ctx.key).find(function(x){return String(x.id)===String(fileId);}); if(!f) return;
+  var setSt=function(t){ var el=document.getElementById('pd_cell_status'); if(el) el.textContent=t; };
+  setSt('파일 불러오는 중...');
+  Promise.all([_pdFetchFileBuffer(f),new Promise(function(res){_ensureExcelJS(res);})]).then(function(r){
+    var wb=new ExcelJS.Workbook();
+    return wb.xlsx.load(r[0]).then(function(){ return wb; });
+  }).then(function(wb){
+    setSt('');
+    _pdXl={wb:wb,ws:wb.worksheets[0],ctx:{rowId:ctx.rowId,key:ctx.key},fileId:f.id,fileName:f.name,lastRow:0};
+    _pdXl.lastRow=_pdXlLastRow(_pdXl.ws)+4;
+    _pdOpenXlEditor();
+  }).catch(function(e){ setSt(''); alert('엑셀 파일을 열 수 없습니다: '+(e&&e.message||e)); });
+}
+function _pdXlGridHtml(){
+  var ws=_pdXl.ws, ncol=Math.max(ws.columnCount,5), nrow=_pdXl.lastRow;
+  var spans={}, covered={};
+  Object.keys(ws._merges||{}).forEach(function(k){
+    var m=ws._merges[k].model; if(!m) return;
+    spans[m.top+','+m.left]={rs:m.bottom-m.top+1,cs:m.right-m.left+1};
+    for(var r=m.top;r<=m.bottom;r++) for(var c=m.left;c<=m.right;c++) if(r!==m.top||c!==m.left) covered[r+','+c]=1;
+  });
+  var h='<table class="pd-xl"><thead><tr><th></th>';
+  for(var c=1;c<=ncol;c++) h+='<th style="min-width:'+Math.round((ws.getColumn(c).width||10)*7)+'px">'+String.fromCharCode(64+c)+'</th>';
+  h+='</tr></thead><tbody>';
+  for(var r=1;r<=nrow;r++){
+    h+='<tr><th>'+r+'</th>';
+    for(var cc=1;cc<=ncol;cc++){
+      var key=r+','+cc; if(covered[key]) continue;
+      var cell=ws.getCell(r,cc), sp=spans[key], txt=_pdXlText(cell);
+      h+='<td data-r="'+r+'" data-c="'+cc+'" data-o="'+_esc(txt)+'" contenteditable="plaintext-only" spellcheck="false"'
+        +(sp?' rowspan="'+sp.rs+'" colspan="'+sp.cs+'"':'')+' style="'+_pdXlCellCss(cell)+'">'+_esc(txt)+'</td>';
+    }
+    h+='</tr>';
+  }
+  return h+'</tbody></table>';
+}
+function _pdOpenXlEditor(){
+  var html='<div class="mtit">'+_esc(_pdXl.fileName)+' — 편집</div>'
+    +'<div style="font-size:11px;color:var(--tx-muted);margin-bottom:8px">칸을 클릭해서 직접 수정하세요. 저장하면 이 행(칸) 전용 파일로 보관됩니다'
+    +(String(_pdXl.fileId).indexOf('ref-')===0?' (기본 양식 원본은 그대로 유지됩니다)':'')+'.</div>'
+    +'<div id="pd_xl_wrap" style="max-height:55vh;overflow:auto;border:1px solid var(--bd-main);border-radius:6px">'+_pdXlGridHtml()+'</div>'
+    +'<div class="mfoot"><button class="btn sm" onclick="pdXlAddRow()" style="margin-right:auto">+ 행 추가</button>'
+    +'<span id="pd_xl_status" style="font-size:11px;color:var(--tx-muted);margin-right:8px"></span>'
+    +'<button class="btn sm" onclick="pdXlClose()">취소</button><button class="btn sm pri" id="pd_xl_save" onclick="pdXlSave()">저장</button></div>';
+  mw(html,true);
+}
+function pdXlAddRow(){
+  _pdXl.lastRow+=1;
+  var wrap=document.getElementById('pd_xl_wrap');
+  _pdXlCollect(); // 입력 중이던 값을 유지
+  wrap.innerHTML=_pdXlGridHtml(); wrap.scrollTop=wrap.scrollHeight;
+}
+// 편집한 칸의 값을 워크북에 반영한다 (바뀐 칸만 건드려서 서식/수식을 보존)
+function _pdXlCollect(){
+  var changed=0;
+  document.querySelectorAll('#pd_xl_wrap td[data-r]').forEach(function(td){
+    var txt=td.textContent.replace(/\r/g,''), o=td.getAttribute('data-o');
+    if(txt===o) return;
+    var cell=_pdXl.ws.getCell(parseInt(td.getAttribute('data-r'),10),parseInt(td.getAttribute('data-c'),10));
+    var wasNum=typeof cell.value==='number';
+    cell.value=txt===''?null:((wasNum&&/^-?\d+(\.\d+)?$/.test(txt.trim()))?Number(txt):txt);
+    td.setAttribute('data-o',txt); changed++;
+  });
+  return changed;
+}
+function pdXlClose(){
+  var ctx=_pdXl&&_pdXl.ctx; _pdXl=null;
+  cm();
+  if(ctx) _pdReopenCell(ctx);
+}
+function _pdReopenCell(ctx){
+  var tr=document.querySelector('#pdTbody tr.pd-row[data-rid="'+ctx.rowId+'"]');
+  var td=tr&&tr.querySelector('td[data-k="'+ctx.key+'"]');
+  if(td) openPedestalCell(td,ctx.key); else _pdModal=null;
+}
+function pdXlSave(){
+  if(!_pdXl) return;
+  var st=document.getElementById('pd_xl_status'), btn=document.getElementById('pd_xl_save');
+  var url=getSheetsUrl();
+  if(!url){ alert('Sheets 연동 URL이 설정되어 있지 않아 저장할 수 없습니다.'); return; }
+  _pdXlCollect();
+  if(btn) btn.disabled=true; if(st) st.textContent='저장 중...';
+  var x=_pdXl, ctx=x.ctx, row=_pdRowById(ctx.rowId);
+  var base=(x.fileName||'file.xlsx').replace(/\.xlsx$/i,'').replace(/ — No\.\d+.*$/,'');
+  var idx=(parseInt((document.querySelector('#pdTbody tr.pd-row[data-rid="'+ctx.rowId+'"]')||{getAttribute:function(){return 0;}}).getAttribute('data-idx'),10)||0)+1;
+  var cust=row?_pdText(row,_pdColByKey('customer')):'';
+  var name=String(x.fileId).indexOf('ref-')===0?base+' — No.'+idx+(cust?' '+cust:'')+'.xlsx':(x.fileName||base+'.xlsx');
+  x.wb.xlsx.writeBuffer().then(function(buf){
+    var blob=new Blob([buf],{type:PD_XLSX_MIME});
+    return new Promise(function(res,rej){
+      var rd=new FileReader(); rd.onload=function(){res(String(rd.result).split(',')[1]||'');}; rd.onerror=rej; rd.readAsDataURL(blob);
+    }).then(function(b64){
+      return fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
+        body:JSON.stringify({action:'uploadFile',fileName:name,mimeType:blob.type,base64Data:b64})}).then(function(r){return r.json();});
+    });
+  }).then(function(d){
+    if(d.error) throw new Error(d.error);
+    var r2=_pdRowById(ctx.rowId); if(!r2) throw new Error('행을 찾을 수 없습니다.');
+    var c=_pdRichCell(r2,ctx.key);
+    var entry={id:d.fileId,name:d.name,size:d.size,downloadUrl:d.downloadUrl,viewUrl:d.viewUrl,mimeType:PD_XLSX_MIME,uploadedAt:Date.now()};
+    var pos=c.files.findIndex(function(f){return String(f.id)===String(x.fileId);});
+    if(pos>=0) c.files.splice(pos,1,entry); else c.files.push(entry);
+    _touch(r2); saveData();
+    if(String(x.fileId).indexOf('ref-')!==0) fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'deleteFile',fileId:x.fileId})}).catch(function(){});
+    _pdRefreshCell(ctx.rowId,ctx.key);
+    _pdXl=null; cm(); _pdReopenCell(ctx);
+  }).catch(function(e){
+    if(btn) btn.disabled=false; if(st) st.textContent='';
+    alert('저장 실패: '+(e&&e.message||e)+'\n(서버가 막 깨어나는 중이면 잠시 후 다시 시도해주세요.)');
+  });
 }
 
 /* ── 엑셀 내보내기 (부품 여러 줄은 세로 병합) ── */
