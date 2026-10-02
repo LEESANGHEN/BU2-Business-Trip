@@ -1000,7 +1000,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 }
 
 /* ── Pedestal 이력 관리 ── */
-.pd-table{border-collapse:separate;border-spacing:0;font-size:12px;min-width:2300px;width:100%}
+.pd-table{border-collapse:separate;border-spacing:0;font-size:12px;min-width:2450px;width:100%}
 .pd-table th,.pd-table td{border-right:1px solid var(--bd-main);border-bottom:1px solid var(--bd-main);padding:0;background:var(--bg-base)}
 .pd-table thead th{position:sticky;z-index:2;background:var(--bg-grp);color:var(--tx-second);font-weight:700;text-align:center;padding:7px 6px;border-top:1px solid var(--bd-main)}
 .pd-table thead tr.pd-h1 th{top:0;height:32px}

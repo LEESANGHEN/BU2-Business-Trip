@@ -23,6 +23,7 @@ var PD_GROUPS=[
     {key:'productSize',label:'제품 Size',type:'text',w:90},
     {key:'productName',label:'제품명',type:'text',w:120},
     {key:'trayInfo',label:'Tray 정보',type:'rich',w:120},
+    {key:'partList',label:'Part List',type:'rich',w:120},
     {key:'custQuote',label:'견적서',full:'고객사 견적서',type:'doc',w:150},
     {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
   ]},
@@ -62,14 +63,20 @@ function _pdText(row,col){
   if(col.type==='text') return (typeof c==='string')?c:'';
   return (c&&typeof c==='object'&&c.text)||'';
 }
+// Part List 칸에는 모든 행에 기본으로 들어가는 기준(Reference) 엑셀 양식이 있다.
+// 정적 파일이라 행마다 복사본을 저장하지 않고, 행이 직접 지우기 전까지는 화면에서 기본값으로 보여준다.
+// 이 칸의 파일은 id가 'ref-'로 시작하며 Drive 삭제 요청을 보내지 않는다.
+var PD_DEFAULT_FILES={partList:[]};
+function _pdIsStaticFile(f){ return String(f&&f.id).indexOf('ref-')===0; }
 function _pdFiles(row,key){
   var c=row.cells&&row.cells[key];
-  return (c&&c.files)||[];
+  if(c&&c.files) return c.files;
+  return (!c&&PD_DEFAULT_FILES[key])||[];
 }
 function _pdRichCell(row,key){
   if(!row.cells) row.cells={};
   var c=row.cells[key];
-  if(!c||typeof c!=='object') c=row.cells[key]={text:'',files:[]};
+  if(!c||typeof c!=='object') c=row.cells[key]={text:'',files:(PD_DEFAULT_FILES[key]||[]).slice()};
   if(!c.files) c.files=[];
   return c;
 }
@@ -282,6 +289,7 @@ function _pdDeleteFilesOnDrive(row){
   var url=getSheetsUrl(); if(!url) return;
   Object.keys(row.cells||{}).forEach(function(k){
     _pdFiles(row,k).forEach(function(f){
+      if(_pdIsStaticFile(f)) return;
       fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'deleteFile',fileId:f.id})}).catch(function(){});
     });
   });
@@ -492,7 +500,7 @@ function pdDeleteFile(fileId){
   _touch(row); saveData();
   _pdRefreshCell(ctx.rowId,ctx.key); _pdRefreshModalFiles(ctx);
   var url=getSheetsUrl();
-  if(url) fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'deleteFile',fileId:fileId})}).catch(function(){});
+  if(url&&String(fileId).indexOf('ref-')!==0) fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'deleteFile',fileId:fileId})}).catch(function(){});
 }
 
 /* ── 엑셀 내보내기 (부품 여러 줄은 세로 병합) ── */
