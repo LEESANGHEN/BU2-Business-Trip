@@ -66,7 +66,9 @@ function _pdText(row,col){
 // Part List 칸에는 모든 행에 기본으로 들어가는 기준(Reference) 엑셀 양식이 있다.
 // 정적 파일이라 행마다 복사본을 저장하지 않고, 행이 직접 지우기 전까지는 화면에서 기본값으로 보여준다.
 // 이 칸의 파일은 id가 'ref-'로 시작하며 Drive 삭제 요청을 보내지 않는다.
-var PD_DEFAULT_FILES={partList:[]};
+var PD_DEFAULT_FILES={partList:[{id:'ref-partlist',name:'Change Kit Part List.xlsx',size:23235,
+  downloadUrl:'ref/Change_Kit_Part_List.xlsx',viewUrl:'ref/Change_Kit_Part_List.xlsx',
+  mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}]};
 function _pdIsStaticFile(f){ return String(f&&f.id).indexOf('ref-')===0; }
 function _pdFiles(row,key){
   var c=row.cells&&row.cells[key];
@@ -571,7 +573,7 @@ function _pdDoExport(){
         var cell=r.getCell(ci+1);
         if(c.files){
           var fl=_pdFiles(row,c.files);
-          cell.value=fl.length?{text:String(val),hyperlink:fl[0].viewUrl||fl[0].downloadUrl}:val;
+          cell.value=fl.length?{text:String(val),hyperlink:new URL(fl[0].viewUrl||fl[0].downloadUrl,location.href).href}:val;
         }else cell.value=val;
       });
     });
