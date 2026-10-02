@@ -9,7 +9,7 @@
   <script>
     (function(){var t=localStorage.getItem('trip_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
   </script>
-  <link rel="stylesheet" href="style.css?v=20261002a">
+  <link rel="stylesheet" href="style.css?v=20261002b">
   <!-- PWA: Chrome/Edge에서 "앱 설치"로 독립된 창(PC 앱)처럼 쓸 수 있게 한다.
        항상 이 주소를 그대로 불러오는 구조라 git push로 배포한 최신 내용이 그대로 반영된다. -->
   <link rel="manifest" href="manifest.json?v=20261001a">
@@ -96,6 +96,7 @@
       <div class="side-nav" id="sideNav">
         <button class="nav-item on" id="tab_home" data-i18n="tabHome" onclick="switchTab('home')">🏠 홈</button>
         <button class="nav-item" id="tab_projects" data-i18n="tabProjects" onclick="switchTab('projects')">🗂️ 프로젝트 관리</button>
+        <button class="nav-item" id="tab_pedestal" data-i18n="tabPedestal" onclick="switchTab('pedestal')">🧱 Pedestal 이력 관리</button>
         <button class="nav-item" id="tab_setup" data-i18n="tabSetup" onclick="switchTab('setup')">🛠️ HQ 셋업 간트 차트</button>
         <button class="nav-item" id="tab_gantt" data-i18n="tabGantt" onclick="switchTab('gantt')">📅 Field 셋업 간트 차트</button>
         <button class="nav-item" id="tab_person" data-i18n="tabPerson" onclick="switchTab('person')">👤 인원 출장일</button>
@@ -109,6 +110,9 @@
         </div>
         <div class="content" id="view_projects" style="display:none">
           <div class="pm-wrap" id="mpWrap"></div>
+        </div>
+        <div class="content" id="view_pedestal" style="display:none">
+          <div class="pm-wrap" id="pdWrap"></div>
         </div>
         <div class="content" id="view_setup" style="display:none">
           <div class="sidebar" id="setupSidebar">
@@ -192,11 +196,12 @@
   <input type="file" id="spAttachFileInput" multiple style="display:none" onchange="spHandleFileUpload(this)">
 
   <script src="data.js?v=20260723b"></script>
-  <script src="i18n.js?v=20260929b"></script>
-  <script src="app.js?v=20261002a"></script>
-  <script src="gantt.js?v=20260921a"></script>
+  <script src="i18n.js?v=20261002a"></script>
+  <script src="app.js?v=20261002b"></script>
+  <script src="gantt.js?v=20261002a"></script>
   <script src="modals.js?v=20260901b"></script>
   <script src="projects.js?v=20261002c"></script>
+  <script src="pedestal.js?v=20261002a"></script>
   <script src="setup.js?v=20260929d"></script>
   <script src="person.js?v=20260916a"></script>
   <script src="equip.js?v=20260810w"></script>

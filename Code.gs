@@ -44,7 +44,7 @@ var ATTACH_FOLDER_NAME = 'BU2_TRIP_ATTACHMENTS'; // 셋업 진행 첨부파일 �
 
 var FIELDS = ['groups', 'sites', 'projects', 'schedules', 'events', 'workTasks',
               'equipItems', 'equipUnits', 'equipSiteOrder', 'equipProjects',
-              'visionTemplate', 'visionEquips', 'masterProjects', 'appTitle', 'labelOverrides'];
+              'visionTemplate', 'visionEquips', 'masterProjects', 'pedestalRows', 'appTitle', 'labelOverrides'];
 
 function _getSheet_() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();

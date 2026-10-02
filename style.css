@@ -998,3 +998,26 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
   .pm-stat-card{min-width:80px;padding:8px 10px}
   .pm-stat-val{font-size:18px}
 }
+
+/* ── Pedestal 이력 관리 ── */
+.pd-table{border-collapse:separate;border-spacing:0;font-size:12px;min-width:1700px;width:100%}
+.pd-table th,.pd-table td{border-right:1px solid var(--bd-main);border-bottom:1px solid var(--bd-main);padding:0;background:var(--bg-base)}
+.pd-table thead th{position:sticky;z-index:2;background:var(--bg-grp);color:var(--tx-second);font-weight:700;text-align:center;padding:7px 6px;border-top:1px solid var(--bd-main)}
+.pd-table thead tr.pd-h1 th{top:0;height:32px}
+.pd-table thead tr.pd-h2 th{top:33px;background:var(--bg-alt)}
+.pd-table th:first-child,.pd-table td:first-child{border-left:1px solid var(--bd-main)}
+.pd-table .pd-no{width:44px;min-width:44px;text-align:center;color:var(--tx-muted);background:var(--bg-alt)}
+.pd-table .pd-delcell{width:30px;min-width:30px;text-align:center;border-right:none}
+.pd-table tbody tr:hover td{background:var(--bg-sel)}
+.pd-in{width:100%;box-sizing:border-box;border:none;background:transparent;color:var(--tx-primary);padding:8px;font-size:12px;outline:none;min-width:90px}
+.pd-in:focus{background:var(--bg-sel);box-shadow:inset 0 0 0 1.5px #3a7ac0}
+.pd-rich-td{cursor:pointer}
+.pd-rich{display:flex;align-items:center;gap:6px;padding:8px;min-height:16px}
+.pd-rich:hover{background:var(--bg-sel)}
+.pd-clip{flex-shrink:0;font-size:11px;color:#7aafee;background:#1a2a44;border-radius:10px;padding:1px 7px}
+.pd-snip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:150px;color:var(--tx-second)}
+.pd-del{border:none;background:none;color:var(--tx-faint);cursor:pointer;font-size:15px;line-height:1;padding:4px 6px;opacity:.4}
+.pd-del:hover{color:#e05a5a;opacity:1}
+.pd-file{display:flex;align-items:center;gap:8px;background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:6px;padding:6px 8px}
+.pd-thumb{width:56px;height:56px;object-fit:cover;border-radius:4px;border:1px solid var(--bd-main);background:var(--bg-deep);flex-shrink:0}
+.pd-fname{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
