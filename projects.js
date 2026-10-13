@@ -75,6 +75,7 @@ function renderProjectsTab(){
   }
   var _selN=Object.keys(_mpSelectedIds).length;
   html+='<button class="btn red sm" id="mpBulkDeleteBtn" onclick="deleteMpSelected()" style="display:'+(_selN>0?'inline-flex':'none')+'">선택 삭제 ('+_selN+')</button>';
+  html+='<button class="btn sm" onclick="openBatchMasterProject()" title="같은 설비를 시리얼/호기만 바꿔 여러 대 한 번에 등록">+ 여러 대 등록</button>';
   html+='<button class="btn pri sm" onclick="openAddMasterProject()">'+t('mpAddProject')+'</button>';
   html+='</div>';
   html+='</div>';
@@ -504,7 +505,8 @@ function _mpFormHtml(mp){
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="PO 대기"><option value="PO 발행"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
-  if(ie) html+='<button class="btn red sm" onclick="delMasterProject(\''+mp.id+'\')">삭제</button>';
+  if(ie) html+='<button class="btn red sm" onclick="delMasterProject(\''+mp.id+'\')">삭제</button>'
+    +'<button class="btn sm" onclick="openBatchMasterProject(\''+mp.id+'\')" title="이 프로젝트와 같은 내용으로 시리얼/호기만 바꿔 새로 등록" style="margin-right:auto">복제</button>';
   html+='<button class="btn sm" onclick="cm()">취소</button>';
   html+='<button class="btn sm pri" onclick="'+(ie?('saveEditMasterProject(\''+mp.id+'\')'):'saveAddMasterProject()')+'">'+(ie?'저장':'등록')+'</button>';
   html+='</div>';
