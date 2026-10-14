@@ -111,6 +111,15 @@ function homeGoToProjectsByMonth(key,ym){
 }
 function togglePmHideInactive(){
   _mpHideInactive=!_mpHideInactive;
+  // "진행중만 보기"를 켜는 순간에는 기본 화면으로 되돌린다 — 모든 필터/검색을 전체로 비우고
+  // 구분 내림차순으로 정렬한다(끄는 경우는 현재 필터를 그대로 두고 완료 등까지 보여주기만 한다)
+  if(_mpHideInactive){
+    _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
+    _mpSearch='';
+    _mpSortKey='category'; _mpSortAsc=false;
+    renderProjectsTab();
+    return;
+  }
   var btn=document.getElementById('mpHideInactiveBtn');
   if(btn) btn.className='pm-filter-btn'+(_mpHideInactive?' on':'');
   renderProjectsBody();
