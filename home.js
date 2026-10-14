@@ -210,12 +210,11 @@ function _homeEngInnerHtml(){
       +'<div class="home-bar-track"><div class="home-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div>'
       +'<span class="home-bar-n" style="width:44px">'+r.total+'일</span></div>';
   }).join(''):'<div class="home-empty">'+_esc(t('homeEngEmpty'))+'</div>';
-  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
-    +'<p class="home-card-h" style="margin:0">'+_esc(t('homeEngTitle'))+'</p>'
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+    +'<div><p class="home-card-h" style="margin:0 0 4px">'+_esc(t('homeEngTitle'))+'</p><p class="home-hint" style="margin:0">'+_esc(t('homeEngHint'))+'</p></div>'
     +'<div style="display:flex;align-items:center;gap:5px"><select class="home-eng-sel" onchange="homeEngSetYear(this.value)">'+yearOpts+'</select>'
     +btn('all',t('optAll'))+btn('tech',t('pmTypeTech'))+btn('outsource',t('pmTypeOutsource'))+'</div></div>'
-    +body
-    +'<p class="home-hint" style="margin:10px 0 0">'+_esc(t('homeEngHint'))+'</p>';
+    +body;
 }
 function _homeEngCardHtml(){ return '<div class="home-card" id="homeEngCard">'+_homeEngInnerHtml()+'</div>'; }
 function _homeEngRefresh(){ var el=document.getElementById('homeEngCard'); if(el) el.innerHTML=_homeEngInnerHtml(); }
