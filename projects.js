@@ -8,7 +8,7 @@
 
 var _mpSearch='';
 // 지역/고객사/설비명(프로젝트)/상태/이관월/출하월 필터 — 각각 다중 선택 가능(배열, 빈 배열=전체)
-var _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],shipMonth:[]};
+var _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
 var _mpSortKey='category';
 var _mpSortAsc=false;
 var _mpHideInactive=true;     // 완료/LOI 접수/PO 대기/PO 발행 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
@@ -64,6 +64,8 @@ function renderProjectsTab(){
   html+='<div class="pm-ctrl-sep"></div>';
   html+=_mpMsHtml('transferMonth',t('mpFilterTransferMonth'));
   html+='<div class="pm-ctrl-sep"></div>';
+  html+=_mpMsHtml('setupMonth',t('mpFilterSetupMonth'));
+  html+='<div class="pm-ctrl-sep"></div>';
   html+=_mpMsHtml('shipMonth',t('mpShipMonth'));
   html+='<div class="pm-ctrl-sep"></div>';
   html+='<div class="pm-ctrl-group">';
@@ -91,9 +93,20 @@ function setMpSearch(v){_mpSearch=v.trim().toLowerCase();renderProjectsBody();}
 // 프로젝트 관리 탭으로 이동한다("전체" 카드는 status를 빈 값으로). 진행중만 보기가 켜져
 // 있으면 완료/PO 대기 등의 상태가 가려져 아무것도 안 보일 수 있어 항상 꺼준다
 function homeGoToProjectsByStatus(status){
-  _mpMS={region:[],customer:[],project:[],status:status?[status]:[],transferMonth:[],shipMonth:[]};
+  _mpMS={region:[],customer:[],project:[],status:status?[status]:[],transferMonth:[],setupMonth:[],shipMonth:[]};
   _mpHideInactive=false;
   _mpSearch='';
+  switchTab('projects');
+}
+// 홈 "월별 설비 셋업 수량 / 출하 설비 수" 막대를 더블클릭하면 호출 — 다른 필터를 모두 초기화하고 그 달(key: setupMonth|shipMonth)만 골라
+// 프로젝트 관리로 이동한다. 그래프는 상태와 무관하게 집계하므로 "진행중만 보기"는 끄고, 해당 일정 순으로 정렬해 보여준다
+function homeGoToProjectsByMonth(key,ym){
+  _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
+  _mpMS[key]=[ym];
+  _mpHideInactive=false;
+  _mpSearch='';
+  _mpSortKey=(key==='setupMonth')?'setupStart':'shipDate';
+  _mpSortAsc=true;
   switchTab('projects');
 }
 function togglePmHideInactive(){
@@ -145,6 +158,22 @@ var _MP_MS_DEFS={
   transferMonth:function(){
     var arr=[];
     S.masterProjects.forEach(function(mp){var m=_mpTransferMonth(mp);if(m&&arr.indexOf(m)<0)arr.push(m);});
+    arr.sort();
+    return arr.map(function(v){return {value:v,label:v};});
+  },
+  setupMonth:function(){
+    var arr=[];
+    S.masterProjects.forEach(function(mp){
+      if(!mp.setupStart||!mp.setupEnd) return;
+      var y=parseInt(mp.setupStart.slice(0,4),10), m=parseInt(mp.setupStart.slice(5,7),10), guard=0;
+      var endYm=mp.setupEnd.slice(0,7);
+      while(guard++<60){
+        var ym=y+'-'+String(m).padStart(2,'0');
+        if(ym>endYm) break;
+        if(arr.indexOf(ym)<0) arr.push(ym);
+        m++; if(m>12){ m=1; y++; }
+      }
+    });
     arr.sort();
     return arr.map(function(v){return {value:v,label:v};});
   },
@@ -230,6 +259,7 @@ function _mpFilteredProjects(){
     if(_mpMS.project.length&&_mpMS.project.indexOf(mp.projectName||'')<0)return false;
     if(_mpMS.status.length&&_mpMS.status.indexOf(_mpEffectiveStatus(mp)||'')<0)return false;
     if(_mpMS.transferMonth.length&&_mpMS.transferMonth.indexOf(_mpTransferMonth(mp))<0)return false;
+    if(_mpMS.setupMonth.length&&!_mpMS.setupMonth.some(function(ym){return _mpMonthOverlap(ym,mp.setupStart,mp.setupEnd);}))return false;
     if(_mpMS.shipMonth.length&&_mpMS.shipMonth.indexOf(_mpShipMonth(mp))<0)return false;
     if(_mpHideInactive&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){

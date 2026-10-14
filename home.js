@@ -159,7 +159,7 @@ function _homeMonthlyShipData(){
   return _homeMonthlyMonths().map(function(m){
     var items=[];
     S.masterProjects.forEach(function(mp){ if(_mpShipMonth(mp)===m.ym) items.push(_homeMpLabel(mp)); });
-    return {label:m.label,value:items.length,items:items};
+    return {label:m.label,ym:m.ym,value:items.length,items:items};
   });
 }
 // HQ 셋업 기간이 그 달과 겹치는 프로젝트 수 + 목록 (월별 집계 탭의 "본사 셋업" 계산과 동일 기준)
@@ -167,7 +167,7 @@ function _homeMonthlySetupData(){
   return _homeMonthlyMonths().map(function(m){
     var items=[];
     S.masterProjects.forEach(function(mp){ if(_mpMonthOverlap(m.ym,mp.setupStart,mp.setupEnd)) items.push(_homeMpLabel(mp)); });
-    return {label:m.label,value:items.length,items:items};
+    return {label:m.label,ym:m.ym,value:items.length,items:items};
   });
 }
 // 막대를 클릭하면 그 달의 설비명(프로젝트) 목록을 툴팁으로 보여주고, 바깥을 클릭하면 닫힌다.
@@ -204,13 +204,13 @@ document.addEventListener('click',function(e){
   _homeHideChartTip();
 });
 
-function _homeMonthlyChartCardHtml(title,hintKey,color,data){
+function _homeMonthlyChartCardHtml(title,hintKey,color,data,filterKey){
   var max=Math.max.apply(null,data.map(function(d){return d.value;}).concat([1]));
   var cols=data.map(function(d){
     var h=d.value>0?Math.max(Math.round(d.value/max*100),6):2;
     var tip=(d.items&&d.items.length)?d.items.join('\n'):t('homeChartTipEmpty');
     return '<div class="home-chart-col"><div class="home-chart-val">'+d.value+'</div>'
-      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+_homeEscAttr(tip)+'" onclick="event.stopPropagation();_homeToggleChartTip(this)"></div>'
+      +'<div class="home-chart-bar" style="height:'+h+'%;background:'+color+';cursor:pointer" data-tip="'+_homeEscAttr(tip)+'" onclick="event.stopPropagation();_homeToggleChartTip(this)" ondblclick="event.stopPropagation();_homeHideChartTip();homeGoToProjectsByMonth(\x27'+filterKey+'\x27,\x27'+d.ym+'\x27)"></div>'
       +'<div class="home-chart-mo">'+_esc(d.label)+'</div></div>';
   }).join('');
   return '<div class="home-card" style="margin-bottom:14px"><p class="home-card-h">'+_esc(title)+'</p>'
@@ -258,8 +258,8 @@ function renderHomeTab(){
   html+=_homeStatRowHtml();
   html+='<div class="home-grid2">'+_homeUpcomingCardHtml()+_homeQuickActionsCardHtml()+'</div>';
   html+='<div class="home-grid2">'+_homeCountryCardHtml()+_homeTypeCardHtml()+'</div>';
-  html+=_homeMonthlyChartCardHtml(t('homeShipChartTitle'),'homeChartHint','#5a9aee',_homeMonthlyShipData());
-  html+=_homeMonthlyChartCardHtml(t('homeSetupChartTitle'),'homeChartHint','#4aaa70',_homeMonthlySetupData());
+  html+=_homeMonthlyChartCardHtml(t('homeShipChartTitle'),'homeChartHint','#5a9aee',_homeMonthlyShipData(),'shipMonth');
+  html+=_homeMonthlyChartCardHtml(t('homeSetupChartTitle'),'homeChartHint','#4aaa70',_homeMonthlySetupData(),'setupMonth');
   html+='<div class="home-grid2">'+_homeRecentCardHtml()+_homeHighlightCardHtml()+'</div>';
   wrap.innerHTML=html;
 }
