@@ -215,7 +215,18 @@ function showSM(ex){
   var isHidden=ie&&ex.hidden?true:false;
   var isDomestic=ie&&ex.domestic?true:false;
   var html='<div class="mtit">'+(ie?'출장 일정 수정':'출장 일정 등록')+'</div>';
-  html+='<div class="fg"><label class="fl">사이트</label><select id="f_site">'+so+'</select></div>';
+  // 사이트는 목록에서 고르거나 직접 입력한다. 목록에 없는 이름을 입력하면 저장할 때 사이트 관리에 자동으로 추가된다
+  var grpOpts='<option value="">그룹 선택...</option>'+S.groups.map(function(g){return '<option value="'+_esc(g.id)+'">'+_esc(g.name)+'</option>';}).join('');
+  html+='<div class="fg"><label class="fl">사이트</label>'
+    +'<input type="text" id="f_site_name" list="f_site_dl" placeholder="사이트 선택 또는 직접 입력" autocomplete="off">'
+    +'<datalist id="f_site_dl">'+_sortedSites().map(function(s){return '<option value="'+_esc(s.name)+'">';}).join('')+'</datalist>'
+    +'<input type="hidden" id="f_site" value="">'
+    +'<div id="f_site_new" style="display:none;margin-top:6px;padding:8px;border:1px solid var(--bd-main);border-radius:6px;background:var(--bg-deep)">'
+    +'<div style="font-size:11px;color:#7aafee;margin-bottom:6px">＋ 새 사이트입니다. 등록하면 <b>사이트 관리</b>에 자동으로 추가됩니다.</div>'
+    +'<div style="display:flex;gap:6px"><select id="f_site_grp" style="flex:1">'+grpOpts+'</select>'
+    +'<input type="text" id="f_site_city" placeholder="세부 지역 (선택, 예: 구미)" autocomplete="off" style="flex:1"></div>'
+    +'<div style="font-size:10px;color:var(--tx-muted);margin-top:4px">그룹은 간트차트 왼쪽 분류입니다. 국가와 색상은 선택한 그룹의 기존 사이트를 따라가며, 사이트 관리에서 언제든 바꿀 수 있습니다.</div>'
+    +'</div></div>';
   html+='<div class="fg"><label class="fl">국내 여부</label><label class="chkrow" style="margin:0"><input type="checkbox" id="f_domestic"'+(isDomestic?' checked':'')+'>국내 출장 (현장이 아닌 국내에서 진행)</label><span id="f_dom_warn" style="display:none;font-size:10px;color:#d08020;margin-left:6px">⚠ 해외 사이트 — 출장일이 국내로 집계됩니다</span></div>';
   html+='<div class="fg"><label class="fl">프로젝트 (한 출장에 설비를 여러 개 함께 진행하면 + 추가로 늘리세요)</label>'
     +'<div id="f_proj_list" style="display:flex;flex-direction:column;gap:4px;max-height:180px;overflow-y:auto;padding:4px 0"></div>'
@@ -241,7 +252,9 @@ function showSM(ex){
   _smIsEdit=ie;
   // 이벤트 등록
   function _updDomWarn(){var sid=document.getElementById('f_site').value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');var warn=document.getElementById('f_dom_warn');if(warn)warn.style.display=(domCb&&domCb.checked&&reg!=='국내'&&reg!=='기타')?'inline':'none';}
-  document.getElementById('f_site').onchange=function(){var sid=this.value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');if(domCb&&reg!=='국내'&&reg!=='기타'){domCb.checked=false;}_updDomWarn();};
+  var siteNameEl=document.getElementById('f_site_name');
+  siteNameEl.oninput=function(){_smSyncSite();};
+  siteNameEl.onchange=function(){_smSyncSite();var sid=document.getElementById('f_site').value;var reg=getSiteRegion(sid);var domCb=document.getElementById('f_domestic');if(domCb&&sid&&reg!=='국내'&&reg!=='기타'){domCb.checked=false;}_updDomWarn();};
   document.getElementById('f_domestic').onchange=function(){_updDomWarn();};
   document.getElementById('f_start').onchange=function(){document.getElementById('f_end').min=this.value;calcD();};
   document.getElementById('f_end').onchange=function(){calcD();};
@@ -255,7 +268,7 @@ function showSM(ex){
     var extBtn=document.getElementById('f_extAdd');
     if(extBtn) extBtn.onclick=function(){addExtension(ex.id);};
     var pr2=S.projects.find(function(p){return p.id===ex.projectId;});
-    if(pr2) document.getElementById('f_site').value=pr2.siteId;
+    if(pr2) _smSetSite(pr2.siteId);
     upP(initialProjNames);
     setTimeout(function(){
       calcD(); // 수정 모드에서 초기 날짜 표시
@@ -265,6 +278,52 @@ function showSM(ex){
     upP();
     calcD(); // 신규 등록 모드 초기 날짜 표시
   }
+}
+/* ── 출장 등록의 사이트 입력: 기존 사이트를 고르거나 새 이름을 직접 입력 (새 이름은 저장 시 사이트 관리에 자동 추가) ── */
+function _smFindSiteByName(name){
+  var n=String(name||'').trim().toLowerCase(); if(!n) return null;
+  return S.sites.find(function(s){return String(s.name||'').trim().toLowerCase()===n;})||null;
+}
+function _smSetSite(siteId){
+  var s=S.sites.find(function(x){return x.id===siteId;});
+  var nameEl=document.getElementById('f_site_name'), idEl=document.getElementById('f_site');
+  if(nameEl) nameEl.value=s?s.name:'';
+  if(idEl) idEl.value=s?s.id:'';
+  var box=document.getElementById('f_site_new'); if(box) box.style.display='none';
+}
+// 입력한 이름이 기존 사이트면 숨은 id 값을 채우고, 아니면 비운 채 "새 사이트" 안내 상자를 보여준다
+function _smSyncSite(){
+  var nameEl=document.getElementById('f_site_name'), idEl=document.getElementById('f_site'), box=document.getElementById('f_site_new');
+  if(!nameEl||!idEl) return;
+  var name=nameEl.value.trim(), s=_smFindSiteByName(name);
+  idEl.value=s?s.id:'';
+  if(box) box.style.display=(name&&!s)?'block':'none';
+}
+// 그룹에 이미 있는 사이트들의 국가(가장 많은 값)와 색상을 따라간다 — 그룹이 비어 있으면 기타/기본색
+function _smGroupDefaults(gid){
+  var sites=S.sites.filter(function(s){return (s.groupId||'_none')===gid;});
+  var cnt={}, best='기타', bestN=0;
+  sites.forEach(function(s){var c=s.country||'기타'; cnt[c]=(cnt[c]||0)+1; if(cnt[c]>bestN){bestN=cnt[c];best=c;}});
+  return {country:best,color:(sites[0]&&sites[0].color)||'#1558a0'};
+}
+// 저장 직전에 호출: 새 이름이면 사이트를 만들고 id를 돌려준다. 입력이 잘못됐으면 null(알림 표시)
+function _smEnsureSite(){
+  var name=(document.getElementById('f_site_name').value||'').trim();
+  if(!name){ alert('사이트를 입력하거나 선택하세요.'); return null; }
+  var existing=_smFindSiteByName(name);
+  if(existing){ document.getElementById('f_site').value=existing.id; return existing.id; }
+  var gid=(document.getElementById('f_site_grp')||{}).value;
+  if(!gid){ alert('새 사이트입니다. 사이트 관리에 추가할 그룹을 선택하세요.'); return null; }
+  var city=((document.getElementById('f_site_city')||{}).value||'').trim();
+  var def=_smGroupDefaults(gid);
+  var baseId=name.replace(/[^a-zA-Z0-9가-힣]/g,'_').replace(/_+/g,'_').replace(/^_|_$/g,'')||'site';
+  var newId=baseId,n=2;
+  while(S.sites.find(function(s){return s.id===newId;})||_isDeleted('sites',newId)) newId=baseId+'_'+n++;
+  var rec={id:newId,name:name,color:def.color,groupId:gid,country:def.country};
+  if(city) rec.region=city;
+  S.sites.push(_touch(rec));
+  document.getElementById('f_site').value=newId;
+  return newId;
 }
 /* 사이트/프로젝트 select 공용 정렬(가나다순) + 프로젝트 목록 갱신 */
 function _sortedSites(){return S.sites.slice().sort(function(a,b){return a.name.localeCompare(b.name,'ko');});}
@@ -375,7 +434,6 @@ function calcD(){
   }
 }
 function saveSc(exId){
-  var projIds=_resolveProjIds();
   var task=document.getElementById('f_task').value.trim();
   var name=document.getElementById('f_name').value.trim();
   var occSeq=parseInt(document.getElementById('f_occSeq').value,10)||1;
@@ -386,9 +444,12 @@ function saveSc(exId){
   var hidden=document.getElementById('f_hidden').checked;
   var domestic=document.getElementById('f_domestic').checked;
   var dateRe=/^\d{4}-\d{2}-\d{2}$/;
-  if(!projIds.length||!task||!name||!start||!end){alert('필수 항목을 모두 입력하세요(프로젝트명을 최소 1개 입력하세요).');return;}
+  if(!_readProjectNamesFromForm().length||!task||!name||!start||!end){alert('필수 항목을 모두 입력하세요(프로젝트명을 최소 1개 입력하세요).');return;}
   if(!dateRe.test(start)||!dateRe.test(end)){alert('날짜 형식이 올바르지 않아요.\n예: 2026-04-01');return;}
   if(start>end){alert('복귀일이 출발일보다 빠릅니다.');return;}
+  // 검증을 모두 통과한 뒤에야 새 사이트/프로젝트를 만든다 (실패한 등록이 사이트 관리에 빈 항목을 남기지 않도록)
+  if(!_smEnsureSite()) return;
+  var projIds=_resolveProjIds();
   if(exId){
     var ex=S.schedules.find(function(s){return s.id===exId;});
     if(!ex)return;
