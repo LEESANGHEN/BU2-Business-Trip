@@ -359,9 +359,9 @@ function _spAttachListHtml(attachments){
   return attachments.map(function(a){
     var fidAttr=String(a.id).replace(/'/g,"\\'");
     return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:6px;padding:5px 8px">'
-      +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+_esc(a.name||'')+'</span>'
-      +'<span style="color:var(--tx-faint);flex-shrink:0">'+_spFmtFileSize(a.size)+'</span>'
-      +'<a href="'+_esc(a.downloadUrl||a.viewUrl||'#')+'" target="_blank" rel="noopener" class="btn sm" style="flex-shrink:0;text-decoration:none">다운로드</a>'
+      +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.link?'🔗 ':'')+_esc(a.name||'')+'</span>'
+      +(a.link?'<span style="color:var(--tx-faint);flex-shrink:0">링크</span>':'<span style="color:var(--tx-faint);flex-shrink:0">'+_spFmtFileSize(a.size)+'</span>')
+      +'<a href="'+_esc(a.downloadUrl||a.viewUrl||'#')+'" target="_blank" rel="noopener" class="btn sm" style="flex-shrink:0;text-decoration:none">'+(a.link?'열기':'다운로드')+'</a>'
       +'<button class="btn sm red" style="flex-shrink:0" onclick="spDeleteAttachment(\''+_spModalMpId.replace(/'/g,"\\'")+'\',\''+fidAttr+'\')">삭제</button>'
       +'</div>';
   }).join('');
@@ -422,8 +422,15 @@ function openSpProgressModal(mpId){
 
   html+='<div class="fg"><label class="fl">첨부파일(이미지/파일) <span style="font-weight:400;color:var(--tx-faint)">· 파일당 최대 '+SP_MAX_FILE_MB+'MB</span></label>'
     +'<div id="sp_attach_list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'+_spAttachListHtml(p.attachments)+'</div>'
-    +'<button class="btn sm" onclick="spTriggerFileUpload(\''+idAttr+'\')">+ 파일 추가</button>'
+    +'<button class="btn sm" onclick="spTriggerFileUpload(\''+idAttr+'\')">+ 파일 추가</button> '
+    +'<button class="btn sm" onclick="spToggleLinkForm()" title="용량이 큰 파일은 공유 폴더(SharePoint/OneDrive/Drive 등)에 올린 뒤 주소만 첨부하세요">+ 링크 추가</button>'
     +'<span id="sp_attach_status" style="font-size:11px;color:var(--tx-muted);margin-left:8px"></span>'
+    +'<div id="sp_link_form" style="display:none;margin-top:8px;padding:8px;border:1px solid var(--bd-main);border-radius:6px;background:var(--bg-deep)">'
+    +'<div style="font-size:11px;color:var(--tx-muted);margin-bottom:6px">용량이 큰 파일은 공유 폴더에 올린 뒤 그 주소(https://…)를 붙여넣으세요. 열람 권한은 해당 폴더에서 관리됩니다.</div>'
+    +'<div style="display:flex;gap:6px"><input type="text" id="sp_link_name" placeholder="표시할 이름 (예: Raw data 2026-10)" autocomplete="off" style="flex:1">'
+    +'<input type="text" id="sp_link_url" placeholder="https://…" autocomplete="off" style="flex:2" onkeydown="if(event.key===\'Enter\'){event.preventDefault();spAddLink(\''+idAttr+'\');}">'
+    +'<button class="btn sm pri" onclick="spAddLink(\''+idAttr+'\')">추가</button></div>'
+    +'</div>'
     +'</div>';
 
   html+='<div class="mfoot"><button class="btn sm pri" onclick="cm()">닫기</button></div>';
@@ -640,6 +647,29 @@ function spHandleFileUpload(inputEl){
   });
 }
 
+// 용량이 큰 파일은 업로드하지 않고, 공유 폴더에 올린 파일의 주소만 첨부 목록에 추가한다(Drive 저장 공간을 쓰지 않음)
+function spToggleLinkForm(){
+  var f=document.getElementById('sp_link_form'); if(!f) return;
+  var show=f.style.display==='none';
+  f.style.display=show?'block':'none';
+  if(show){ var u=document.getElementById('sp_link_name'); if(u) u.focus(); }
+}
+function spAddLink(mpId){
+  var nameEl=document.getElementById('sp_link_name'), urlEl=document.getElementById('sp_link_url');
+  var url=(urlEl&&urlEl.value||'').trim(), name=(nameEl&&nameEl.value||'').trim();
+  if(!/^https?:\/\/\S+$/i.test(url)){ alert('주소는 http:// 또는 https:// 로 시작하는 링크여야 합니다.'); return; }
+  if(!name){
+    try{ var u=new URL(url); name=decodeURIComponent(u.pathname.split('/').filter(Boolean).pop()||u.hostname); }catch(e){ name=url; }
+  }
+  var mp=S.masterProjects.find(function(x){return x.id===mpId;}); if(!mp) return;
+  var attachments=(_spProgress(mp).attachments||[]).slice();
+  attachments.push({id:'link-'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:name,link:true,downloadUrl:url,viewUrl:url,uploadedAt:Date.now()});
+  _spSetProgress(mpId,{attachments:attachments});
+  _spRefreshAttachList();
+  if(nameEl) nameEl.value=''; if(urlEl) urlEl.value='';
+  var f=document.getElementById('sp_link_form'); if(f) f.style.display='none';
+}
+
 function spDeleteAttachment(mpId,fileId){
   if(!confirm('첨부파일을 삭제할까요?')) return;
   var mp=S.masterProjects.find(function(x){return x.id===mpId;});
@@ -649,7 +679,7 @@ function spDeleteAttachment(mpId,fileId){
   _spSetProgress(mpId,{attachments:attachments});
   _spRefreshAttachList();
   var url=getSheetsUrl();
-  if(url){
+  if(url&&String(fileId).indexOf('link-')!==0){
     fetch(url,{method:'POST',headers:{'Content-Type':'text/plain'},
       body:JSON.stringify({action:'deleteFile',fileId:fileId})
     }).catch(function(){});
