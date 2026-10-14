@@ -199,7 +199,6 @@ function _homeEngInnerHtml(){
   _homeEngRows=shown;
   var tot=shown.reduce(function(a,r){return a+r.total;},0);
   var max=shown.length?shown[0].total:1;
-  var sum=t('homeEngSummary').replace('{n}',shown.length).replace('{t}',tot).replace('{a}',Math.round(tot/Math.max(shown.length,1)));
   var btn=function(f,label){
     return '<button class="home-eng-btn'+(_homeEngFilter===f?' on':'')+'" onclick="homeEngSetFilter(\''+f+'\')">'+_esc(label)+'</button>';
   };
@@ -215,7 +214,6 @@ function _homeEngInnerHtml(){
     +'<p class="home-card-h" style="margin:0">'+_esc(t('homeEngTitle'))+'</p>'
     +'<div style="display:flex;align-items:center;gap:5px"><select class="home-eng-sel" onchange="homeEngSetYear(this.value)">'+yearOpts+'</select>'
     +btn('all',t('optAll'))+btn('tech',t('pmTypeTech'))+btn('outsource',t('pmTypeOutsource'))+'</div></div>'
-    +'<p class="home-hint" style="margin:0 0 10px">'+_esc(sum)+'</p>'
     +body
     +'<p class="home-hint" style="margin:10px 0 0">'+_esc(t('homeEngHint'))+'</p>';
 }
