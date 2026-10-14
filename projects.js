@@ -354,21 +354,26 @@ var _MP_CATEGORY_BADGE_STYLE={
   '기타':'background:#3a2a10;color:#e0972e;border:1px solid #6a4a1a'
 };
 var _MP_STATUS_BADGE_STYLE={
-  '진행중(HQ)':'background:#1a3a5a;color:#5a9aee;border:1px solid #2a5a8a',
-  '진행중(Field)':'background:#1a4a2a;color:#4aaa70;border:1px solid #2a6a3a',
+  '생산중(HQ)':'background:#3a2a10;color:#e0972e;border:1px solid #6a4a1a',
+  '셋업(HQ)':'background:#1a3a5a;color:#5a9aee;border:1px solid #2a5a8a',
+  '셋업(Field)':'background:#1a4a2a;color:#4aaa70;border:1px solid #2a6a3a',
   '완료':'background:var(--bg-hover);color:var(--tx-dim);border:1px solid var(--bd-main)',
   'PO 대기':'background:#3a3010;color:#d4b02e;border:1px solid #6a5a1a',
   'PO 발행':'background:#2a1a4a;color:#b39ddb;border:1px solid #4a3080',
   'LOI 접수':'background:#103a3a;color:#2ecccc;border:1px solid #1a6a6a'
 };
-// 저장된 상태값 자체는 "진행중"으로 하나지만, 화면에는 출하 일정을 기준으로 HQ 셋업 중인지
-// (출하 전) 현장에서 진행 중인지(출하 후)를 자동으로 나눠서 보여준다 — 관리자가 수동으로
-// HQ/Field를 고를 필요 없이 출하 일정만 등록/변경하면 자동으로 분류가 바뀐다
+// 저장된 상태값 자체는 "진행중"으로 하나지만, 화면에는 날짜를 기준으로 세 가지로 나눠서 보여준다 —
+// 일정만 등록/변경하면 상태 분류가 자동으로 바뀌므로 수동으로 고를 필요가 없다.
+//  · 출하 일정(고객사 요청 출하 일정이 있으면 그 날짜)이 이미 지났으면      → 셋업(Field)
+//  · 그 전이면서 생산 이관일(변경 이관일이 있으면 그 날짜) 당일 이전이면      → 생산중(HQ)
+//  · 그 전이면서 생산 이관일 다음 날부터                                    → 셋업(HQ)
+// 이관일이 아직 없으면 아직 이관 전이므로 생산중(HQ)으로 본다
 function _mpEffectiveStatus(mp){
   if(mp.status==='진행중'){
-    // 고객사 요청 출하 일정이 등록되면 그 날짜를 기준으로, 없으면 HQ 출하 예정일을 기준으로 판단
-    var d=_mpEffectiveShipDate(mp);
-    return (d&&pd(d)<TODAY)?'진행중(Field)':'진행중(HQ)';
+    var ship=_mpEffectiveShipDate(mp);
+    if(ship&&pd(ship)<TODAY) return '셋업(Field)';
+    var tr=_mpEffectiveTransferDate(mp);
+    return (tr&&pd(tr)<TODAY)?'셋업(HQ)':'생산중(HQ)';
   }
   return mp.status;
 }

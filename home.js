@@ -26,8 +26,8 @@ function _homeUpcomingTrips(days,limit){
   return limit?list.slice(0,limit):list;
 }
 
-var HOME_STATUS_ORDER=['진행중(HQ)','진행중(Field)','완료','PO 대기','PO 발행','LOI 접수'];
-var HOME_STATUS_COLOR={'진행중(HQ)':'#5a9aee','진행중(Field)':'#4aaa70','완료':'var(--tx-dim)','PO 대기':'#d4b02e','PO 발행':'#b39ddb','LOI 접수':'#2ecccc'};
+var HOME_STATUS_ORDER=['생산중(HQ)','셋업(HQ)','셋업(Field)','완료','PO 대기','PO 발행','LOI 접수'];
+var HOME_STATUS_COLOR={'생산중(HQ)':'#e0972e','셋업(HQ)':'#5a9aee','셋업(Field)':'#4aaa70','완료':'var(--tx-dim)','PO 대기':'#d4b02e','PO 발행':'#b39ddb','LOI 접수':'#2ecccc'};
 
 function _homeGreetingHtml(){
   var dateStr=new Intl.DateTimeFormat(_homeLocale(),{year:'numeric',month:'long',day:'numeric',weekday:'long'}).format(TODAY);
