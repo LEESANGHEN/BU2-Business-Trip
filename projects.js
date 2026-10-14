@@ -512,6 +512,7 @@ function _mpFormHtml(mp){
   html+='<div style="display:flex;gap:8px">'
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>'
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_customerReqShipDate','고객사 요청 출하 일정',ie?mp.customerReqShipDate:'')+'</div>'
+    +'<div class="fg" style="flex:1"><label class="fl">출장 담당자</label><input type="text" id="mp_tripManager" value="'+v('tripManager')+'" autocomplete="off"></div>'
     +'</div>';
   html+='<div style="font-size:10px;color:var(--tx-muted);margin:-4px 0 10px">셋업 "종료"일은 자동으로 바뀌지 않습니다 — 목록 화면의 출하 일정 옆 (00일)은 셋업 종료일과 무관하게, 셋업 시작일부터 지금 적용되는 출하일 하루 전까지 셋업에 쓸 수 있는 일수를 별도로 계산해서 보여주는 참고용 숫자입니다.</div>';
   html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
@@ -531,7 +532,7 @@ function _mpReadForm(){
     category:v('mp_category'), region:_mpReadRegionField(), customer:v('mp_customer'), projectName:v('mp_projectName'),
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
     setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'), setupLocation:v('mp_setupLocation'),
-    shipDate:v('mp_shipDate'), customerReqShipDate:v('mp_customerReqShipDate'),
+    shipDate:v('mp_shipDate'), customerReqShipDate:v('mp_customerReqShipDate'), tripManager:v('mp_tripManager'),
     transferDate:v('mp_transferDate'), transferDateOverride:v('mp_transferDateOverride'),
     status:v('mp_status')
   };
