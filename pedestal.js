@@ -412,7 +412,10 @@ function openPedestalLink(td){
 }
 function _pdLinkFiltered(){
   var q=((document.getElementById('pd_link_q')||{}).value||'').trim().toLowerCase();
+  // 숨긴 프로젝트는 목록에서 빼되, 이 행에 이미 연결돼 있는 것은 해제할 수 있도록 남긴다
+  var row=_pdModal&&_pdRowById(_pdModal.rowId), linked=row?_pdProjectIds(row):[];
   return S.masterProjects.filter(function(mp){
+    if(mp.hidden&&linked.indexOf(mp.id)<0) return false;
     if(!q) return true;
     return [mp.serial,mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit].join(' ').toLowerCase().indexOf(q)>=0;
   }).sort(function(a,b){

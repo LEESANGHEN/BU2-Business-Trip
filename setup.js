@@ -52,7 +52,7 @@ function _spIsHiddenByDefault(mp){
   return _spIsPastComplete(mp)||_spIsFarFutureTransfer(mp);
 }
 function _spFilteredProjects(){
-  return S.masterProjects.filter(function(mp){
+  return _mpActive().filter(function(mp){
     if(_spFilterRegion!=='all'&&(mp.region||'기타')!==_spFilterRegion) return false;
     if(_spFilterCustomer!=='all'&&(mp.customer||'')!==_spFilterCustomer) return false;
     if(_spIsHiddenByDefault(mp)&&!S.showHidden) return false;
@@ -166,14 +166,14 @@ function renderSetupSidebar(){
   var isAll=(_spFilterRegion==='all');
   var allDiv=document.createElement('div');
   allDiv.className='sit-all'+(isAll?' on':'');
-  var totalCnt=S.masterProjects.filter(function(mp){return !_spIsHiddenByDefault(mp)||S.showHidden;}).length;
+  var totalCnt=_mpActive().filter(function(mp){return !_spIsHiddenByDefault(mp)||S.showHidden;}).length;
   allDiv.innerHTML='<div class="sdot" style="background:#666"></div><span class="sname">'+_esc(t('optAll'))+'</span><span class="scnt'+(totalCnt>0?' has':'')+'">'+totalCnt+'</span>';
   allDiv.onclick=function(){_spFilterRegion='all';_spFilterCustomer='all';renderSetupTab();};
   el.appendChild(allDiv);
 
   var regionOpts=_MP_MS_DEFS.region();
   regionOpts.forEach(function(r){
-    var regionMps=S.masterProjects.filter(function(mp){return (mp.region||'기타')===r.value&&(!_spIsHiddenByDefault(mp)||S.showHidden);});
+    var regionMps=_mpActive().filter(function(mp){return (mp.region||'기타')===r.value&&(!_spIsHiddenByDefault(mp)||S.showHidden);});
     if(!regionMps.length) return;
     var isRegionActive=(_spFilterRegion===r.value&&_spFilterCustomer==='all');
     var collapsed=!!_spGrpCollapsed[r.value];

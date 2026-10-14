@@ -31,7 +31,7 @@ var HOME_STATUS_COLOR={'생산중(HQ)':'#e0972e','셋업(HQ)':'#5a9aee','셋업(
 
 function _homeGreetingHtml(){
   var dateStr=new Intl.DateTimeFormat(_homeLocale(),{year:'numeric',month:'long',day:'numeric',weekday:'long'}).format(TODAY);
-  var poWaiting=S.masterProjects.filter(function(mp){return mp.status==='PO 대기';}).length;
+  var poWaiting=_mpActive().filter(function(mp){return mp.status==='PO 대기';}).length;
   var upcoming=_homeUpcomingTrips(14).length;
   var parts=[];
   if(poWaiting) parts.push(t('homeSubPoWaiting').replace('{n}',poWaiting));
@@ -42,12 +42,12 @@ function _homeGreetingHtml(){
 
 function _homeStatRowHtml(){
   var counts={}; HOME_STATUS_ORDER.forEach(function(k){counts[k]=0;});
-  S.masterProjects.forEach(function(mp){
+  _mpActive().forEach(function(mp){
     var st=_mpEffectiveStatus(mp);
     if(counts[st]!==undefined) counts[st]++;
   });
   var html='<div class="home-stat-row">';
-  html+='<div class="home-stat-card" style="cursor:pointer" onclick="homeGoToProjectsByStatus(\'\')" title="'+_esc(t('homeStatClickHint')||'')+'"><div class="home-stat-num">'+S.masterProjects.length+'</div><div class="home-stat-lbl">'+_esc(t('optAll'))+'</div></div>';
+  html+='<div class="home-stat-card" style="cursor:pointer" onclick="homeGoToProjectsByStatus(\'\')" title="'+_esc(t('homeStatClickHint')||'')+'"><div class="home-stat-num">'+_mpActive().length+'</div><div class="home-stat-lbl">'+_esc(t('optAll'))+'</div></div>';
   HOME_STATUS_ORDER.forEach(function(k){
     var kAttr=k.replace(/'/g,"\\'");
     html+='<div class="home-stat-card" style="cursor:pointer" onclick="homeGoToProjectsByStatus(\''+kAttr+'\')" title="'+_esc(t('homeStatClickHint')||'')+'"><div class="home-stat-num" style="color:'+HOME_STATUS_COLOR[k]+'">'+counts[k]+'</div><div class="home-stat-lbl">'+_esc(tStatus(k))+'</div></div>';
@@ -81,7 +81,7 @@ function _homeEscAttr(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&
 // 국가(지역)별로 등록된 고객사(사이트)를 함께 모아서, 막대에 마우스를 올리면 목록을 보여준다
 function _homeCountryCardHtml(){
   var data={};
-  S.masterProjects.forEach(function(mp){
+  _mpActive().forEach(function(mp){
     var r=tRegion(mp.region||'기타');
     if(!data[r]) data[r]={count:0,sites:{}};
     data[r].count++;
@@ -158,7 +158,7 @@ function _homeMpLabel(mp){ return (mp.projectName||'-')+' · '+(mp.customer||'-'
 function _homeMonthlyShipData(){
   return _homeMonthlyMonths().map(function(m){
     var items=[];
-    S.masterProjects.forEach(function(mp){ if(_mpShipMonth(mp)===m.ym) items.push(_homeMpLabel(mp)); });
+    _mpActive().forEach(function(mp){ if(_mpShipMonth(mp)===m.ym) items.push(_homeMpLabel(mp)); });
     return {label:m.label,ym:m.ym,value:items.length,items:items};
   });
 }
@@ -166,7 +166,7 @@ function _homeMonthlyShipData(){
 function _homeMonthlySetupData(){
   return _homeMonthlyMonths().map(function(m){
     var items=[];
-    S.masterProjects.forEach(function(mp){ if(_mpMonthOverlap(m.ym,mp.setupStart,mp.setupEnd)) items.push(_homeMpLabel(mp)); });
+    _mpActive().forEach(function(mp){ if(_mpMonthOverlap(m.ym,mp.setupStart,mp.setupEnd)) items.push(_homeMpLabel(mp)); });
     return {label:m.label,ym:m.ym,value:items.length,items:items};
   });
 }
@@ -219,7 +219,7 @@ function _homeMonthlyChartCardHtml(title,hintKey,color,data,filterKey){
 }
 
 function _homeRecentCardHtml(){
-  var list=S.masterProjects.slice().sort(function(a,b){return (b.mt||0)-(a.mt||0);}).slice(0,5);
+  var list=_mpActive().slice().sort(function(a,b){return (b.mt||0)-(a.mt||0);}).slice(0,5);
   var body=list.length?list.map(function(mp){
     var d=mp.mt?new Date(mp.mt):null;
     return '<div class="home-row"><span class="home-row-main">'+_esc(mp.projectName||'')+' · '+_esc(mp.customer||'')+'</span>'
@@ -237,7 +237,7 @@ function _homeHighlightCardHtml(){
   var y=TODAY.getFullYear(),mo=TODAY.getMonth();
   var isThisMonth=function(ts){ if(!ts)return false; var d=new Date(ts); return d.getFullYear()===y&&d.getMonth()===mo; };
   var newCount=0,doneCount=0,poIssuedCount=0;
-  S.masterProjects.forEach(function(mp){
+  _mpActive().forEach(function(mp){
     if(isThisMonth(_homeCreatedAt(mp))) newCount++;
     if(mp.status==='완료'&&isThisMonth(mp.mt)) doneCount++;
     if(mp.status==='PO 발행'&&isThisMonth(mp.mt)) poIssuedCount++;

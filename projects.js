@@ -14,6 +14,12 @@ var _mpSortAsc=false;
 var _mpHideInactive=true;     // 완료/LOI 접수/PO 대기/PO 발행 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
 var _MP_HIDDEN_STATUSES=['완료','LOI 접수','PO 대기','PO 발행'];
 var _mpSelectedIds={};        // 일괄 삭제용 체크된 프로젝트 id 모음(id -> true)
+var _mpViewHidden=false;     // true면 "숨긴 프로젝트" 목록만 보는 화면(숨김 해제/삭제 용도)
+// 숨김 처리한(mp.hidden) 프로젝트는 삭제된 것이 아니라 데이터는 그대로 두고, 목록/홈 통계/월별 집계/엑셀/HQ 간트 어디에도
+// 나오지 않게만 한다. "숨긴 항목" 화면에서 다시 찾아 숨김을 해제할 수 있다
+function _mpActive(){ return S.masterProjects.filter(function(mp){return !mp.hidden;}); }
+function _mpHiddenList(){ return S.masterProjects.filter(function(mp){return !!mp.hidden;}); }
+function _mpViewList(){ return _mpViewHidden?_mpHiddenList():_mpActive(); }
 
 // "생산 98호기"처럼 숫자가 섞인 호기 텍스트를 숫자 크기로 비교 (둘 다 숫자면 숫자 비교, 아니면 문자열 비교)
 function _mpUnitNum(v){
@@ -76,6 +82,8 @@ function renderProjectsTab(){
     html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
   }
   var _selN=Object.keys(_mpSelectedIds).length;
+  html+='<button class="btn sm" onclick="toggleMpHiddenView()" title="숨겨 둔 프로젝트를 다시 찾아 숨김 해제">'+(_mpViewHidden?'← 전체 목록으로':'🙈 숨긴 항목 ('+_mpHiddenList().length+')')+'</button>';
+  html+='<button class="btn sm" id="mpBulkHideBtn" onclick="hideMpSelected()" style="display:'+(_selN>0?'inline-flex':'none')+'">'+(_mpViewHidden?'선택 숨김 해제':'선택 숨기기')+' ('+_selN+')</button>';
   html+='<button class="btn red sm" id="mpBulkDeleteBtn" onclick="deleteMpSelected()" style="display:'+(_selN>0?'inline-flex':'none')+'">선택 삭제 ('+_selN+')</button>';
   html+='<button class="btn sm" onclick="openBatchMasterProject()" title="같은 설비를 시리얼/호기만 바꿔 여러 대 한 번에 등록">+ 여러 대 등록</button>';
   html+='<button class="btn pri sm" onclick="openAddMasterProject()">'+t('mpAddProject')+'</button>';
@@ -96,6 +104,7 @@ function homeGoToProjectsByStatus(status){
   _mpMS={region:[],customer:[],project:[],status:status?[status]:[],transferMonth:[],setupMonth:[],shipMonth:[]};
   _mpHideInactive=false;
   _mpSearch='';
+  _mpViewHidden=false;
   switchTab('projects');
 }
 // 홈 "월별 설비 셋업 수량 / 출하 설비 수" 막대를 더블클릭하면 호출 — 다른 필터를 모두 초기화하고 그 달(key: setupMonth|shipMonth)만 골라
@@ -105,6 +114,7 @@ function homeGoToProjectsByMonth(key,ym){
   _mpMS[key]=[ym];
   _mpHideInactive=false;
   _mpSearch='';
+  _mpViewHidden=false;
   _mpSortKey=(key==='setupMonth')?'setupStart':'shipDate';
   _mpSortAsc=true;
   switchTab('projects');
@@ -117,6 +127,7 @@ function togglePmHideInactive(){
     _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
     _mpSearch='';
     _mpSortKey='category'; _mpSortAsc=false;
+    _mpViewHidden=false;
     renderProjectsTab();
     return;
   }
@@ -143,36 +154,36 @@ function _mpTransferMonth(mp){ var d=_mpEffectiveTransferDate(mp); return d?d.sl
 var _MP_MS_DEFS={
   region:function(){
     var arr=[];
-    S.masterProjects.forEach(function(mp){if(mp.region&&arr.indexOf(mp.region)<0)arr.push(mp.region);});
+    _mpViewList().forEach(function(mp){if(mp.region&&arr.indexOf(mp.region)<0)arr.push(mp.region);});
     (typeof BASE_REGIONS!=='undefined'?BASE_REGIONS:[]).forEach(function(r){if(arr.indexOf(r)<0)arr.push(r);});
     return arr.map(function(v){return {value:v,label:tRegion(v)};});
   },
   customer:function(){
     var arr=[];
-    S.masterProjects.forEach(function(mp){if(mp.customer&&arr.indexOf(mp.customer)<0)arr.push(mp.customer);});
+    _mpViewList().forEach(function(mp){if(mp.customer&&arr.indexOf(mp.customer)<0)arr.push(mp.customer);});
     arr.sort(function(a,b){return a.localeCompare(b,'ko');});
     return arr.map(function(v){return {value:v,label:v};});
   },
   project:function(){
     var arr=[];
-    S.masterProjects.forEach(function(mp){if(mp.projectName&&arr.indexOf(mp.projectName)<0)arr.push(mp.projectName);});
+    _mpViewList().forEach(function(mp){if(mp.projectName&&arr.indexOf(mp.projectName)<0)arr.push(mp.projectName);});
     arr.sort(function(a,b){return a.localeCompare(b,'ko');});
     return arr.map(function(v){return {value:v,label:v};});
   },
   status:function(){
     var arr=[];
-    S.masterProjects.forEach(function(mp){var st=_mpEffectiveStatus(mp);if(st&&arr.indexOf(st)<0)arr.push(st);});
+    _mpViewList().forEach(function(mp){var st=_mpEffectiveStatus(mp);if(st&&arr.indexOf(st)<0)arr.push(st);});
     return arr.map(function(v){return {value:v,label:tStatus(v)};});
   },
   transferMonth:function(){
     var arr=[];
-    S.masterProjects.forEach(function(mp){var m=_mpTransferMonth(mp);if(m&&arr.indexOf(m)<0)arr.push(m);});
+    _mpViewList().forEach(function(mp){var m=_mpTransferMonth(mp);if(m&&arr.indexOf(m)<0)arr.push(m);});
     arr.sort();
     return arr.map(function(v){return {value:v,label:v};});
   },
   setupMonth:function(){
     var arr=[];
-    S.masterProjects.forEach(function(mp){
+    _mpViewList().forEach(function(mp){
       if(!mp.setupStart||!mp.setupEnd) return;
       var y=parseInt(mp.setupStart.slice(0,4),10), m=parseInt(mp.setupStart.slice(5,7),10), guard=0;
       var endYm=mp.setupEnd.slice(0,7);
@@ -188,7 +199,7 @@ var _MP_MS_DEFS={
   },
   shipMonth:function(){
     var arr=[];
-    S.masterProjects.forEach(function(mp){var m=_mpShipMonth(mp);if(m&&arr.indexOf(m)<0)arr.push(m);});
+    _mpViewList().forEach(function(mp){var m=_mpShipMonth(mp);if(m&&arr.indexOf(m)<0)arr.push(m);});
     arr.sort();
     return arr.map(function(v){return {value:v,label:v};});
   }
@@ -262,7 +273,7 @@ document.addEventListener('click',function(e){
 });
 
 function _mpFilteredProjects(){
-  return S.masterProjects.filter(function(mp){
+  return _mpViewList().filter(function(mp){
     if(_mpMS.region.length&&_mpMS.region.indexOf(mp.region||'기타')<0)return false;
     if(_mpMS.customer.length&&_mpMS.customer.indexOf(mp.customer||'')<0)return false;
     if(_mpMS.project.length&&_mpMS.project.indexOf(mp.projectName||'')<0)return false;
@@ -270,7 +281,7 @@ function _mpFilteredProjects(){
     if(_mpMS.transferMonth.length&&_mpMS.transferMonth.indexOf(_mpTransferMonth(mp))<0)return false;
     if(_mpMS.setupMonth.length&&!_mpMS.setupMonth.some(function(ym){return _mpMonthOverlap(ym,mp.setupStart,mp.setupEnd);}))return false;
     if(_mpMS.shipMonth.length&&_mpMS.shipMonth.indexOf(_mpShipMonth(mp))<0)return false;
-    if(_mpHideInactive&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
+    if(_mpHideInactive&&!_mpViewHidden&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){
       var hay=[mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit,mp.serial,mp.tripManager].join(' ').toLowerCase();
       if(hay.indexOf(_mpSearch)<0)return false;
@@ -284,7 +295,7 @@ function renderProjectsBody(){
   var rows=_mpFilteredProjects();
   if(!rows.length){
     body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">'
-      +(S.masterProjects.length?'해당 조건의 프로젝트가 없습니다.':'등록된 프로젝트가 없습니다. 엑셀 데이터를 가져오거나 새로 등록하세요.')
+      +(_mpViewHidden?'숨긴 프로젝트가 없습니다. 목록에서 프로젝트를 선택하고 "선택 숨기기"를 누르면 여기에 모입니다.':S.masterProjects.length?'해당 조건의 프로젝트가 없습니다.':'등록된 프로젝트가 없습니다. 엑셀 데이터를 가져오거나 새로 등록하세요.')
       +'</div>';
     return;
   }
@@ -560,7 +571,8 @@ function _mpFormHtml(mp){
   html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="PO 대기"><option value="PO 발행"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
   if(ie) html+='<button class="btn red sm" onclick="delMasterProject(\''+mp.id+'\')">삭제</button>'
-    +'<button class="btn sm" onclick="openBatchMasterProject(\''+mp.id+'\')" title="이 프로젝트와 같은 내용으로 시리얼/호기만 바꿔 새로 등록" style="margin-right:auto">복제</button>';
+    +'<button class="btn sm" onclick="openBatchMasterProject(\''+mp.id+'\')" title="이 프로젝트와 같은 내용으로 시리얼/호기만 바꿔 새로 등록">복제</button>'
+    +'<button class="btn sm" onclick="toggleMpHidden(\''+mp.id+'\')" title="삭제하지 않고 목록/통계에서 감춥니다. 목록 위 \'숨긴 항목\'에서 다시 찾을 수 있습니다." style="margin-right:auto">'+(mp.hidden?'숨김 해제':'숨기기')+'</button>';
   html+='<button class="btn sm" onclick="cm()">취소</button>';
   html+='<button class="btn sm pri" onclick="'+(ie?('saveEditMasterProject(\''+mp.id+'\')'):'saveAddMasterProject()')+'">'+(ie?'저장':'등록')+'</button>';
   html+='</div>';
@@ -622,6 +634,40 @@ function _mpUpdateBulkBar(){
   var n=Object.keys(_mpSelectedIds).length;
   btn.style.display=n>0?'inline-flex':'none';
   btn.textContent='선택 삭제 ('+n+')';
+  var hb=document.getElementById('mpBulkHideBtn');
+  if(hb){
+    hb.style.display=n>0?'inline-flex':'none';
+    hb.textContent=(_mpViewHidden?'선택 숨김 해제':'선택 숨기기')+' ('+n+')';
+  }
+}
+// 선택한 프로젝트를 숨기거나(일반 화면) 숨김을 해제한다(숨긴 항목 화면). 삭제와 달리 데이터는 그대로 남는다
+function hideMpSelected(){
+  var ids=Object.keys(_mpSelectedIds);
+  if(!ids.length) return;
+  var hide=!_mpViewHidden;
+  S.masterProjects.forEach(function(mp){
+    if(!_mpSelectedIds[mp.id]) return;
+    if(hide) mp.hidden=true; else delete mp.hidden;
+    _touch(mp);
+  });
+  _mpSelectedIds={};
+  saveData();
+  renderProjectsTab();
+}
+// 프로젝트 수정 창의 숨기기 / 숨김 해제 버튼
+function toggleMpHidden(id){
+  var mp=S.masterProjects.find(function(m){return m.id===id;});
+  if(!mp) return;
+  if(mp.hidden) delete mp.hidden; else mp.hidden=true;
+  _touch(mp);
+  saveData(); cm();
+  _mpSelectedIds={};
+  renderProjectsTab();
+}
+function toggleMpHiddenView(){
+  _mpViewHidden=!_mpViewHidden;
+  _mpSelectedIds={};
+  renderProjectsTab();
 }
 function toggleMpRowSelect(id,checked){
   if(checked) _mpSelectedIds[id]=true; else delete _mpSelectedIds[id];
@@ -710,7 +756,7 @@ function renderMonthlyAggTab(){
 }
 function _mpAllMonths(){
   var min=null,max=null;
-  S.masterProjects.forEach(function(mp){
+  _mpActive().forEach(function(mp){
     [mp.setupStart,mp.setupEnd,mp.trip1Start,mp.trip1End].forEach(function(d){
       if(!d)return;
       if(!min||d<min)min=d;
@@ -746,7 +792,7 @@ function _mpMonthOverlap(ym,start,end){
 function _mpMonthGroup(ym,phase){
   var groups={};
   if(phase==='hq'){
-    S.masterProjects.forEach(function(mp){
+    _mpActive().forEach(function(mp){
       if(!_mpMonthOverlap(ym,mp.setupStart,mp.setupEnd))return;
       var key=(mp.region||'기타')+'|'+(mp.customer||'')+'|'+(mp.projectName||'');
       groups[key]=(groups[key]||0)+1;

@@ -57,7 +57,7 @@ function _xStyle(cell,opts){
 /* ── Sheet: 프로젝트관리 ── */
 function _buildProjectsSheet(wb){
   var ws=wb.addWorksheet('프로젝트관리');
-  var rows=S.masterProjects.slice().sort(function(a,b){
+  var rows=_mpActive().slice().sort(function(a,b){
     var tieFields=['category','region','customer','projectName'];
     for(var i=0;i<tieFields.length;i++){
       var f=tieFields[i];
