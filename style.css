@@ -886,10 +886,10 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .home-chart-tt{display:none;position:absolute;z-index:50;background:var(--bg-grp);color:var(--tx-primary);padding:8px 11px;border-radius:5px;font-size:12px;white-space:pre-line;max-width:280px;max-height:220px;overflow-y:auto;border:1px solid var(--bd-main);box-shadow:0 4px 12px rgba(0,0,0,.5);line-height:1.6}
 .home-hello{font-size:19px;font-weight:700;margin:0 0 4px}
 .home-sub{color:var(--tx-muted);font-size:12px;margin:0 0 20px}
-.home-stat-row{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:18px}
-.home-stat-card{background:var(--bg-panel);border:1px solid var(--bd-light);border-radius:9px;padding:12px 10px;text-align:center}
-.home-stat-num{font-size:21px;font-weight:700}
-.home-stat-lbl{color:var(--tx-muted);font-size:10px;margin-top:3px;white-space:nowrap}
+.home-stat-row{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;margin-bottom:16px}
+.home-stat-card{background:var(--bg-panel);border:1px solid var(--bd-light);border-radius:8px;padding:8px 6px;text-align:center;min-width:0}
+.home-stat-num{font-size:17px;font-weight:700;line-height:1.2}
+.home-stat-lbl{color:var(--tx-muted);font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .home-grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 .home-card{background:var(--bg-panel);border:1px solid var(--bd-light);border-radius:9px;padding:14px 16px}
 .home-card-h{font-size:13px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:6px}
