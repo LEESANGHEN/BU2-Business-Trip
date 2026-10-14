@@ -312,9 +312,9 @@ function renderGantt(){
   var _gscrollEl=document.getElementById('gscroll');
   var _gTop=_gscrollEl?_gscrollEl.scrollTop:0, _gLeft=_gscrollEl?_gscrollEl.scrollLeft:0;
   body.innerHTML='';
-  // 숨김 보기 버튼 상태 동기화 (showHidden이 localStorage에서 복원된 경우 반영)
+  // 완료 보기(숨김 보기) 버튼 상태 동기화 (showHidden이 localStorage에서 복원된 경우 반영)
   var _btn=document.getElementById('btnHidden');
-  if(_btn){_btn.textContent=S.showHidden?'숨김 숨기기':'숨김 보기';_btn.className='btn'+(S.showHidden?' warn':'');}
+  if(_btn){_btn.textContent=S.showHidden?'완료 숨기기':'완료 보기';_btn.className='btn'+(S.showHidden?' warn':'');}
   // 오늘 날짜 문자열 (과거 일정 판별용)
   var _td=TODAY;var todayISO=_td.getFullYear()+'-'+String(_td.getMonth()+1).padStart(2,'0')+'-'+String(_td.getDate()).padStart(2,'0');
   // 사이드바와 동일한 그룹→사이트 순서 기준으로 프로젝트 정렬

@@ -1162,10 +1162,10 @@ function loadFromSheets(callback){
 function toggleShowHidden(){
   S.showHidden=!S.showHidden;
   try{localStorage.setItem('bu2_showHidden',S.showHidden?'1':'0');}catch(e){}
-  document.getElementById('btnHidden').textContent=S.showHidden?'숨김 숨기기':'숨김 보기';
+  document.getElementById('btnHidden').textContent=S.showHidden?'완료 숨기기':'완료 보기';
   document.getElementById('btnHidden').className='btn'+(S.showHidden?' warn':'');
   var bh2=document.getElementById('btnHiddenSetup');
-  if(bh2){bh2.textContent=S.showHidden?'숨김 숨기기':'숨김 보기';bh2.className='btn'+(S.showHidden?' warn':'');}
+  if(bh2){bh2.textContent=S.showHidden?'완료 숨기기':'완료 보기';bh2.className='btn'+(S.showHidden?' warn':'');}
   // renderGantt()만 다시 그리면 타임라인 범위(_months/전체 폭)는 숨김 켜기 전 값 그대로라
   // 과거/숨김 막대가 스크롤 범위 밖에 그려져 좌우로 스크롤해도 안 보인다 — 범위부터 다시 계산
   renderAll();

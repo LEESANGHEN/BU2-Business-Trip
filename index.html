@@ -70,13 +70,13 @@
             <label class="chkrow"><input type="checkbox" id="tf_event" checked onchange="toggleTypeShow('event',this.checked)"><span data-i18n="filterEvent">이벤트</span></label>
             <label class="chkrow"><input type="checkbox" id="tf_work" checked onchange="toggleTypeShow('work',this.checked)"><span data-i18n="filterWork">작업</span></label>
           </div>
-          <button class="btn" id="btnHidden" data-i18n="btnHidden" onclick="toggleShowHidden()">숨김 보기</button>
+          <button class="btn" id="btnHidden" data-i18n="btnHidden" onclick="toggleShowHidden()">완료 보기</button>
           <button class="btn" id="btnSiteMgr" data-i18n="btnSiteMgr" onclick="openModal('site')">사이트 관리</button>
           <button class="btn ev" id="btnAddEvent" data-i18n="btnAddEvent" onclick="openModal('event')">★ 이벤트 등록</button>
           <button class="btn pri" id="btnAddSchedule" data-i18n="btnAddSchedule" onclick="openModal('schedule')">+ 출장 등록</button>
         </div>
         <div id="setupTools" style="display:none;gap:5px;align-items:center;flex-wrap:wrap">
-          <button class="btn" id="btnHiddenSetup" onclick="toggleShowHidden()">숨김 보기</button>
+          <button class="btn" id="btnHiddenSetup" onclick="toggleShowHidden()">완료 보기</button>
         </div>
         <div id="equipTools" style="display:none;gap:5px;align-items:center;flex-wrap:wrap">
           <button class="mobile-only sidebar-toggle" onclick="openSidebar('equip')" title="사이트 필터">☰</button>
@@ -196,14 +196,14 @@
   <input type="file" id="spAttachFileInput" multiple style="display:none" onchange="spHandleFileUpload(this)">
 
   <script src="data.js?v=20260723b"></script>
-  <script src="i18n.js?v=20261002d"></script>
-  <script src="app.js?v=20261002b"></script>
-  <script src="gantt.js?v=20261002a"></script>
+  <script src="i18n.js?v=20261014a"></script>
+  <script src="app.js?v=20261014a"></script>
+  <script src="gantt.js?v=20261014a"></script>
   <script src="modals.js?v=20261014a"></script>
   <script src="projects.js?v=20261002k"></script>
   <script src="projects-batch.js?v=20261002a"></script>
   <script src="pedestal.js?v=20261002j"></script>
-  <script src="setup.js?v=20261014c"></script>
+  <script src="setup.js?v=20261014d"></script>
   <script src="person.js?v=20260916a"></script>
   <script src="equip.js?v=20260810w"></script>
   <script src="export.js?v=20261014a"></script>

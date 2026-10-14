@@ -21,7 +21,7 @@ function setSpZoom(z){ _spZoom=z; renderSetupTab(); }
 
 // 출하일(최초 일정 또는 프로젝트 관리에서 변경 적용된 일정) 다음날이 지난 프로젝트는
 // Field 셋업 간트 차트의 "완료" 숨김 처리와 동일하게 기본적으로 목록에서 숨긴다
-// (상단 "숨김 보기" 토글로 다시 볼 수 있음 — S.showHidden 공용 상태)
+// (상단 "완료 보기" 토글로 다시 볼 수 있음 — S.showHidden 공용 상태)
 function _spIsPastComplete(mp){
   var ship=_mpEffectiveShipDate(mp);
   if(!ship) return false;
@@ -328,7 +328,7 @@ function renderSetupBody(){
   if(!body) return;
   // 숨김 보기 버튼 상태 동기화(Field 셋업 간트 차트와 동일 방식) — showHidden이 localStorage에서 복원된 경우 반영
   var _btn=document.getElementById('btnHiddenSetup');
-  if(_btn){_btn.textContent=S.showHidden?'숨김 숨기기':'숨김 보기';_btn.className='btn'+(S.showHidden?' warn':'');}
+  if(_btn){_btn.textContent=S.showHidden?'완료 숨기기':'완료 보기';_btn.className='btn'+(S.showHidden?' warn':'');}
   var rows=_spFilteredProjects();
   body.innerHTML='';
   if(!rows.length){
