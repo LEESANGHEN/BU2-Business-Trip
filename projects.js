@@ -255,6 +255,9 @@ function renderProjectsBody(){
     // 값 기준으로 해야 화면 순서와 어긋나지 않는다. 호기는 숫자 섞인 텍스트라 숫자 크기로 비교한다
     if(k==='transferDate') v=String(_mpEffectiveTransferDate(a)||'').localeCompare(String(_mpEffectiveTransferDate(b)||''),'ko');
     else if(k==='shipDate') v=String(_mpEffectiveShipDate(a)||'').localeCompare(String(_mpEffectiveShipDate(b)||''),'ko');
+    // 상태는 화면에 보이는 값(_mpEffectiveStatus: 생산중/셋업 등)을 홈 대시보드 카드와 같은 순서로 비교한다.
+    // 저장값(mp.status)은 대부분 "진행중" 하나라 그대로 비교하면 정렬이 안 된다
+    else if(k==='status') v=_mpStatusRank(a)-_mpStatusRank(b);
     else if(k==='prodUnit'||k==='customerUnit') v=_mpUnitCompare(a[k],b[k]);
     else v=String(a[k]||'').localeCompare(String(b[k]||''),'ko');
     if(!_mpSortAsc) v=-v;
@@ -376,6 +379,10 @@ function _mpEffectiveStatus(mp){
     return (tr&&pd(tr)<TODAY)?'셋업(HQ)':'생산중(HQ)';
   }
   return mp.status;
+}
+function _mpStatusRank(mp){
+  var i=HOME_STATUS_ORDER.indexOf(_mpEffectiveStatus(mp));
+  return i<0?HOME_STATUS_ORDER.length:i;
 }
 function _mpBadge(val,styleMap,label){
   if(!val)return '';
