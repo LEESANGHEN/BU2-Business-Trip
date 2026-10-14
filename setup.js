@@ -420,7 +420,7 @@ function openSpProgressModal(mpId){
     +'<div id="sp_notes_editor" class="rte-editor" contenteditable="true" data-placeholder="특이사항을 입력하세요" onmouseup="_spNotesSaveSelection()" onkeyup="_spNotesSaveSelection()" onblur="spSaveField(\''+idAttr+'\',\'notes\',this.innerHTML)" style="font-family:monospace;font-size:12px;white-space:pre-wrap;word-break:break-word;height:200px;overflow-y:auto;background:var(--bg-deep);color:var(--tx-main);border:1px solid var(--bd-main);border-radius:0 0 6px 6px;padding:8px">'+_spNotesHtml(p.notes)+'</div>'
     +'</div>';
 
-  html+='<div class="fg"><label class="fl">첨부파일 (이미지/파일) : Tuning Image, Data 검증 Raw data, Outgoing Report 등의 파일을 업로드해주세요.</label>'
+  html+='<div class="fg"><label class="fl">첨부파일(이미지/파일) <span style="font-weight:400;color:var(--tx-faint)">· 파일당 최대 '+SP_MAX_FILE_MB+'MB</span></label>'
     +'<div id="sp_attach_list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'+_spAttachListHtml(p.attachments)+'</div>'
     +'<button class="btn sm" onclick="spTriggerFileUpload(\''+idAttr+'\')">+ 파일 추가</button>'
     +'<span id="sp_attach_status" style="font-size:11px;color:var(--tx-muted);margin-left:8px"></span>'
