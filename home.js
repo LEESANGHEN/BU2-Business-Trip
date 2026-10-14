@@ -142,6 +142,100 @@ function _homeTypeCardHtml(){
     +body+'</div>';
 }
 
+/* ── 엔지니어별 전체 출장일수 (기술/외주 인원, 연도별) ──
+   인원 출장일 탭의 "전체 출장일수"와 같은 방식(같은 날 겹치는 출장은 하루로 계산)으로 집계하되,
+   한 출장 기록에 "이상헌 부장, 김형진 과장"처럼 쉼표로 여러 명이 적혀 있으면 각자에게 일수를 더한다.
+   분야는 인원 출장일 탭과 같은 우선순위로 정해진 대표 유형(tech / outsource·localOutsource)을 따른다. */
+var _homeEngYear=null;      // null=올해, 'all'=전체 기간, 그 외 연도(숫자)
+var _homeEngFilter='all';   // all | tech | outsource
+var _homeEngRows=[];        // 마지막으로 그린 목록(이름 클릭 시 상세 표시에 사용)
+
+function _homeEngSplitNames(raw){
+  return String(raw||'').split(/[,，、]/).map(function(s){return s.trim();}).filter(Boolean);
+}
+function _homeEngYears(){
+  var first=2026, last=TODAY.getFullYear();
+  S.schedules.forEach(function(sc){ var y=parseInt(String(sc.end||'').slice(0,4),10); if(y&&y>last) last=y; });
+  var ys=[]; for(var y=last;y>=first;y--) ys.push(y);
+  return ys;
+}
+function _homeEngCollect(year){
+  var typePri={hq:6,tech:5,vision:4,host:3,outsource:2,localOutsource:1};
+  var todayISO=_homeIsoStr(TODAY);
+  var P={};
+  S.schedules.forEach(function(sc){
+    var proj=S.projects.find(function(p){return p.id===sc.projectId;}); if(!proj||!sc.start||!sc.end) return;
+    var site=S.sites.find(function(s){return s.id===proj.siteId;});
+    var siteName=site?site.name:proj.siteId;
+    var going=sc.start<=todayISO&&todayISO<=sc.end;
+    _homeEngSplitNames(sc.name).forEach(function(nm){
+      var p=P[nm]||(P[nm]={name:nm,type:sc.type,days:{},sites:{},going:false});
+      if((typePri[sc.type]||0)>(typePri[p.type]||0)) p.type=sc.type;
+      if(going) p.going=true;
+      var sset=p.sites[siteName]||(p.sites[siteName]={});
+      for(var cur=pd(sc.start),e=pd(sc.end);cur<=e;cur.setDate(cur.getDate()+1)){
+        if(year!=='all'&&cur.getFullYear()!==year) continue;
+        var k=_homeIsoStr(cur); p.days[k]=true; sset[k]=true;
+      }
+    });
+  });
+  return Object.keys(P).map(function(k){
+    var p=P[k];
+    return {name:p.name,type:p.type,going:p.going,total:Object.keys(p.days).length,
+      sites:Object.keys(p.sites).map(function(sn){return {site:sn,days:Object.keys(p.sites[sn]).length};}).filter(function(x){return x.days>0;}).sort(function(a,b){return b.days-a.days;})};
+  });
+}
+function _homeEngInnerHtml(){
+  var years=_homeEngYears();
+  var year=_homeEngYear===null?TODAY.getFullYear():_homeEngYear;
+  if(year!=='all'&&years.indexOf(year)<0) year=years[0];
+  var suffix=t('homeEngYearSuffix');
+  var yearOpts=years.map(function(y){return '<option value="'+y+'"'+(y===year?' selected':'')+'>'+y+suffix+'</option>';}).join('')
+    +'<option value="all"'+(year==='all'?' selected':'')+'>'+_esc(t('homeEngYearAll'))+'</option>';
+  var isTech=function(r){return r.type==='tech';}, isOut=function(r){return r.type==='outsource'||r.type==='localOutsource';};
+  var rows=_homeEngCollect(year).filter(function(r){return (isTech(r)||isOut(r))&&r.total>0;});
+  var shown=rows.filter(function(r){ return _homeEngFilter==='all'||(_homeEngFilter==='tech'?isTech(r):isOut(r)); })
+    .sort(function(a,b){return b.total-a.total||a.name.localeCompare(b.name,'ko');});
+  _homeEngRows=shown;
+  var tot=shown.reduce(function(a,r){return a+r.total;},0);
+  var max=shown.length?shown[0].total:1;
+  var sum=t('homeEngSummary').replace('{n}',shown.length).replace('{t}',tot).replace('{a}',Math.round(tot/Math.max(shown.length,1)));
+  var btn=function(f,label){
+    return '<button class="home-eng-btn'+(_homeEngFilter===f?' on':'')+'" onclick="homeEngSetFilter(\''+f+'\')">'+_esc(label)+'</button>';
+  };
+  var body=shown.length?shown.map(function(r,i){
+    var c=isTech(r)?TYPE_COLOR.tech:TYPE_COLOR.outsource;
+    var pct=Math.max(Math.round(r.total/max*100),4);
+    return '<div class="home-bar-row"><span class="home-eng-dot" title="'+(r.going?'출장 중':'')+'" style="'+(r.going?'background:#4aaa70':'')+'"></span>'
+      +'<span class="home-bar-lbl home-eng-lbl" onclick="homeEngOpen('+i+')" title="상세 보기">'+_esc(r.name)+'</span>'
+      +'<div class="home-bar-track"><div class="home-bar-fill" style="width:'+pct+'%;background:'+c+'"></div></div>'
+      +'<span class="home-bar-n" style="width:44px">'+r.total+'일</span></div>';
+  }).join(''):'<div class="home-empty">'+_esc(t('homeEngEmpty'))+'</div>';
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+    +'<p class="home-card-h" style="margin:0">'+_esc(t('homeEngTitle'))+'</p>'
+    +'<div style="display:flex;align-items:center;gap:5px"><select class="home-eng-sel" onchange="homeEngSetYear(this.value)">'+yearOpts+'</select>'
+    +btn('all',t('optAll'))+btn('tech',t('pmTypeTech'))+btn('outsource',t('pmTypeOutsource'))+'</div></div>'
+    +'<p class="home-hint" style="margin:0 0 10px">'+_esc(sum)+'</p>'
+    +body
+    +'<p class="home-hint" style="margin:10px 0 0">'+_esc(t('homeEngHint'))+'</p>';
+}
+function _homeEngCardHtml(){ return '<div class="home-card" id="homeEngCard">'+_homeEngInnerHtml()+'</div>'; }
+function _homeEngRefresh(){ var el=document.getElementById('homeEngCard'); if(el) el.innerHTML=_homeEngInnerHtml(); }
+function homeEngSetYear(v){ _homeEngYear=(v==='all')?'all':parseInt(v,10); _homeEngRefresh(); }
+function homeEngSetFilter(f){ _homeEngFilter=f; _homeEngRefresh(); }
+function homeEngOpen(i){
+  var r=_homeEngRows[i]; if(!r) return;
+  var year=_homeEngYear===null?TODAY.getFullYear():_homeEngYear;
+  var yl=(year==='all')?t('homeEngYearAll'):(year+t('homeEngYearSuffix'));
+  var body='<div class="mtit">'+_esc(r.name)+' — '+_esc(yl)+' 출장일수 상세</div>';
+  body+='<table class="pm-person-table"><thead><tr><th>사이트</th><th>일수</th></tr></thead><tbody>';
+  r.sites.forEach(function(s){ body+='<tr><td>'+_esc(s.site)+'</td><td>'+s.days+'일</td></tr>'; });
+  body+='<tr class="pm-site-total-row"><td>합계</td><td>'+r.total+'일</td></tr></tbody></table>';
+  body+='<div style="font-size:11px;color:var(--tx-faint);margin-top:6px">합계는 같은 날 여러 사이트가 겹쳐도 하루로 계산합니다.</div>';
+  body+='<div class="mfoot"><button class="btn sm" onclick="cm()">닫기</button></div>';
+  mw(body);
+}
+
 // 이번 달부터 6개월 치 연-월(ym) 목록 — 출하/셋업 그래프 공용. 월 이름도 Intl로 현지화
 function _homeMonthlyMonths(){
   var months=[]; var d=new Date(TODAY.getFullYear(),TODAY.getMonth(),1);
@@ -256,8 +350,9 @@ function renderHomeTab(){
   var html='';
   html+=_homeGreetingHtml();
   html+=_homeStatRowHtml();
-  html+='<div class="home-grid2">'+_homeUpcomingCardHtml()+_homeQuickActionsCardHtml()+'</div>';
-  html+='<div class="home-grid2">'+_homeCountryCardHtml()+_homeTypeCardHtml()+'</div>';
+  // 왼쪽: 빠른 작업 위 / 다가오는 셋업 일정 아래, 오른쪽: 인원 유형별 출장 현황(왼쪽 두 칸 높이)
+  html+='<div class="home-grid2"><div class="home-col">'+_homeQuickActionsCardHtml()+_homeUpcomingCardHtml()+'</div>'+_homeTypeCardHtml()+'</div>';
+  html+='<div class="home-grid2">'+_homeCountryCardHtml()+_homeEngCardHtml()+'</div>';
   html+=_homeMonthlyChartCardHtml(t('homeShipChartTitle'),'homeChartHint','#5a9aee',_homeMonthlyShipData(),'shipMonth');
   html+=_homeMonthlyChartCardHtml(t('homeSetupChartTitle'),'homeChartHint','#4aaa70',_homeMonthlySetupData(),'setupMonth');
   html+='<div class="home-grid2">'+_homeRecentCardHtml()+_homeHighlightCardHtml()+'</div>';
