@@ -233,7 +233,7 @@ function _mpFilteredProjects(){
     if(_mpMS.shipMonth.length&&_mpMS.shipMonth.indexOf(_mpShipMonth(mp))<0)return false;
     if(_mpHideInactive&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){
-      var hay=[mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit,mp.serial].join(' ').toLowerCase();
+      var hay=[mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit,mp.serial,mp.tripManager].join(' ').toLowerCase();
       if(hay.indexOf(_mpSearch)<0)return false;
     }
     return true;
@@ -343,6 +343,7 @@ function renderProjectsTable(rows){
   html+=thS('setupStart','colSetupPeriod',t('colSetupPeriod'),t('tipSetupPeriod'));
   html+=thS('setupLocation','colSetupLocation',t('colSetupLocation'));
   html+=thS('shipDate','colShipDate',t('colShipDate'));
+  html+=thS('tripManager','colTripManager',t('colTripManager'));
   html+=thS('status','colStatusHdr',t('mpStatus'));
   html+='</tr></thead><tbody>';
   rows.forEach(function(mp){html+=renderProjectRow(mp);});
@@ -430,6 +431,7 @@ function renderProjectRow(mp){
     +'<td>'+setupLbl+'</td>'
     +'<td>'+_esc(mp.setupLocation||'-')+'</td>'
     +'<td>'+shipLbl+'</td>'
+    +'<td>'+_esc(mp.tripManager||'-')+'</td>'
     +'<td>'+_mpStatusBadge(_mpEffectiveStatus(mp))+'</td>'
     +'</tr>';
 }
