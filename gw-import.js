@@ -119,6 +119,8 @@ function _gwBookmarklet(){ return 'javascript:'+encodeURIComponent('('+_gwCollec
 
 /* ── ② 매칭 ── */
 var _gwState={items:[],rows:[],appOnly:[],filter:'all',meta:null};
+// 그룹웨어의 직위와 실제 호칭이 다른 경우(사용자 확인) 앱에 등록할 이름에 쓰는 직위
+var GW_POS_OVERRIDE={'최정오':'부장'};
 var GW_SITE_ALIAS={'zdtha':'zdt','lgait':'lgit','ait':'lgit','아이비텍':'ibtech','신코':'shinko','쿄세라':'kyocera','vitoryglant':'victorygiant','vitorygiant':'victorygiant'};
 // 도시 표기가 영문/한글/오타로 섞여 있어(Kulim/쿨림, 썬전/선전 등) 같은 도시로 보이게 맞춘다 — 그룹웨어 제목과 앱 사이트 지역 양쪽에 같이 적용
 var GW_CITY_ALIAS={'kulim':'쿨림','nagano':'나가노','niigata':'니가타','leoben':'레오벤','huaian':'후아이안','썬전':'선전','shenzhen':'선전','taoyuan':'타오위안','싱가폴':'싱가포르'};
@@ -296,7 +298,8 @@ function _gwAnalyze(json){
       if(!row.siteId){ row.siteId=_gwSchedSite(m); row.siteHow='일정에서 추정'; } // 사이트 매핑이 안 돼도 매칭된 앱 일정의 사이트를 따른다
     }
     row.external=!!rosterSet&&!rosterSet[g.person];
-    row.pos=(rosterSet&&rosterSet[g.person]&&rosterSet[g.person].position)||'';
+    row.pos=GW_POS_OVERRIDE[g.person]||(rosterSet&&rosterSet[g.person]&&rosterSet[g.person].position)||'';
+    row.type=(!appName&&rosterSet&&rosterSet[g.person])?'tech':''; // BU2부문 구성원은 앱에 처음 등록돼도 기본 구분을 기술로 한다
     row.rdept=(rosterSet&&rosterSet[g.person]&&rosterSet[g.person].dept)||'';
     row.domestic=g.docs.some(function(d){return d.domestic;});
     row.isNew=!firstRun&&docNums.some(function(n){return !seenDocs[n];});
@@ -397,9 +400,9 @@ function _gwRender(){
   var ignoredN=0; st.rows.forEach(function(r){ if(r.ignored) ignoredN++; else cnt[r.cls]++; });
   st.rows.forEach(function(r){ if(r.isNew&&!r.ignored&&r.cls!=='external') newDocN++; });
   var chip=function(k,label,color){ return '<button class="gw-chip'+(st.filter===k?' on':'')+'" style="border-color:'+color+';color:'+color+'" onclick="gwSetFilter(\''+k+'\')">'+label+'</button>'; };
-  var h='<div style="font-size:11px;color:var(--tx-muted);margin-bottom:6px">'+st.meta.total+'건 읽음 · 수집 '+_esc((st.meta.collectedAt||'').slice(0,16).replace('T',' '))+' · 결재 완료 문서만 반영 대상 · '+(st.meta.roster?_esc(st.meta.group||'BU2 기술운영1그룹')+' '+st.meta.roster+'명만 자동 입력 대상':'<span style="color:#e05a5a">조직 명단이 없어 모든 출장자가 대상으로 보입니다(수집 북마크를 최신으로 다시 만드세요)</span>')+(st.meta.firstRun?' · 처음 수집이라 NEW 표시는 다음 수집부터':'')+'</div>';
+  var h='<div style="font-size:11px;color:var(--tx-muted);margin-bottom:6px">'+st.meta.total+'건 읽음 · 수집 '+_esc((st.meta.collectedAt||'').slice(0,16).replace('T',' '))+' · 결재 완료 문서만 반영 대상 · '+(st.meta.roster?_esc(st.meta.group||'BU2 기술운영1그룹')+' '+st.meta.roster+'명만 자동 입력 대상':'<span style="color:#e05a5a">조직 명단이 없어 모든 출장자가 대상으로 보입니다(수집 북마크를 최신으로 다시 만드세요)</span>')+(cnt.external?' · 대상 외 '+cnt.external+'건 제외됨':'')+(st.meta.firstRun?' · 처음 수집이라 NEW 표시는 다음 수집부터':'')+'</div>';
   h+='<div class="gw-chips">'+chip('all','전체 '+(st.rows.length-ignoredN-cnt.external),'#888')+(newDocN?chip('newdoc','NEW '+newDocN,'#e05a5a'):'')+chip('new','신규 '+cnt.new,'#4aaa70')+chip('update','수정 '+cnt.update,'#e0972e')+chip('match','일치 '+cnt.match+(cnt.applied?'(+반영됨 '+cnt.applied+')':''),'#5a9aee')
-    +chip('check','확인 필요 '+cnt.check,'#e05a5a')+chip('apponly','앱에만 있음 '+st.appOnly.length,'#b39ddb')+chip('skipped','건너뜀 '+st.skipped.length,'#777')+chip('ignored','무시됨 '+ignoredN,'#777')+chip('external','대상 외 '+cnt.external,'#777')+'</div>';
+    +chip('check','확인 필요 '+cnt.check,'#e05a5a')+chip('apponly','앱에만 있음 '+st.appOnly.length,'#b39ddb')+chip('skipped','건너뜀 '+st.skipped.length,'#777')+chip('ignored','무시됨 '+ignoredN,'#777')+'</div>';
   if(st.filter==='apponly'){
     h+='<div style="font-size:11px;color:var(--tx-muted);margin:6px 0">그룹웨어 2026년 품의서와 매칭되지 않은 앱 일정입니다(반영한 적 없는 일정). 품의서 없이 등록했거나 이름/사이트 표기가 달라 매칭되지 않은 경우입니다.</div>';
     h+='<div class="gw-wrap"><table class="gw-tbl"><thead><tr><th>출장자</th><th>사이트</th><th>기간</th><th>숨김</th></tr></thead><tbody>'
@@ -408,7 +411,7 @@ function _gwRender(){
     h+='<div class="gw-wrap"><table class="gw-tbl"><thead><tr><th>문서</th><th>제목</th><th>사유</th></tr></thead><tbody>'
       +(st.skipped.map(function(s){return '<tr><td>'+_esc(s.it.docNum||'(번호 없음)')+'</td><td>'+_esc(s.it.titleRaw||'')+'</td><td>'+_esc(s.reason)+'</td></tr>';}).join('')||'<tr><td colspan="3">없음</td></tr>')+'</tbody></table></div>';
   }else{
-    var rows=st.rows.filter(function(r){ if(st.filter==='ignored') return r.ignored; if(r.ignored) return false; if(st.filter==='external') return r.cls==='external'; if(r.cls==='external') return false; if(st.filter==='newdoc') return r.isNew; return st.filter==='all'||r.cls===st.filter||(st.filter==='match'&&r.cls==='applied'); });
+    var rows=st.rows.filter(function(r){ if(st.filter==='ignored') return r.ignored; if(r.ignored) return false; if(r.cls==='external') return false; if(st.filter==='newdoc') return r.isNew; return st.filter==='all'||r.cls===st.filter||(st.filter==='match'&&r.cls==='applied'); });
     var applyable=rows.filter(function(r){return r.cls==='new'||r.cls==='update'||r.cls==='match';}).length;
     h+='<div style="display:flex;gap:6px;align-items:center;margin:8px 0;flex-wrap:wrap">'
       +'<button class="btn sm" onclick="gwSelectAll(true)">신규·수정 전체 선택</button><button class="btn sm" onclick="gwSelectAll(false)">선택 해제</button>'
