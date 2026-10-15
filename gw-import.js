@@ -119,7 +119,7 @@ function _gwBookmarklet(){ return 'javascript:'+encodeURIComponent('('+_gwCollec
 
 /* ── ② 매칭 ── */
 var _gwState={items:[],rows:[],appOnly:[],filter:'all',meta:null};
-var GW_SITE_ALIAS={'신코':'shinko','쿄세라':'kyocera','vitoryglant':'victorygiant','vitorygiant':'victorygiant'};
+var GW_SITE_ALIAS={'lgait':'lgit','ait':'lgit','아이비텍':'ibtech','신코':'shinko','쿄세라':'kyocera','vitoryglant':'victorygiant','vitorygiant':'victorygiant'};
 // 도시 표기가 영문/한글/오타로 섞여 있어(Kulim/쿨림, 썬전/선전 등) 같은 도시로 보이게 맞춘다 — 그룹웨어 제목과 앱 사이트 지역 양쪽에 같이 적용
 var GW_CITY_ALIAS={'kulim':'쿨림','nagano':'나가노','niigata':'니가타','leoben':'레오벤','huaian':'후아이안','썬전':'선전','shenzhen':'선전','taoyuan':'타오위안','싱가폴':'싱가포르'};
 function _gwCityN(s){ var n=String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,''); return GW_CITY_ALIAS[n]||n; }
@@ -138,6 +138,7 @@ function _gwMapSite(it){
   var map=_gwLoadMap(), key=_gwSiteKey(it);
   if(map[key]&&S.sites.some(function(s){return s.id===map[key];})) return {siteId:map[key],cands:[],how:'저장된 매핑'};
   var custs=String(it.customer||'').split(/[,，、]/).map(_gwAliased).filter(Boolean);
+  custs=custs.filter(function(c,i){return custs.indexOf(c)===i;}); // "LGIT, AIT"처럼 같은 사이트의 다른 표기는 하나로
   var city=_gwCityN(it.city), country=_gwNorm(it.country); if(country==='한국') country='국내';
   var scored=S.sites.map(function(s){
     var sn=_gwNorm(s.name), score=0;
