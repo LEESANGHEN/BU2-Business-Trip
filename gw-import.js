@@ -78,7 +78,10 @@ function _gwBookmarklet(){ return 'javascript:'+encodeURIComponent('('+_gwCollec
 
 /* ── ② 매칭 ── */
 var _gwState={items:[],rows:[],appOnly:[],filter:'all',meta:null};
-var GW_SITE_ALIAS={'신코':'shinko','니가타':'niigata'};
+var GW_SITE_ALIAS={'신코':'shinko','쿄세라':'kyocera','vitoryglant':'victorygiant','vitorygiant':'victorygiant'};
+// 도시 표기가 영문/한글/오타로 섞여 있어(Kulim/쿨림, 썬전/선전 등) 같은 도시로 보이게 맞춘다 — 그룹웨어 제목과 앱 사이트 지역 양쪽에 같이 적용
+var GW_CITY_ALIAS={'kulim':'쿨림','nagano':'나가노','niigata':'니가타','leoben':'레오벤','huaian':'후아이안','썬전':'선전','shenzhen':'선전','taoyuan':'타오위안','싱가폴':'싱가포르'};
+function _gwCityN(s){ var n=String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,''); return GW_CITY_ALIAS[n]||n; }
 
 function _gwNorm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,''); }
 function _gwAliased(s){ var n=_gwNorm(s); return GW_SITE_ALIAS[n]||n; }
@@ -91,11 +94,11 @@ function _gwMapSite(it){
   var map=_gwLoadMap(), key=_gwSiteKey(it);
   if(map[key]&&S.sites.some(function(s){return s.id===map[key];})) return {siteId:map[key],cands:[],how:'저장된 매핑'};
   var custs=String(it.customer||'').split(/[,，、]/).map(_gwAliased).filter(Boolean);
-  var city=_gwNorm(it.city), country=_gwNorm(it.country);
+  var city=_gwCityN(it.city), country=_gwNorm(it.country);
   var scored=S.sites.map(function(s){
     var sn=_gwNorm(s.name), score=0;
     if(custs.some(function(c){return c&&(sn.indexOf(c)>=0||c.indexOf(sn)>=0);})) score+=2;
-    var rg=_gwNorm(s.region);
+    var rg=_gwCityN(s.region);
     if(city&&rg&&(rg===city||(city.length>=3&&(rg.indexOf(city)>=0||city.indexOf(rg)>=0)))) score+=2;
     if(country&&_gwNorm(s.country)===country) score+=1;
     return {site:s,score:score};
@@ -121,10 +124,20 @@ function _gwOverlap(a1,a2,b1,b2){ return a1<=b2&&b1<=a2; }
 function _gwDays(a,b){ return Math.round((pd(b)-pd(a))/86400000)+1; }
 function _gwFmt(a,b){ return a.slice(2).replace(/-/g,'.')+' ~ '+b.slice(2).replace(/-/g,'.'); }
 
+// 제목 끝에 다른 문구가 붙은 경우("정해영 최초/2026-03-16...", "유은상 방문(JRA)")를 이름만 남기고 정리
+function _gwCleanPeople(list){
+  var out=[];
+  list.forEach(function(n){
+    n=String(n).split(/\s+(?:최초|변경|완료|\d+차\s*변경|출장\s*취소)\s*\//)[0].replace(/\s*방문.*$/,'').replace(/\s*\(.*$/,'').trim();
+    if(n&&out.indexOf(n)<0) out.push(n);
+  });
+  return out;
+}
 function _gwAnalyze(json){
   var data;
   try{ data=JSON.parse(json); }catch(e){ throw new Error('붙여넣은 내용을 읽을 수 없습니다. 수집 북마크가 복사한 내용을 그대로 붙여넣어 주세요.'); }
   if(!data||data.src!=='bu2-gw'||!Array.isArray(data.items)) throw new Error('수집 북마크로 만든 데이터가 아닙니다.');
+  data.items.forEach(function(it){ if(it.people) it.people=_gwCleanPeople(it.people); });
   var appNames=_gwAppPersonNames();
   var items=data.items;
   var skipped=[], usable=[];
