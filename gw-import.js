@@ -143,15 +143,16 @@ function _gwMapSite(it){
   custs=custs.filter(function(c,i){return custs.indexOf(c)===i;}); // "LGIT, AIT"처럼 같은 사이트의 다른 표기는 하나로
   var city=_gwCityN(it.city), country=_gwNorm(it.country); if(country==='한국') country='국내';
   var scored=S.sites.map(function(s){
-    var sn=_gwNorm(s.name), score=0;
-    if(custs.some(function(c){return c&&(sn.indexOf(c)>=0||c.indexOf(sn)>=0);})) score+=3;
+    var sn=_gwNorm(s.name), score=0, cust=false;
+    if(custs.some(function(c){return c&&(sn.indexOf(c)>=0||c.indexOf(sn)>=0);})){ score+=3; cust=true; }
     var rg=_gwCityN(s.region);
     if(city&&rg&&(rg===city||(city.length>=3&&(rg.indexOf(city)>=0||city.indexOf(rg)>=0)))) score+=2;
     if(country&&_gwNorm(s.country)===country) score+=1;
-    return {site:s,score:score};
+    return {site:s,score:score,cust:cust};
   }).filter(function(x){return x.score>0;}).sort(function(a,b){return b.score-a.score;});
   var best=scored[0], second=scored[1];
-  if(best&&best.score>=3&&(!second||best.score>second.score)&&custs.length<=1) return {siteId:best.site.id,cands:scored.slice(0,5).map(function(x){return x.site.id;}),how:'자동'};
+  // 고객사 이름이 사이트와 맞아야 자동 매핑한다 — 도시/국가만 같은 경우(예: SPIL 타이중 → TSMC, SK Hynix 충칭 → AT&S_Chongqing)는 후보로만 보여준다
+  if(best&&best.cust&&best.score>=3&&(!second||best.score>second.score)&&custs.length<=1) return {siteId:best.site.id,cands:scored.slice(0,5).map(function(x){return x.site.id;}),how:'자동'};
   return {siteId:'',cands:scored.slice(0,5).map(function(x){return x.site.id;}),how:'확인 필요'};
 }
 
