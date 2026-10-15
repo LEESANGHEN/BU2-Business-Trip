@@ -395,7 +395,17 @@ function _gwCopyBookmarklet(){
   var txt=_gwBookmarklet();
   (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(function(){alert('북마크 주소를 복사했습니다. 새 북마크를 만들고 URL 칸에 붙여넣으세요.');}).catch(function(){prompt('아래 주소를 복사해 새 북마크의 URL에 붙여넣으세요.',txt);});
 }
-function _gwRender(){
+// 다시 그려도 표의 스크롤 위치를 유지한다(프로젝트명/사이트/구분을 고를 때마다 맨 위로 튀지 않도록). 필터를 바꿀 때만 맨 위로 이동
+function _gwRender(resetScroll){
+  var el=document.getElementById('gw_body'); if(!el) return;
+  var wrap=el.querySelector('.gw-wrap'), top=wrap?wrap.scrollTop:0, left=wrap?wrap.scrollLeft:0;
+  var modal=el.closest('.modal'), mTop=modal?modal.scrollTop:0;
+  _gwRenderInner();
+  var w2=el.querySelector('.gw-wrap');
+  if(w2&&!resetScroll){ w2.scrollTop=top; w2.scrollLeft=left; }
+  if(modal) modal.scrollTop=mTop;
+}
+function _gwRenderInner(){
   var el=document.getElementById('gw_body'); if(!el) return;
   var st=_gwState;
   if(!st.rows.length&&!st.meta){
@@ -485,7 +495,7 @@ function gwAnalyzeClick(){
 }
 function gwReset(){ _gwState={items:[],rows:[],appOnly:[],skipped:[],filter:'all',meta:null}; _gwRender(); }
 function gwIgnore(gi,on){ var r=_gwRow(gi); r.ignored=on; if(on) r.selected=false; _gwSetIgnored(r.ignoreKey,on); _gwRender(); }
-function gwSetFilter(f){ _gwState.filter=f; _gwRender(); }
+function gwSetFilter(f){ _gwState.filter=f; _gwRender(true); }
 function _gwRow(gi){ return _gwState.rows[gi]; }
 function gwToggle(gi,on){ _gwRow(gi).selected=on; }
 function gwSelectAll(on){
