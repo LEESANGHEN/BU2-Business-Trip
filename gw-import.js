@@ -47,7 +47,9 @@ function _gwCollector(){
           rec.id=x.id; rec.docNum=x.docNum||''; rec.status=x.docStatus; rec.drafter=x.drafterName; rec.draftedAt=String(x.draftedAt).slice(0,10); rec.titleRaw=t;
           try{
             var dj=await fetch('/api/approval/document/'+x.id,{credentials:'same-origin'}).then(function(r){return r.json();});
-            var tmp=document.createElement('div'); tmp.innerHTML=((dj.data||dj).document||{}).docBodyContent||'';
+            var ddoc=((dj.data||dj).document||{});
+            rec.deptId=ddoc.drafterDeptId; rec.dept=ddoc.drafterDeptName||'';
+            var tmp=document.createElement('div'); tmp.innerHTML=ddoc.docBodyContent||'';
             tmp.querySelectorAll('style,script').forEach(function(e){e.remove();});
             var txt=tmp.innerText||tmp.textContent||'';
             rec.project=pick(txt,'프로젝트\\s*명'); rec.partner=pick(txt,'협력사'); rec.purpose=pick(txt,'출장\\s*목적');
@@ -58,7 +60,20 @@ function _gwCollector(){
       }
       await Promise.all([worker(),worker(),worker(),worker()]);
       out.sort(function(a,b){return (a.draftedAt+a.docNum)<(b.draftedAt+b.docNum)?-1:1;});
-      var json=JSON.stringify({src:'bu2-gw',v:1,year:YEAR,collectedAt:new Date().toISOString(),items:out});
+      // BU2_기술운영1그룹 구성원 명단: 기안자들의 부서(파트)와 그룹 본부서(303)의 구성원 중 조직 경로에 BU2_기술운영1그룹이 있는 사람
+      say('조직 구성원을 확인하는 중...');
+      var GROUP='BU2_기술운영1그룹', deptIds={303:GROUP}, roster=[], seenN={};
+      out.forEach(function(r){ if(r.deptId) deptIds[r.deptId]=r.dept; });
+      for(var did in deptIds){
+        try{
+          var mj=await fetch('/api/department/'+did+'/members?offset=500',{credentials:'same-origin'}).then(function(r){return r.json();});
+          (mj.data||[]).forEach(function(m){
+            var path=String(m.parentsDeptPath||'');
+            if((String(did)==='303'||path.indexOf(GROUP)>=0)&&m.name&&!seenN[m.name]){ seenN[m.name]=1; roster.push({name:m.name,position:m.positionName||'',dept:path.split('>').pop().trim()}); }
+          });
+        }catch(e){}
+      }
+      var json=JSON.stringify({src:'bu2-gw',v:2,year:YEAR,group:GROUP,roster:roster,collectedAt:new Date().toISOString(),items:out});
       window.__bu2gwResult=json;
       var copied=false;
       try{ await navigator.clipboard.writeText(json); copied=true; }catch(e){}
@@ -148,6 +163,7 @@ function _gwBlockers(r){
   return b;
 }
 function _gwRecls(r){
+  if(r.external){ r.cls='external'; r.reason='BU2 기술운영1그룹 아님'; return; }
   if(r.cls==='applied') return;
   var b=_gwBlockers(r);
   r.reason=b.join(', ');
@@ -159,6 +175,11 @@ function _gwAnalyze(json){
   try{ data=JSON.parse(json); }catch(e){ throw new Error('붙여넣은 내용을 읽을 수 없습니다. 수집 북마크가 복사한 내용을 그대로 붙여넣어 주세요.'); }
   if(!data||data.src!=='bu2-gw'||!Array.isArray(data.items)) throw new Error('수집 북마크로 만든 데이터가 아닙니다.');
   data.items.forEach(function(it){ if(it.people) it.people=_gwCleanPeople(it.people); });
+  // 자동 입력 대상은 BU2_기술운영1그룹 구성원뿐 — 외주/TS본부/임원 등 그 밖의 출장자는 "대상 외"로 분류해 반영하지 않는다(수동 등록은 출장 등록에서)
+  var rosterSet=null;
+  if(Array.isArray(data.roster)&&data.roster.length){ rosterSet={}; data.roster.forEach(function(m){ rosterSet[m.name]=m; }); }
+  var seenDocs={}; try{ seenDocs=JSON.parse(localStorage.getItem('bu2_gw_seen')||'{}'); }catch(e){}
+  var firstRun=!Object.keys(seenDocs).length;
   var appNames=_gwAppPersonNames();
   var items=data.items;
   var skipped=[], usable=[];
@@ -231,6 +252,8 @@ function _gwAnalyze(json){
       row.scId=m.id; row.cur={start:m.start,end:m.end}; row.curTask=m.task||''; row.multi=cands.length>1?cands.length:0;
       if(!row.siteId){ row.siteId=_gwSchedSite(m); row.siteHow='일정에서 추정'; } // 사이트 매핑이 안 돼도 매칭된 앱 일정의 사이트를 따른다
     }
+    row.external=!!rosterSet&&!rosterSet[g.person];
+    row.isNew=!firstRun&&docNums.some(function(n){return !seenDocs[n];});
     row.ignoreKey=g.person+'|'+g.minStart+'|'+g.maxEnd+'|'+_gwNorm(first.customer);
     row.ignored=!!_gwLoadIgnored()[row.ignoreKey];
     // 분류
@@ -252,7 +275,8 @@ function _gwAnalyze(json){
     var site=S.sites.find(function(s){return s.id===_gwSchedSite(sc);});
     return {id:sc.id,name:sc.name,start:sc.start,end:sc.end,site:site?site.name:'',hidden:!!sc.hidden};
   }).sort(function(a,b){return a.start<b.start?-1:1;});
-  _gwState={items:items,rows:rows,appOnly:appOnly,skipped:skipped,filter:'all',meta:{year:year,collectedAt:data.collectedAt,total:items.length}};
+  try{ var nowSeen=JSON.parse(localStorage.getItem('bu2_gw_seen')||'{}'); items.forEach(function(it){ if(it.docNum) nowSeen[it.docNum]=1; }); localStorage.setItem('bu2_gw_seen',JSON.stringify(nowSeen)); localStorage.setItem('bu2_gw_last',data.collectedAt||''); }catch(e){}
+  _gwState={items:items,rows:rows,appOnly:appOnly,skipped:skipped,filter:'all',meta:{roster:rosterSet?Object.keys(rosterSet).length:0,group:data.group||'',firstRun:firstRun,year:year,collectedAt:data.collectedAt,total:items.length}};
   return _gwState;
 }
 
@@ -321,12 +345,13 @@ function _gwRender(){
       +'<button class="btn sm pri" onclick="gwAnalyzeClick()">분석</button>';
     return;
   }
-  var cnt={new:0,update:0,match:0,applied:0,check:0};
+  var cnt={new:0,update:0,match:0,applied:0,check:0,external:0}; var newDocN=0;
   var ignoredN=0; st.rows.forEach(function(r){ if(r.ignored) ignoredN++; else cnt[r.cls]++; });
+  st.rows.forEach(function(r){ if(r.isNew&&!r.ignored&&r.cls!=='external') newDocN++; });
   var chip=function(k,label,color){ return '<button class="gw-chip'+(st.filter===k?' on':'')+'" style="border-color:'+color+';color:'+color+'" onclick="gwSetFilter(\''+k+'\')">'+label+'</button>'; };
-  var h='<div style="font-size:11px;color:var(--tx-muted);margin-bottom:6px">'+st.meta.total+'건 읽음 · 수집 '+_esc((st.meta.collectedAt||'').slice(0,16).replace('T',' '))+' · 결재 완료 문서만 반영 대상</div>';
-  h+='<div class="gw-chips">'+chip('all','전체 '+(st.rows.length-ignoredN),'#888')+chip('new','신규 '+cnt.new,'#4aaa70')+chip('update','수정 '+cnt.update,'#e0972e')+chip('match','일치 '+cnt.match+(cnt.applied?'(+반영됨 '+cnt.applied+')':''),'#5a9aee')
-    +chip('check','확인 필요 '+cnt.check,'#e05a5a')+chip('apponly','앱에만 있음 '+st.appOnly.length,'#b39ddb')+chip('skipped','건너뜀 '+st.skipped.length,'#777')+chip('ignored','무시됨 '+ignoredN,'#777')+'</div>';
+  var h='<div style="font-size:11px;color:var(--tx-muted);margin-bottom:6px">'+st.meta.total+'건 읽음 · 수집 '+_esc((st.meta.collectedAt||'').slice(0,16).replace('T',' '))+' · 결재 완료 문서만 반영 대상 · '+(st.meta.roster?_esc(st.meta.group||'BU2 기술운영1그룹')+' '+st.meta.roster+'명만 자동 입력 대상':'<span style="color:#e05a5a">조직 명단이 없어 모든 출장자가 대상으로 보입니다(수집 북마크를 최신으로 다시 만드세요)</span>')+(st.meta.firstRun?' · 처음 수집이라 NEW 표시는 다음 수집부터':'')+'</div>';
+  h+='<div class="gw-chips">'+chip('all','전체 '+(st.rows.length-ignoredN-cnt.external),'#888')+(newDocN?chip('newdoc','NEW '+newDocN,'#e05a5a'):'')+chip('new','신규 '+cnt.new,'#4aaa70')+chip('update','수정 '+cnt.update,'#e0972e')+chip('match','일치 '+cnt.match+(cnt.applied?'(+반영됨 '+cnt.applied+')':''),'#5a9aee')
+    +chip('check','확인 필요 '+cnt.check,'#e05a5a')+chip('apponly','앱에만 있음 '+st.appOnly.length,'#b39ddb')+chip('skipped','건너뜀 '+st.skipped.length,'#777')+chip('ignored','무시됨 '+ignoredN,'#777')+chip('external','대상 외 '+cnt.external,'#777')+'</div>';
   if(st.filter==='apponly'){
     h+='<div style="font-size:11px;color:var(--tx-muted);margin:6px 0">그룹웨어 2026년 품의서와 매칭되지 않은 앱 일정입니다(반영한 적 없는 일정). 품의서 없이 등록했거나 이름/사이트 표기가 달라 매칭되지 않은 경우입니다.</div>';
     h+='<div class="gw-wrap"><table class="gw-tbl"><thead><tr><th>출장자</th><th>사이트</th><th>기간</th><th>숨김</th></tr></thead><tbody>'
@@ -335,7 +360,7 @@ function _gwRender(){
     h+='<div class="gw-wrap"><table class="gw-tbl"><thead><tr><th>문서</th><th>제목</th><th>사유</th></tr></thead><tbody>'
       +(st.skipped.map(function(s){return '<tr><td>'+_esc(s.it.docNum||'(번호 없음)')+'</td><td>'+_esc(s.it.titleRaw||'')+'</td><td>'+_esc(s.reason)+'</td></tr>';}).join('')||'<tr><td colspan="3">없음</td></tr>')+'</tbody></table></div>';
   }else{
-    var rows=st.rows.filter(function(r){ if(st.filter==='ignored') return r.ignored; if(r.ignored) return false; return st.filter==='all'||r.cls===st.filter||(st.filter==='match'&&r.cls==='applied'); });
+    var rows=st.rows.filter(function(r){ if(st.filter==='ignored') return r.ignored; if(r.ignored) return false; if(st.filter==='external') return r.cls==='external'; if(r.cls==='external') return false; if(st.filter==='newdoc') return r.isNew; return st.filter==='all'||r.cls===st.filter||(st.filter==='match'&&r.cls==='applied'); });
     var applyable=rows.filter(function(r){return r.cls==='new'||r.cls==='update'||r.cls==='match';}).length;
     h+='<div style="display:flex;gap:6px;align-items:center;margin:8px 0;flex-wrap:wrap">'
       +'<button class="btn sm" onclick="gwSelectAll(true)">신규·수정 전체 선택</button><button class="btn sm" onclick="gwSelectAll(false)">선택 해제</button>'
@@ -351,7 +376,7 @@ function _gwRender(){
   el.innerHTML=h;
 }
 function _gwClsLabel(r){
-  return {new:'<span style="color:#4aaa70">신규</span>',update:'<span style="color:#e0972e">수정</span>',match:'<span style="color:#5a9aee">일치</span>',applied:'<span style="color:#888">반영됨</span>',check:'<span style="color:#e05a5a">확인 필요</span>'}[r.cls];
+  return {external:'<span style="color:#777">대상 외</span>',new:'<span style="color:#4aaa70">신규</span>',update:'<span style="color:#e0972e">수정</span>',match:'<span style="color:#5a9aee">일치</span>',applied:'<span style="color:#888">반영됨</span>',check:'<span style="color:#e05a5a">확인 필요</span>'}[r.cls];
 }
 function _gwRowHtml(r){
   var site=S.sites.find(function(s){return s.id===r.siteId;});
@@ -374,13 +399,14 @@ function _gwRowHtml(r){
   var cur=r.cur?_esc(_gwFmt(r.cur.start,r.cur.end))+(r.multi?'<div class="gw-sub">후보 '+r.multi+'건 중 가장 가까운 일정</div>':''):'<span style="color:var(--tx-faint)">없음</span>';
   var canApply=(r.cls==='match'||_gwBlockers(r).length===0);
   var btn;
-  if(r.ignored) btn='<button class="btn sm" onclick="gwIgnore('+r.gi+',false)">무시 해제</button>';
+  if(r.cls==='external') btn='';
+  else if(r.ignored) btn='<button class="btn sm" onclick="gwIgnore('+r.gi+',false)">무시 해제</button>';
   else{
     btn=r.cls==='applied'?'':'<button class="btn sm pri" '+(canApply?'':'disabled ')+'onclick="gwApplyOne('+r.gi+')">'+(r.cls==='match'?'연결':'반영')+'</button>';
     if(r.cls==='check'||r.cls==='new') btn+=' <button class="btn sm" title="앱에서 관리하지 않는 출장(임원 전시회 등)이면 목록에서 숨깁니다" onclick="gwIgnore('+r.gi+',true)">무시</button>';
   }
   return '<tr class="gw-'+r.cls+'"><td>'+((!r.ignored&&(r.cls==='new'||r.cls==='update'||r.cls==='check'))?'<input type="checkbox" '+(r.selected?'checked':'')+' onchange="gwToggle('+r.gi+',this.checked)">':'')+'</td>'
-    +'<td>'+_gwClsLabel(r)+(r.reason?'<div class="gw-sub" style="color:#e05a5a">'+_esc(r.reason)+'</div>':'')+'</td>'
+    +'<td>'+_gwClsLabel(r)+(r.isNew?' <span style="background:#e05a5a;color:#fff;border-radius:3px;padding:0 4px;font-size:9px;font-weight:700">NEW</span>':'')+(r.reason?'<div class="gw-sub" style="color:#e05a5a">'+_esc(r.reason)+'</div>':'')+'</td>'
     +'<td>'+_esc(r.appName||r.person)+(r.appName?'':'<div class="gw-sub">(앱에 없음)</div>')+'</td>'
     +'<td>'+siteCell+extra+'</td>'
     +'<td>'+_esc(_gwFmt(r.start,r.end))+'</td><td>'+cur+'</td>'
