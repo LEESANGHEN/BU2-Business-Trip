@@ -26,7 +26,7 @@ function _gwCollector(){
     }
     function pick(txt,label){
       var m=txt.match(new RegExp(label+'\\s*[:：]\\s*([^\\n]*)')); var v=m?m[1]:'';
-      v=v.split(/\s(?:고객사|협력사|프로젝트명|출장 목적)\s*[:：]/)[0];
+      v=v.split(/\s(?:고객사|협력사|프로젝트\s*명|출장\s*목적)\s*[:：]/)[0];
       return v.replace(/\s+/g,' ').trim().slice(0,200);
     }
     try{
@@ -50,7 +50,7 @@ function _gwCollector(){
             var tmp=document.createElement('div'); tmp.innerHTML=((dj.data||dj).document||{}).docBodyContent||'';
             tmp.querySelectorAll('style,script').forEach(function(e){e.remove();});
             var txt=tmp.innerText||tmp.textContent||'';
-            rec.project=pick(txt,'프로젝트명'); rec.partner=pick(txt,'협력사'); rec.purpose=pick(txt,'출장 목적');
+            rec.project=pick(txt,'프로젝트\\s*명'); rec.partner=pick(txt,'협력사'); rec.purpose=pick(txt,'출장\\s*목적');
           }catch(e){ rec.detailErr=1; }
           out.push(rec);
           say('문서 내용을 읽는 중... '+out.length+' / '+docs.length);
@@ -132,6 +132,8 @@ function _gwAnalyze(json){
     if(!it.ok){ skipped.push({it:it,reason:'제목 형식을 읽을 수 없음'}); return; }
     if(it.status!=='COMPLETE'){ skipped.push({it:it,reason:it.status==='RETURN'?'반려':'결재 진행중'}); return; }
     if(/취소/.test(it.kind)){ skipped.push({it:it,reason:'출장 취소 문서 — 앱 일정 직접 확인',cancel:true}); return; }
+    if(it.start>it.end){ skipped.push({it:it,reason:'기간 오류(취소/정정 문서로 보임) — 앱 일정 직접 확인',cancel:true}); return; }
+    if(it.end<(data.year||'2026')+'-01-01'||it.start>(data.year||'2026')+'-12-31'){ skipped.push({it:it,reason:(data.year||'2026')+'년 기간이 아님'}); return; }
     usable.push(it);
   });
   // 한 출장(그룹): 같은 사람 + 같은 고객사/도시 + 기간이 겹치는 문서들을 기안 순서로 묶는다
@@ -323,7 +325,7 @@ function _gwRowHtml(r){
   var needNew=!r.scId;
   var extra='';
   if(needNew&&(r.cls==='new'||r.cls==='check')){
-    extra='<div class="gw-sub">프로젝트: <input type="text" value="'+_esc(r.project)+'" onchange="gwSetProject('+r.gi+',this.value)" style="width:150px" placeholder="프로젝트명"></div>';
+    extra='<div class="gw-sub">프로젝트: <input type="text" list="gw_pl_'+r.gi+'" value="'+_esc(r.project)+'" onchange="gwSetProject('+r.gi+',this.value)" style="width:150px" placeholder="프로젝트명"><datalist id="gw_pl_'+r.gi+'">'+S.projects.filter(function(p){return p.siteId===r.siteId;}).map(function(p){return '<option value="'+_esc(p.name)+'">';}).join('')+'</datalist></div>';
     if(!r.appName) extra+='<div class="gw-sub">새 출장자 구분: <select onchange="gwSetType('+r.gi+',this.value)">'
       +[['tech','기술'],['outsource','외주'],['localOutsource','현지외주'],['hq','본사'],['vision','비전'],['host','호스트']].map(function(o){return '<option value="'+o[0]+'"'+(r.type===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
   }
