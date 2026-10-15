@@ -679,12 +679,16 @@ function buildGrpSiteRows(){
         });
         rsel.appendChild(og);
       });
+      if(curCity){ var rEditOpt=document.createElement('option');rEditOpt.value='__edit__';rEditOpt.textContent='✎ '+curCity+' 이름 수정...';rsel.appendChild(rEditOpt); }
       var rNewOpt=document.createElement('option');rNewOpt.value='__new__';rNewOpt.textContent='+ 직접 입력...';rsel.appendChild(rNewOpt);
       rsel.onchange=(function(sid){return function(){
         var v=this.value;
         if(v==='__etc__'){
           updSiteCountry(sid,'기타');
           updSiteRegion(sid,'');
+        } else if(v==='__edit__'){
+          renameSiteRegion(sid);
+          return;
         } else if(v==='__new__'){
           var country=prompt('국가명을 입력하세요 (예: 필리핀)');
           country=country?country.trim():'';
@@ -727,6 +731,20 @@ function updGN(id,v){var g=S.groups.find(function(g){return g.id===id;});if(g){g
 function moveSiteGroup(sid,gid){var s=S.sites.find(function(s){return s.id===sid;});if(s){s.groupId=gid;_touch(s);saveData();buildGrpSiteRows();renderSidebar();renderGantt();}}
 
 /* 사이트 CRUD */
+// 세부 지역(도시) 이름 수정 — 목록에서 고르는 값이라 별도 입력창이 없으면 오타를 고칠 수 없었다.
+// 같은 국가에서 같은 이름을 쓰는 다른 사이트가 있으면 함께 바꿀지 묻는다
+function renameSiteRegion(sid){
+  var site=S.sites.find(function(s){return s.id===sid;}); if(!site||!site.region){buildGrpSiteRows();return;}
+  var oldName=site.region;
+  var nv=prompt('세부 지역 이름을 수정하세요',oldName);
+  nv=nv?nv.trim():'';
+  if(!nv||nv===oldName){buildGrpSiteRows();return;}
+  var others=S.sites.filter(function(s){return s.id!==sid&&(s.country||'기타')===(site.country||'기타')&&s.region===oldName;});
+  var targets=[site];
+  if(others.length&&confirm('같은 국가에서 "'+oldName+'"을(를) 쓰는 다른 사이트 '+others.length+'곳('+others.map(function(s){return s.name;}).join(', ')+')도 "'+nv+'"(으)로 함께 바꿀까요?\n[취소]를 누르면 이 사이트만 바뀝니다.')) targets=targets.concat(others);
+  targets.forEach(function(s){ s.region=nv; _touch(s); });
+  saveData(); buildGrpSiteRows(); renderSidebar(); renderGantt();
+}
 function updSN(id,v){var s=S.sites.find(function(s){return s.id===id;});if(s){s.name=v.trim();_touch(s);saveData();renderSidebar();renderGantt();}}
 function updSC(id,v){var s=S.sites.find(function(s){return s.id===id;});if(s){s.color=v;_touch(s);saveData();renderSidebar();renderGantt();}}
 function updSiteRegion(id,v){var s=S.sites.find(function(s){return s.id===id;});if(s){s.region=v;_touch(s);saveData();}}
