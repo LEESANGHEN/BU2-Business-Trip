@@ -1054,3 +1054,14 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .home-eng-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:transparent}
 .home-eng-lbl{width:92px;cursor:pointer}
 .home-eng-lbl:hover{color:var(--tx-primary);text-decoration:underline}
+.gw-chips{display:flex;gap:6px;flex-wrap:wrap}
+.gw-chip{background:transparent;border:1px solid;border-radius:14px;padding:3px 11px;font-size:11px;cursor:pointer;opacity:.7}
+.gw-chip.on{opacity:1;background:var(--bg-hover)}
+.gw-wrap{max-height:52vh;overflow:auto;border:1px solid var(--bd-main);border-radius:6px}
+.gw-tbl{border-collapse:collapse;width:100%;font-size:12px}
+.gw-tbl th{position:sticky;top:0;background:var(--bg-grp);padding:6px 8px;text-align:left;font-weight:600;border-bottom:1px solid var(--bd-main);white-space:nowrap;z-index:1}
+.gw-tbl td{padding:6px 8px;border-bottom:1px solid var(--bd-subtle);vertical-align:top}
+.gw-tbl select,.gw-tbl input[type=text]{font-size:11px;padding:3px 5px}
+.gw-sub{font-size:10px;color:var(--tx-faint);margin-top:2px}
+.gw-check td{background:rgba(224,90,90,.06)}
+.gw-applied td{opacity:.55}

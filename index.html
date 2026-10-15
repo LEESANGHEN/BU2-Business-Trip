@@ -9,7 +9,7 @@
   <script>
     (function(){var t=localStorage.getItem('trip_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
   </script>
-  <link rel="stylesheet" href="style.css?v=20261014b">
+  <link rel="stylesheet" href="style.css?v=20261015a">
   <!-- PWA: Chrome/Edge에서 "앱 설치"로 독립된 창(PC 앱)처럼 쓸 수 있게 한다.
        항상 이 주소를 그대로 불러오는 구조라 git push로 배포한 최신 내용이 그대로 반영된다. -->
   <link rel="manifest" href="manifest.json?v=20261001a">
@@ -73,6 +73,7 @@
           <button class="btn" id="btnHidden" data-i18n="btnHidden" onclick="toggleShowHidden()">완료 보기</button>
           <button class="btn" id="btnSiteMgr" data-i18n="btnSiteMgr" onclick="openModal('site')">사이트 관리</button>
           <button class="btn ev" id="btnAddEvent" data-i18n="btnAddEvent" onclick="openModal('event')">★ 이벤트 등록</button>
+          <button class="btn" id="btnGwImport" onclick="openGwImport()" title="그룹웨어 전자결재 해외출장 품의서를 읽어 출장 일정과 매칭/반영">그룹웨어 가져오기</button>
           <button class="btn pri" id="btnAddSchedule" data-i18n="btnAddSchedule" onclick="openModal('schedule')">+ 출장 등록</button>
         </div>
         <div id="setupTools" style="display:none;gap:5px;align-items:center;flex-wrap:wrap">
@@ -200,6 +201,7 @@
   <script src="app.js?v=20261014a"></script>
   <script src="gantt.js?v=20261014a"></script>
   <script src="modals.js?v=20261015b"></script>
+  <script src="gw-import.js?v=20261015a"></script>
   <script src="projects.js?v=20261002k"></script>
   <script src="projects-batch.js?v=20261002a"></script>
   <script src="pedestal.js?v=20261002j"></script>
