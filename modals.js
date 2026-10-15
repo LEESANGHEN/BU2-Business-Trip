@@ -618,8 +618,11 @@ function _migrateSiteCountry(){
 function buildGrpSiteRows(){
   _migrateSiteCountry();
   var el=document.getElementById('grpSiteRows');if(!el)return;el.innerHTML='';
-  var COUNTRY_SECTIONS=BASE_REGIONS.map(function(r){return {key:r,label:r};});
   var countryOpts=getAllRegionOptions();
+  // 기본 국가 목록에 없는 국가(예: 오스트리아, 미국처럼 "직접 입력"으로 만든 국가)도 구역을 만들어야 한다 —
+  // 예전에는 기본 목록(BASE_REGIONS)만 구역으로 그려서 그런 국가의 사이트가 이 창에서 통째로 안 보이고 삭제도 못 했다.
+  // 순서: 기본 국가 → 직접 입력한 국가 → 기타
+  var COUNTRY_SECTIONS=countryOpts.filter(function(c){return c!=='기타';}).concat(['기타']).map(function(r){return {key:r,label:r};});
 
   COUNTRY_SECTIONS.forEach(function(sec){
     var secSites=S.sites.filter(function(s){return (s.country||'기타')===sec.key;});
