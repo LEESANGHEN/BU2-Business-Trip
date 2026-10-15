@@ -277,6 +277,19 @@ function _gwAnalyze(json){
     });
     var already=cands.find(function(sc){return (sc.gwDocs||[]).some(function(n){return docNums.indexOf(n)>=0;});});
     var m=already||cands[0];
+    // 같은 고객사의 다른 사이트에 등록돼 있을 수 있다(예: 제목은 IBIDEN/Ogaki인데 앱에는 IBIDEN_Cell8) — 사이트 매핑이 달라도
+    // 같은 사람·같은 기간·같은 고객사면 그 일정으로 본다
+    if(!m){
+      var ctoks=String(first.customer||'').split(/[,，、]/).map(_gwAliased).filter(function(c){return c&&c.length>=3;});
+      var alt=ctoks.length?S.schedules.filter(function(sc){
+        if(!isDom&&used[sc.id+'|'+g.person]) return false;
+        if(!_gwPersonOf(sc).some(function(n){return names.indexOf(n)>=0||n.indexOf(g.person+' ')===0;})) return false;
+        var sn=_gwNorm((S.sites.find(function(s){return s.id===_gwSchedSite(sc);})||{}).name);
+        if(!ctoks.some(function(c){return sn.indexOf(c)>=0;})) return false;
+        return _gwOverlap(sc.start,sc.end,g.minStart,g.maxEnd);
+      }).sort(function(a,b){return Math.abs(pd(a.start)-pd(fin.start))-Math.abs(pd(b.start)-pd(fin.start));}):[];
+      if(alt.length){ m=alt[0]; row.siteId=_gwSchedSite(m); row.siteHow='같은 고객사의 다른 사이트(일정에서 추정)'; }
+    }
     if(m){
       used[m.id+'|'+g.person]=true; usedAny[m.id]=true;
       row.scId=m.id; row.cur={start:m.start,end:m.end}; row.curTask=m.task||''; row.multi=cands.length>1?cands.length:0;
