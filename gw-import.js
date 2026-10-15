@@ -119,7 +119,7 @@ function _gwBookmarklet(){ return 'javascript:'+encodeURIComponent('('+_gwCollec
 
 /* ── ② 매칭 ── */
 var _gwState={items:[],rows:[],appOnly:[],filter:'all',meta:null};
-var GW_SITE_ALIAS={'lgait':'lgit','ait':'lgit','아이비텍':'ibtech','신코':'shinko','쿄세라':'kyocera','vitoryglant':'victorygiant','vitorygiant':'victorygiant'};
+var GW_SITE_ALIAS={'zdtha':'zdt','lgait':'lgit','ait':'lgit','아이비텍':'ibtech','신코':'shinko','쿄세라':'kyocera','vitoryglant':'victorygiant','vitorygiant':'victorygiant'};
 // 도시 표기가 영문/한글/오타로 섞여 있어(Kulim/쿨림, 썬전/선전 등) 같은 도시로 보이게 맞춘다 — 그룹웨어 제목과 앱 사이트 지역 양쪽에 같이 적용
 var GW_CITY_ALIAS={'kulim':'쿨림','nagano':'나가노','niigata':'니가타','leoben':'레오벤','huaian':'후아이안','썬전':'선전','shenzhen':'선전','taoyuan':'타오위안','싱가폴':'싱가포르'};
 function _gwCityN(s){ var n=String(s||'').toLowerCase().replace(/[^a-z0-9가-힣]/g,''); return GW_CITY_ALIAS[n]||n; }
@@ -263,14 +263,17 @@ function _gwAnalyze(json){
     row.change=fin.end>plan.end?'연장 '+(_gwDays(plan.end,fin.end)-1)+'일':(fin.end<plan.end?'축소 '+(_gwDays(fin.end,plan.end)-1)+'일':(fin.start!==plan.start?'시작일 변경':''));
     // 현재 앱 일정(완료 포함)과 매칭
     var names=[g.person,appName].filter(Boolean);
+    // 국내 출장은 품의서가 짧게 여러 건(주 단위)인데 앱에는 장기 일정 하나로 등록된 경우가 많아, 한 앱 일정이 여러 품의서를 포함할 수 있다
+    var isDom=g.docs.some(function(d){return d.domestic;});
+    function covers(sc){ return sc.start<=_addDaysStr(fin.start,2)&&sc.end>=_addDaysStr(fin.end,-2); }
     var cands=S.schedules.filter(function(sc){
-      if(used[sc.id+'|'+g.person]) return false;
+      if(!isDom&&used[sc.id+'|'+g.person]) return false;
       if(!_gwPersonOf(sc).some(function(n){return names.indexOf(n)>=0||n.indexOf(g.person+' ')===0;})) return false;
       if(row.siteId&&_gwSchedSite(sc)!==row.siteId) return false;
       return _gwOverlap(sc.start,sc.end,g.minStart,g.maxEnd);
     }).sort(function(a,b){
       var oa=Math.min(a.end,g.maxEnd)<Math.max(a.start,g.minStart)?0:1;
-      return (a.start===fin.start&&a.end===fin.end?0:1)-(b.start===fin.start&&b.end===fin.end?0:1)||(Math.abs(pd(a.start)-pd(fin.start))-Math.abs(pd(b.start)-pd(fin.start)));
+      return (a.start===fin.start&&a.end===fin.end?0:1)-(b.start===fin.start&&b.end===fin.end?0:1)||(isDom?((covers(a)?0:1)-(covers(b)?0:1)||((a.end>a.start?pd(a.end)-pd(a.start):0)-(b.end>b.start?pd(b.end)-pd(b.start):0))):0)||(Math.abs(pd(a.start)-pd(fin.start))-Math.abs(pd(b.start)-pd(fin.start)));
     });
     var already=cands.find(function(sc){return (sc.gwDocs||[]).some(function(n){return docNums.indexOf(n)>=0;});});
     var m=already||cands[0];
@@ -290,8 +293,10 @@ function _gwAnalyze(json){
     if(m){
       var same=m.start===fin.start&&m.end===fin.end;
       var docsLinked=docNums.every(function(n){return (m.gwDocs||[]).indexOf(n)>=0;});
-      if(same&&docsLinked) row.cls='applied';
-      else if(same) row.cls='match';
+      var covered=!same&&isDom&&covers(m);
+      row.covered=covered;
+      if((same||covered)&&docsLinked) row.cls='applied';
+      else if(same||covered) row.cls='match';
       else row.cls='update';
     }else row.cls='new';
     _gwRecls(row);
@@ -427,7 +432,7 @@ function _gwRowHtml(r){
     if(!r.appName) extra+='<div class="gw-sub">새 출장자 구분: <select onchange="gwSetType('+r.gi+',this.value)"><option value="">선택...</option>'
       +[['tech','기술'],['outsource','외주'],['localOutsource','현지외주'],['hq','본사'],['vision','비전'],['host','호스트']].map(function(o){return '<option value="'+o[0]+'"'+(r.type===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
   }
-  var cur=r.cur?_esc(_gwFmt(r.cur.start,r.cur.end))+(r.multi?'<div class="gw-sub">후보 '+r.multi+'건 중 가장 가까운 일정</div>':''):'<span style="color:var(--tx-faint)">없음</span>';
+  var cur=r.cur?_esc(_gwFmt(r.cur.start,r.cur.end))+(r.covered?'<div class="gw-sub">이 출장 기간을 포함하는 일정(국내 장기 일정)</div>':'')+(r.multi?'<div class="gw-sub">후보 '+r.multi+'건 중 가장 가까운 일정</div>':''):'<span style="color:var(--tx-faint)">없음</span>';
   var canApply=(r.cls==='match'||_gwBlockers(r).length===0);
   var btn;
   if(r.cls==='external') btn='';
@@ -494,7 +499,8 @@ function _gwReanalyzeRow(r){
   if(m){
     r.scId=m.id; r.cur={start:m.start,end:m.end}; r.multi=cands.length>1?cands.length:0;
     var same=m.start===fin.start&&m.end===fin.end;
-    r.cls=same?((r.docNums.every(function(n){return (m.gwDocs||[]).indexOf(n)>=0;}))?'applied':'match'):'update';
+    var cov=!same&&r.domestic&&m.start<=_addDaysStr(r.start,2)&&m.end>=_addDaysStr(r.end,-2); r.covered=cov;
+    r.cls=(same||cov)?((r.docNums.every(function(n){return (m.gwDocs||[]).indexOf(n)>=0;}))?'applied':'match'):'update';
   }else{
     r.scId=''; r.cur=null; r.multi=0; r.cls='new';
   }
