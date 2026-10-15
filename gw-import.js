@@ -297,6 +297,18 @@ function _gwAnalyze(json){
       row.scId=m.id; row.cur={start:m.start,end:m.end}; row.curTask=m.task||''; row.multi=cands.length>1?cands.length:0;
       if(!row.siteId){ row.siteId=_gwSchedSite(m); row.siteHow='일정에서 추정'; } // 사이트 매핑이 안 돼도 매칭된 앱 일정의 사이트를 따른다
     }
+    // 같은 출장의 다른 앱 일정(프로젝트별로 나눠 등록했거나 기간을 쪼개 등록한 일정)도 같은 품의서에 딸린 일정으로 본다
+    row.sibIds=[];
+    if(m){
+      var msite=_gwSchedSite(m);
+      S.schedules.forEach(function(sc){
+        if(sc.id===m.id||used[sc.id+'|'+g.person]) return;
+        if(!_gwPersonOf(sc).some(function(n){return names.indexOf(n)>=0||n.indexOf(g.person+' ')===0;})) return;
+        if(_gwSchedSite(sc)!==msite) return;
+        if(sc.start<_addDaysStr(g.minStart,-2)||sc.end>_addDaysStr(g.maxEnd,2)) return;
+        row.sibIds.push(sc.id); used[sc.id+'|'+g.person]=true; usedAny[sc.id]=true;
+      });
+    }
     row.external=!!rosterSet&&!rosterSet[g.person];
     row.pos=GW_POS_OVERRIDE[g.person]||(rosterSet&&rosterSet[g.person]&&rosterSet[g.person].position)||'';
     row.type=(!appName&&rosterSet&&rosterSet[g.person])?'tech':''; // BU2부문 구성원은 앱에 처음 등록돼도 기본 구분을 기술로 한다
@@ -350,6 +362,7 @@ function _gwApplyRow(row){
       else if(sc.extensions&&sc.extensions.length&&sc.end<=(sc.origEnd||'')){ delete sc.extensions; delete sc.origEnd; }
     }
     stamp(sc); _touch(sc);
+    (row.sibIds||[]).forEach(function(id){ var s2=S.schedules.find(function(x){return x.id===id;}); if(s2){ stamp(s2); _touch(s2); } });
     return 'ok';
   }
   // 신규 등록
@@ -448,7 +461,7 @@ function _gwRowHtml(r){
     if(!r.appName) extra+='<div class="gw-sub">새 출장자 구분: <select onchange="gwSetType('+r.gi+',this.value)"><option value="">선택...</option>'
       +[['tech','기술'],['outsource','외주'],['localOutsource','현지외주'],['hq','본사'],['vision','비전'],['host','호스트']].map(function(o){return '<option value="'+o[0]+'"'+(r.type===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
   }
-  var cur=r.cur?_esc(_gwFmt(r.cur.start,r.cur.end))+(r.covered?'<div class="gw-sub">이 출장 기간을 포함하는 일정(국내 장기 일정)</div>':'')+(r.multi?'<div class="gw-sub">후보 '+r.multi+'건 중 가장 가까운 일정</div>':''):'<span style="color:var(--tx-faint)">없음</span>';
+  var cur=r.cur?_esc(_gwFmt(r.cur.start,r.cur.end))+(r.sibIds&&r.sibIds.length?'<div class="gw-sub">같은 출장의 앱 일정 '+r.sibIds.length+'건 함께 연결</div>':'')+(r.covered?'<div class="gw-sub">이 출장 기간을 포함하는 일정(국내 장기 일정)</div>':'')+(r.multi?'<div class="gw-sub">후보 '+r.multi+'건 중 가장 가까운 일정</div>':''):'<span style="color:var(--tx-faint)">없음</span>';
   var canApply=(r.cls==='match'||_gwBlockers(r).length===0);
   var btn;
   if(r.cls==='external') btn='';
