@@ -136,6 +136,24 @@ function _gwCleanPeople(list){
   });
   return out;
 }
+// 반영하기 전에 사용자가 채워야 하는 항목. 앱에 없는 출장자는 구분(기술/외주 등)을 직접 골라야 한다
+// (임원 전시회 출장자 등이 기본값으로 기술 인원에 섞이지 않도록)
+function _gwBlockers(r){
+  var b=[];
+  if(!r.siteId) b.push('사이트 선택');
+  if(!r.scId){
+    if(!r.project) b.push('프로젝트명');
+    if(!r.appName&&!r.type) b.push('출장자 구분');
+  }
+  return b;
+}
+function _gwRecls(r){
+  if(r.cls==='applied') return;
+  var b=_gwBlockers(r);
+  r.reason=b.join(', ');
+  if(r.scId){ if(r.cls==='update'&&!r.siteId) r.cls='check'; }
+  else r.cls=b.length?'check':'new';
+}
 function _gwAnalyze(json){
   var data;
   try{ data=JSON.parse(json); }catch(e){ throw new Error('붙여넣은 내용을 읽을 수 없습니다. 수집 북마크가 복사한 내용을 그대로 붙여넣어 주세요.'); }
@@ -216,10 +234,6 @@ function _gwAnalyze(json){
     row.ignoreKey=g.person+'|'+g.minStart+'|'+g.maxEnd+'|'+_gwNorm(first.customer);
     row.ignored=!!_gwLoadIgnored()[row.ignoreKey];
     // 분류
-    var reasons=[];
-    if(!row.siteId) reasons.push('사이트 매핑 필요');
-    if(!m&&!appName) reasons.push('앱에 없는 출장자');
-    if(!m&&!row.project) reasons.push('프로젝트명 없음');
     if(m){
       var same=m.start===fin.start&&m.end===fin.end;
       var docsLinked=docNums.every(function(n){return (m.gwDocs||[]).indexOf(n)>=0;});
@@ -227,9 +241,7 @@ function _gwAnalyze(json){
       else if(same) row.cls='match';
       else row.cls='update';
     }else row.cls='new';
-    if(row.cls==='new'&&reasons.length) row.cls='check';
-    if(row.cls==='update'&&!row.siteId) row.cls='check';
-    row.reason=reasons.join(', ');
+    _gwRecls(row);
     return row;
   });
   // 앱에만 있는 2026년 일정(그룹웨어 문서와 매칭되지 않음)
@@ -268,6 +280,7 @@ function _gwApplyRow(row){
   // 신규 등록
   if(!row.siteId) return 'site';
   var pname=(row.project||'').trim(); if(!pname) return 'project';
+  if(!row.appName&&!row.type) return 'type';
   var proj=S.projects.find(function(p){return p.siteId===row.siteId&&p.name===pname;});
   if(!proj){ proj=_touch({id:_createProjectId(pname),siteId:row.siteId,name:pname}); S.projects.push(proj); }
   var same=S.schedules.filter(function(s){return s.projectId===proj.id&&_gwPersonOf(s).indexOf(row.appName||row.person)>=0;}).length;
@@ -327,6 +340,7 @@ function _gwRender(){
     h+='<div style="display:flex;gap:6px;align-items:center;margin:8px 0;flex-wrap:wrap">'
       +'<button class="btn sm" onclick="gwSelectAll(true)">신규·수정 전체 선택</button><button class="btn sm" onclick="gwSelectAll(false)">선택 해제</button>'
       +'<button class="btn sm pri" onclick="gwApplySelected()">선택 반영</button>'
+      +'<input type="text" id="gw_bulk_proj" placeholder="프로젝트명 일괄 입력" style="width:150px;font-size:11px"><button class="btn sm" onclick="gwBulkProject()" title="체크한 신규/확인 필요 행에 프로젝트명을 한꺼번에 넣습니다">선택 행에 적용</button>'
       +'<button class="btn sm pri" onclick="gwApplyAllSafe()" title="신규와 수정 중 확인 필요 없는 건을 모두 반영합니다(일치 건은 문서만 연결)">신규·수정 모두 반영</button>'
       +'<span style="font-size:11px;color:var(--tx-muted)">현재 목록에서 반영 가능 '+applyable+'건</span></div>';
     h+='<div class="gw-wrap"><table class="gw-tbl"><thead><tr><th></th><th>상태</th><th>출장자</th><th>사이트</th><th>그룹웨어 기간</th><th>현재 앱 일정</th><th>변경</th><th>문서</th><th></th></tr></thead><tbody>';
@@ -354,18 +368,18 @@ function _gwRowHtml(r){
   var extra='';
   if(needNew&&(r.cls==='new'||r.cls==='check')){
     extra='<div class="gw-sub">프로젝트: <input type="text" list="gw_pl_'+r.gi+'" value="'+_esc(r.project)+'" onchange="gwSetProject('+r.gi+',this.value)" style="width:150px" placeholder="프로젝트명"><datalist id="gw_pl_'+r.gi+'">'+S.projects.filter(function(p){return p.siteId===r.siteId;}).map(function(p){return '<option value="'+_esc(p.name)+'">';}).join('')+'</datalist></div>';
-    if(!r.appName) extra+='<div class="gw-sub">새 출장자 구분: <select onchange="gwSetType('+r.gi+',this.value)">'
+    if(!r.appName) extra+='<div class="gw-sub">새 출장자 구분: <select onchange="gwSetType('+r.gi+',this.value)"><option value="">선택...</option>'
       +[['tech','기술'],['outsource','외주'],['localOutsource','현지외주'],['hq','본사'],['vision','비전'],['host','호스트']].map(function(o){return '<option value="'+o[0]+'"'+(r.type===o[0]?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select></div>';
   }
   var cur=r.cur?_esc(_gwFmt(r.cur.start,r.cur.end))+(r.multi?'<div class="gw-sub">후보 '+r.multi+'건 중 가장 가까운 일정</div>':''):'<span style="color:var(--tx-faint)">없음</span>';
-  var canApply=(r.cls==='new'||r.cls==='update'||r.cls==='match'||(r.cls==='check'&&r.siteId&&(r.scId||r.project)));
+  var canApply=(r.cls==='match'||_gwBlockers(r).length===0);
   var btn;
   if(r.ignored) btn='<button class="btn sm" onclick="gwIgnore('+r.gi+',false)">무시 해제</button>';
   else{
     btn=r.cls==='applied'?'':'<button class="btn sm pri" '+(canApply?'':'disabled ')+'onclick="gwApplyOne('+r.gi+')">'+(r.cls==='match'?'연결':'반영')+'</button>';
     if(r.cls==='check'||r.cls==='new') btn+=' <button class="btn sm" title="앱에서 관리하지 않는 출장(임원 전시회 등)이면 목록에서 숨깁니다" onclick="gwIgnore('+r.gi+',true)">무시</button>';
   }
-  return '<tr class="gw-'+r.cls+'"><td>'+((r.cls==='new'||r.cls==='update')?'<input type="checkbox" '+(r.selected?'checked':'')+' onchange="gwToggle('+r.gi+',this.checked)">':'')+'</td>'
+  return '<tr class="gw-'+r.cls+'"><td>'+((!r.ignored&&(r.cls==='new'||r.cls==='update'||r.cls==='check'))?'<input type="checkbox" '+(r.selected?'checked':'')+' onchange="gwToggle('+r.gi+',this.checked)">':'')+'</td>'
     +'<td>'+_gwClsLabel(r)+(r.reason?'<div class="gw-sub" style="color:#e05a5a">'+_esc(r.reason)+'</div>':'')+'</td>'
     +'<td>'+_esc(r.appName||r.person)+(r.appName?'':'<div class="gw-sub">(앱에 없음)</div>')+'</td>'
     +'<td>'+siteCell+extra+'</td>'
@@ -393,8 +407,16 @@ function gwSetSite(gi,siteId){
   var res=_gwReanalyzeRow(r);
   _gwRender();
 }
-function gwSetProject(gi,v){ _gwRow(gi).project=v.trim(); _gwRender(); }
-function gwSetType(gi,v){ _gwRow(gi).type=v; }
+function gwSetProject(gi,v){ var r=_gwRow(gi); r.project=v.trim(); _gwRecls(r); _gwRender(); }
+function gwSetType(gi,v){ var r=_gwRow(gi); r.type=v; _gwRecls(r); _gwRender(); }
+// 선택한 행(앱에 아직 없는 출장)에 같은 프로젝트명을 한꺼번에 넣는다
+function gwBulkProject(){
+  var inp=document.getElementById('gw_bulk_proj'), v=(inp&&inp.value||'').trim();
+  if(!v){ alert('프로젝트명을 입력하세요.'); return; }
+  var n=0; _gwState.rows.forEach(function(r){ if(r.selected&&!r.scId&&r.cls!=='applied'){ r.project=v; _gwRecls(r); n++; } });
+  if(!n){ alert('먼저 앱에 없는 출장(신규/확인 필요) 행을 체크하세요.'); return; }
+  _gwRender();
+}
 // 사이트를 사용자가 정한 뒤, 그 사이트에서 같은 사람/기간의 앱 일정을 찾아 분류를 갱신
 function _gwReanalyzeRow(r){
   var names=[r.person,r.appName].filter(Boolean);
@@ -408,12 +430,10 @@ function _gwReanalyzeRow(r){
     r.scId=m.id; r.cur={start:m.start,end:m.end}; r.multi=cands.length>1?cands.length:0;
     var same=m.start===fin.start&&m.end===fin.end;
     r.cls=same?((r.docNums.every(function(n){return (m.gwDocs||[]).indexOf(n)>=0;}))?'applied':'match'):'update';
-    r.reason='';
   }else{
-    r.scId=''; r.cur=null; r.multi=0;
-    var reasons=[]; if(!r.appName) reasons.push('앱에 없는 출장자'); if(!r.project) reasons.push('프로젝트명 없음');
-    r.cls=reasons.length?'check':'new'; r.reason=reasons.join(', ');
+    r.scId=''; r.cur=null; r.multi=0; r.cls='new';
   }
+  _gwRecls(r);
 }
 function _gwFinish(){
   saveData();
@@ -424,6 +444,7 @@ function gwApplyOne(gi){
   var r=_gwRow(gi), res=_gwApplyRow(r);
   if(res==='site'){ alert('사이트를 선택하세요.'); return; }
   if(res==='project'){ alert('프로젝트명을 입력하세요.'); return; }
+  if(res==='type'){ alert('새 출장자의 구분(기술/외주 등)을 선택하세요.'); return; }
   if(res==='ok') _gwRowDone(r);
   _gwFinish();
 }
