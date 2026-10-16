@@ -28,6 +28,7 @@ var PD_GROUPS=[
     {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
   ]},
   {label:'인텍플러스 ↔ PSMP',cols:[
+    {key:'conceptDwg',label:'컨셉 도면',type:'rich',w:120},
     {key:'designDwg',label:'설계 도면',type:'rich',w:120},
     {key:'bom',label:'BOM List',type:'rich',w:110},
     {key:'psmpSN',label:'PSMP S/N',type:'text',w:120},
