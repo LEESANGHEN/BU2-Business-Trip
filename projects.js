@@ -743,8 +743,8 @@ function renderMonthlyAggTab(centerNow){
     main.innerHTML='<div style="padding:40px;text-align:center;color:#707080">집계할 프로젝트 데이터가 없습니다. "프로젝트 관리" 탭에서 데이터를 등록하거나 가져오세요.</div>';
     return;
   }
-  var html='<div id="maScroll" style="overflow:auto;flex:1;padding:12px">';
-  html+='<table class="pm-person-table"><thead><tr>'
+  var html='<div id="maScroll" style="overflow:auto;flex:1;padding:0 12px 12px">';
+  html+='<table class="pm-person-table" style="margin-top:12px"><thead><tr>'
     +'<th>'+t('maMonth')+'</th><th>'+t('maHqCount')+'</th><th>'+t('maHqList')+'</th>'
     +'<th>'+t('maSiteCount')+'</th><th>'+t('maSiteList')+'</th>'
     +'<th>'+t('maPeople')+'</th><th>'+t('maPeopleList')+'</th></tr></thead><tbody>';
