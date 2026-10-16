@@ -23,6 +23,7 @@ var PD_GROUPS=[
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
     {key:'productName',label:'Pedestal 정보',type:'rich',w:130}, // 예전 "제품명"(글자만) 칸 — 저장 키는 그대로라 기존 입력값은 글 내용으로 이어지고, 이제 파일/이미지도 넣을 수 있다
     {key:'trayInfo',label:'Tray 정보',type:'rich',w:120},
+    {key:'partList',label:'Part List',type:'rich',w:120},
     {key:'custQuote',label:'견적서',full:'고객사 견적서',type:'doc',w:150},
     {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
   ]},
