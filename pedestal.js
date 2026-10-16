@@ -23,14 +23,14 @@ var PD_GROUPS=[
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
     {key:'productName',label:'Pedestal 정보',type:'rich',w:130}, // 예전 "제품명"(글자만) 칸 — 저장 키는 그대로라 기존 입력값은 글 내용으로 이어지고, 이제 파일/이미지도 넣을 수 있다
     {key:'trayInfo',label:'Tray 정보',type:'rich',w:120},
-    {key:'partList',label:'Part List',type:'rich',w:120},
+    {key:'partList',label:'Conversion Kit Part List',type:'rich',w:140},
     {key:'custQuote',label:'견적서',full:'고객사 견적서',type:'doc',w:150},
     {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
   ]},
   {label:'인텍플러스 ↔ PSMP',cols:[
     {key:'conceptDwg',label:'컨셉 도면',type:'rich',w:120},
     {key:'designDwg',label:'설계 도면',type:'rich',w:120},
-    {key:'bom',label:'Part List',type:'rich',w:110},
+    {key:'bom',label:'설계 Part List',type:'rich',w:120},
     {key:'psmpSN',label:'PSMP S/N',type:'text',w:120},
     {key:'psmpQuote',label:'견적서',full:'PSMP 견적서',type:'doc',w:150},
     {key:'psmpPO',label:'발주서',full:'PSMP 발주서',type:'doc',w:150}
@@ -504,6 +504,7 @@ function _pdFilesHtml(row,key){
       :'<div class="pd-thumb" style="display:flex;align-items:center;justify-content:center;font-size:20px">📄</div>';
     return '<div class="pd-file">'+thumb
       +'<div style="flex:1;min-width:0"><div class="pd-fname" title="'+_esc(f.name||'')+'">'+_esc(f.name||'')+'</div><div style="font-size:10px;color:var(--tx-faint)">'+_pdFormatSize(f.size)+'</div></div>'
+      +'<button class="btn sm" onclick="pdPreviewFile(\x27'+fid+'\x27)">미리보기</button>'
       +(_pdIsXlsx(f)?'<button class="btn sm pri" onclick="pdEditFile(\''+fid+'\')">편집</button>':'')
       +'<a href="'+_esc(f.downloadUrl||f.viewUrl||'#')+'" target="_blank" rel="noopener" class="btn sm" style="text-decoration:none">다운로드</a>'
       +'<button class="btn sm red" onclick="pdDeleteFile(\''+fid+'\')">삭제</button></div>';
@@ -611,6 +612,12 @@ function _pdUploadFile(file){
     .catch(function(){ alert('업로드 응답이 정상적이지 않습니다. (서버가 막 깨어나는 중일 수 있어요) 잠시 후 다시 시도해주세요.'); setSt(''); });
   };
   reader.readAsDataURL(file);
+}
+function pdPreviewFile(fileId){
+  var ctx=_pdModal; if(!ctx) return;
+  var row=_pdRowById(ctx.rowId); if(!row) return;
+  var f=_pdFiles(row,ctx.key).find(function(x){return String(x.id)===String(fileId);});
+  if(f) openFilePreview(f);
 }
 function pdDeleteFile(fileId){
   if(!_pdModal||!confirm('첨부파일을 삭제할까요?')) return;

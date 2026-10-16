@@ -361,6 +361,7 @@ function _spAttachListHtml(attachments){
     return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:6px;padding:5px 8px">'
       +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.link?'🔗 ':'')+_esc(a.name||'')+'</span>'
       +(a.link?'<span style="color:var(--tx-faint);flex-shrink:0">링크</span>':'<span style="color:var(--tx-faint);flex-shrink:0">'+_spFmtFileSize(a.size)+'</span>')
+      +(a.link?'':'<button class="btn sm" style="flex-shrink:0" onclick="spPreviewAttachment(\x27'+_spModalMpId.replace(/'/g,"\\'")+'\x27,\x27'+fidAttr+'\x27)">미리보기</button>')
       +'<a href="'+_esc(a.downloadUrl||a.viewUrl||'#')+'" target="_blank" rel="noopener" class="btn sm" style="flex-shrink:0;text-decoration:none">'+(a.link?'열기':'다운로드')+'</a>'
       +'<button class="btn sm red" style="flex-shrink:0" onclick="spDeleteAttachment(\''+_spModalMpId.replace(/'/g,"\\'")+'\',\''+fidAttr+'\')">삭제</button>'
       +'</div>';
@@ -670,6 +671,11 @@ function spAddLink(mpId){
   var f=document.getElementById('sp_link_form'); if(f) f.style.display='none';
 }
 
+function spPreviewAttachment(mpId,fileId){
+  var mp=S.masterProjects.find(function(x){return x.id===mpId;}); if(!mp) return;
+  var a=(_spProgress(mp).attachments||[]).find(function(x){return String(x.id)===String(fileId);});
+  if(a) openFilePreview(a);
+}
 function spDeleteAttachment(mpId,fileId){
   if(!confirm('첨부파일을 삭제할까요?')) return;
   var mp=S.masterProjects.find(function(x){return x.id===mpId;});
