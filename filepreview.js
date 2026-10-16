@@ -131,6 +131,12 @@ function _fpDwg(f,body,st,dl){
     });
   }).then(function(svgText){
     if(document.getElementById('fpBody')!==body) return; // 그 사이 창을 닫았으면 그리지 않는다
+    // 매우 큰 도면은 화면에 올리면 브라우저가 느려질 수 있어 먼저 확인한다
+    if(svgText.length>30*1024*1024){
+      body.innerHTML='<div class="fp-msg">매우 큰 도면입니다(변환 결과 '+Math.round(svgText.length/1048576)+'MB). 화면에 올리면 확대/이동이 느리거나 브라우저가 잠시 멈출 수 있습니다.<br><br><button class="btn pri" id="fpDwgGo">그래도 열기</button></div>';
+      document.getElementById('fpDwgGo').onclick=function(){ body.innerHTML='<div class="fp-msg">도면을 그리는 중...</div>'; setTimeout(function(){ _fpShowSvg(body,svgText); },50); };
+      return;
+    }
     _fpShowSvg(body,svgText);
   }).catch(function(e){
     if(document.getElementById('fpBody')!==body) return;
@@ -138,6 +144,10 @@ function _fpDwg(f,body,st,dl){
   });
 }
 function _fpShowSvg(body,svgText){
+  // 변환기가 글자 내용을 이스케이프하지 않아 "<页 数>" 같은 글자가 있으면 XML이 깨진다 — 글자 안의 <, & 를 안전하게 바꾼다
+  svgText=svgText.replace(/(<text\b[^>]*>)([\s\S]*?)(<\/text>)/g,function(m,a,b,c){
+    return a+b.replace(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g,'&amp;').replace(/<(?!\/?tspan\b)/g,'&lt;')+c;
+  });
   var doc=new DOMParser().parseFromString(svgText,'image/svg+xml'), svg=doc.documentElement;
   if(!svg||svg.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror')){ body.innerHTML='<div class="fp-msg">도면 변환 결과를 표시할 수 없습니다.</div>'; return; }
   svg.removeAttribute('width'); svg.removeAttribute('height');
