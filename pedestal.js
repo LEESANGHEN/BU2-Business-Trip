@@ -19,11 +19,14 @@ var PD_GROUPS=[
     {key:'customer',label:'고객사',type:'text',w:100,ac:1},
     {key:'site',label:'사이트',type:'text',w:100,ac:1},
     {key:'equip',label:'설비 정보',type:'text',w:130,ac:1},
+    {key:'custReqDate',label:'고객사 요청 출하일',type:'date',w:130},
+    {key:'hqInDate',label:'본사 입고일',type:'date',w:120},
+    {key:'realShipDate',label:'실제 출하일',type:'date',w:120},
     {key:'productInfo',label:'제품 정보',type:'rich',w:130},
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
     {key:'productName',label:'Pedestal 정보',type:'rich',w:130}, // 예전 "제품명"(글자만) 칸 — 저장 키는 그대로라 기존 입력값은 글 내용으로 이어지고, 이제 파일/이미지도 넣을 수 있다
     {key:'trayInfo',label:'Tray 정보',type:'rich',w:120},
-    {key:'partList',label:'Conversion Kit Part List',type:'rich',w:140},
+    {key:'partList',label:'Conversion Kit Part List',lh:'Conversion Kit<br>Part List',type:'rich',w:140},
     {key:'custQuote',label:'견적서',full:'고객사 견적서',type:'doc',w:150},
     {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
   ]},
@@ -62,7 +65,7 @@ function _pdRowById(id){ return S.pedestalRows.find(function(r){return r.id===id
 function _pdText(row,col){
   var c=row.cells&&row.cells[col.key];
   if(typeof c==='string') return c; // 글자 칸이었다가 파일 칸으로 바뀐 열(제품명→Pedestal 정보)의 기존 값도 글 내용으로 보여준다
-  if(col.type==='text') return '';
+  if(col.type==='text'||col.type==='date') return '';
   return (c&&typeof c==='object'&&c.text)||'';
 }
 // Part List 칸에는 모든 행에 기본으로 들어가는 기준(Reference) 엑셀 양식이 있다.
@@ -166,6 +169,7 @@ function _pdRichCellHtml(row,col){
 function _pdMainCellHtml(row,col){
   if(col.type==='doc') return _pdDocCellHtml(row,col);
   if(col.type==='rich') return _pdRichCellHtml(row,col);
+  if(col.type==='date') return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="date" value="'+_esc(_pdText(row,col))+'" onchange="pdSetText(this,''+col.key+'')"></td>';
   return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="text" value="'+_esc(_pdText(row,col))+'"'
     +(col.ac?' oninput="pdAc(this,\x27cell\x27,\x27'+col.key+'\x27)" onfocus="pdAcHide()" onkeydown="pdAcKey(event)" onblur="pdAcHide()"':'')+' onchange="pdSetText(this,\''+col.key+'\')" autocomplete="off"></td>';
 }
@@ -206,7 +210,7 @@ function _pdTableHtml(){
   h+='<th colspan="3">'+_esc(PD_PART_GROUP)+'</th>';
   h+='<th rowspan="2" class="pd-delcell"></th></tr>';
   h+='<tr class="pd-h2">';
-  _pdCols.forEach(function(c){ h+='<th style="min-width:'+c.w+'px">'+_esc(c.label)+'</th>'; });
+  _pdCols.forEach(function(c){ h+='<th style="min-width:'+c.w+'px">'+(c.lh||_esc(c.label))+'</th>'; });
   PD_PART_COLS.forEach(function(c){ h+='<th style="min-width:'+c.w+'px">'+_esc(c.label)+'</th>'; });
   h+='</tr></thead><tbody id="pdTbody"></tbody></table>';
   return h;
