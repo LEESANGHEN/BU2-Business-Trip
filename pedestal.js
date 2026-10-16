@@ -169,7 +169,7 @@ function _pdRichCellHtml(row,col){
 function _pdMainCellHtml(row,col){
   if(col.type==='doc') return _pdDocCellHtml(row,col);
   if(col.type==='rich') return _pdRichCellHtml(row,col);
-  if(col.type==='date') return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="date" value="'+_esc(_pdText(row,col))+'" onchange="pdSetText(this,''+col.key+'')"></td>';
+  if(col.type==='date') return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="date" value="'+_esc(_pdText(row,col))+'" onchange="pdSetText(this,\''+col.key+'\')"></td>';
   return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="text" value="'+_esc(_pdText(row,col))+'"'
     +(col.ac?' oninput="pdAc(this,\x27cell\x27,\x27'+col.key+'\x27)" onfocus="pdAcHide()" onkeydown="pdAcKey(event)" onblur="pdAcHide()"':'')+' onchange="pdSetText(this,\''+col.key+'\')" autocomplete="off"></td>';
 }
