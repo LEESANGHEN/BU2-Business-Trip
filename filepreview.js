@@ -149,6 +149,11 @@ function _fpShowSvg(body,svgText){
   var box=document.getElementById('fpDwg'); box.appendChild(document.importNode(svg,true));
   var el=box.querySelector('svg');
   function apply(){ el.setAttribute('viewBox',vb.join(' ')); }
+  // 변환기가 주는 viewBox는 도면 밖 여백이 클 때가 있어서, 실제 그려진 범위에 맞춰 처음 화면을 맞춘다
+  try{
+    var bb=el.getBBox();
+    if(bb&&bb.width>0&&bb.height>0){ vb=[bb.x-bb.width*0.03,bb.y-bb.height*0.03,bb.width*1.06,bb.height*1.06]; home=vb.slice(); apply(); }
+  }catch(e){}
   function ptAt(ev){ var p=el.createSVGPoint(); p.x=ev.clientX; p.y=ev.clientY; return p.matrixTransform(el.getScreenCTM().inverse()); }
   box.addEventListener('wheel',function(ev){
     ev.preventDefault();
