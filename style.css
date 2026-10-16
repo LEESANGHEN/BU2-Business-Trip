@@ -1078,3 +1078,10 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .fp-msg{margin:auto;color:var(--tx-muted);font-size:13px;padding:20px}
 .fp-tip{font-size:11px;color:var(--tx-muted);padding:6px 12px;border-top:1px solid var(--bd-main);flex-shrink:0;background:var(--bg-panel)}
 .fp-xl{padding:10px;overflow:auto}
+.fp-dwg-bar{display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--bd-main);font-size:11px;color:var(--tx-muted);flex-shrink:0;background:var(--bg-panel)}
+.fp-dwg-bar span{flex:1}
+.fp-dwg{flex:1;min-height:0;background:#17171c;cursor:grab;overflow:hidden;touch-action:none}
+.fp-dwg.grab{cursor:grabbing}
+.fp-dwg svg{width:100%;height:100%;display:block}
+.fp-dwg svg path,.fp-dwg svg line,.fp-dwg svg polyline,.fp-dwg svg circle,.fp-dwg svg ellipse{vector-effect:non-scaling-stroke;stroke-width:1px}
+.fp-dwg.inv svg{filter:invert(1) hue-rotate(180deg)}
