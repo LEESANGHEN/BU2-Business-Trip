@@ -353,7 +353,18 @@ function _gwPersonType(row){
 function _gwApplyRow(row){
   if(row.cls==='applied') return 'skip';
   var docNums=row.docNums;
-  function stamp(sc){ var set=(sc.gwDocs||[]).slice(); docNums.forEach(function(n){ if(set.indexOf(n)<0) set.push(n); }); sc.gwDocs=set; }
+  // 문서번호를 최초/변경/완료 칸으로 나눠 기록한다(일정 수정 창의 "그룹웨어 출장 품의서" 칸에 표시). gwDocs는 가져오기가 중복을 가려내는 데 쓰는 전체 목록
+  function stamp(sc){
+    var set=(sc.gwDocs||[]).slice(), chg=(sc.gwChanges||[]).slice();
+    docNums.forEach(function(n){ if(set.indexOf(n)<0) set.push(n); });
+    (row.docs||[]).forEach(function(d){
+      var n=d.docNum; if(!n) return;
+      if(d.kind==='최초') sc.gwFirst=n;
+      else if(/변경/.test(d.kind||'')){ if(chg.indexOf(n)<0) chg.push(n); }
+      else if(d.kind==='완료') sc.gwDone=n;
+    });
+    sc.gwChanges=chg; sc.gwDocs=set;
+  }
   if(row.scId){
     var sc=S.schedules.find(function(s){return s.id===row.scId;});
     if(!sc) return 'missing';
@@ -374,7 +385,7 @@ function _gwApplyRow(row){
   if(!proj){ proj=_touch({id:_createProjectId(pname),siteId:row.siteId,name:pname}); S.projects.push(proj); }
   var same=S.schedules.filter(function(s){return s.projectId===proj.id&&_gwPersonOf(s).indexOf(row.appName||row.person)>=0;}).length;
   var rec={id:genId('s',S.schedules),projectId:proj.id,task:(row.purpose||'출장').slice(0,80),name:row.appName||(row.pos?row.person+' '+row.pos:row.person),
-    occSeq:Math.min(same+1,3),type:_gwPersonType(row),start:row.start,end:row.end,note:'그룹웨어 '+docNums.join(', '),hidden:false,
+    occSeq:Math.min(same+1,3),type:_gwPersonType(row),start:row.start,end:row.end,note:'',hidden:false,
     domestic:!!row.domestic&&((S.sites.find(function(s){return s.id===row.siteId;})||{}).country||'')!=='국내'};
   if(row.ext.length){ rec.origEnd=row.plan.end; rec.extensions=row.ext.map(function(e){return {seq:e.seq,end:e.end,note:e.note};}); }
   stamp(rec); S.schedules.push(_touch(rec));

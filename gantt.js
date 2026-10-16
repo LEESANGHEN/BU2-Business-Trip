@@ -197,6 +197,10 @@ function _daysLabel(sched){
   });
   return parts.join('+')+'/총 '+_tripTotalDays(sched)+'일';
 }
+// 예전에 가져오기가 비고에 자동으로 적던 "그룹웨어 인텍플러스-…" 문구는 막대에 표시하지 않는다(문서번호는 일정 수정 창의 품의서 칸에서 본다)
+function _barNote(n){
+  return String(n||'').replace(/그룹웨어\s+인텍플러스-[\d-]+(?:\s*,\s*인텍플러스-[\d-]+)*/g,'').replace(/^[\s·,]+|[\s·,]+$/g,'');
+}
 function addBar(el,sched){
   var exts=sched.extensions||[];
   var extCount=exts.length;
@@ -205,7 +209,8 @@ function addBar(el,sched){
   var occSiblings=_occSiblings(sched);
   var occTag=occSiblings.length>1?('_'+(sched.occSeq||1)+'회차'):'';
   var domesticTag=sched.domestic?' [국내]':'';
-  var txt=dr+' · '+sched.name+' ['+tl+occTag+']'+domesticTag+' ('+daysLbl+')'+(sched.note?' · '+sched.note:'');
+  var barNote=_barNote(sched.note);
+  var txt=dr+' · '+sched.name+' ['+tl+occTag+']'+domesticTag+' ('+daysLbl+')'+(barNote?' · '+barNote:'');
   var tooltip=txt;
   if(extCount){
     tooltip+='\n[연장 이력] 최초 복귀일: '+fmtFull(sched.origEnd||sched.end);

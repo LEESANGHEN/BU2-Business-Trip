@@ -242,6 +242,13 @@ function showSM(ex){
     html+=_extSectionHtml(ex);
   }
   html+='<div class="fg"><label class="fl">메모 / 비고</label><input type="text" id="f_note" value="'+(ie?ex.note:'')+'" placeholder="주의사항 등"></div>';
+  // 그룹웨어 전자결재 해외/국내출장 품의서 문서번호 — 막대에는 표시하지 않고 이 칸에서만 본다(변경은 여러 건이면 쉼표로 구분)
+  html+='<div class="fg"><label class="fl">그룹웨어 출장 품의서 (문서번호)</label>'
+    +'<div class="fr" style="gap:6px">'
+    +'<div class="fg"><label class="fl" style="font-size:10px">최초</label><input type="text" id="f_gw_first" value="'+_esc(ie?(ex.gwFirst||''):'')+'" placeholder="인텍플러스-2026-…" autocomplete="off"></div>'
+    +'<div class="fg"><label class="fl" style="font-size:10px">변경 (여러 건은 쉼표)</label><input type="text" id="f_gw_change" value="'+_esc(ie?(ex.gwChanges||[]).join(', '):'')+'" placeholder="없음" autocomplete="off"></div>'
+    +'<div class="fg"><label class="fl" style="font-size:10px">완료</label><input type="text" id="f_gw_done" value="'+_esc(ie?(ex.gwDone||''):'')+'" placeholder="출장 후 완료 품의서" autocomplete="off"></div>'
+    +'</div></div>';
   html+='<label class="chkrow"><input type="checkbox" id="f_hidden"'+(isHidden?' checked':'')+'>간트차트에서 숨기기</label>';
   html+='<div class="mfoot">';
   if(ie) html+='<button class="btn red sm" id="f_del">삭제</button>';
@@ -443,6 +450,10 @@ function saveSc(exId){
   var note=document.getElementById('f_note').value.trim();
   var hidden=document.getElementById('f_hidden').checked;
   var domestic=document.getElementById('f_domestic').checked;
+  var gwF=((document.getElementById('f_gw_first')||{}).value||'').trim();
+  var gwC=((document.getElementById('f_gw_change')||{}).value||'').split(/[,，]/).map(function(s){return s.trim();}).filter(Boolean);
+  var gwD=((document.getElementById('f_gw_done')||{}).value||'').trim();
+  function _gwApply(rec){ rec.gwFirst=gwF; rec.gwChanges=gwC; rec.gwDone=gwD; var all=[gwF].concat(gwC,[gwD]).filter(Boolean); rec.gwDocs=all; }
   var dateRe=/^\d{4}-\d{2}-\d{2}$/;
   if(!_readProjectNamesFromForm().length||!task||!name||!start||!end){alert('필수 항목을 모두 입력하세요(프로젝트명을 최소 1개 입력하세요).');return;}
   if(!dateRe.test(start)||!dateRe.test(end)){alert('날짜 형식이 올바르지 않아요.\n예: 2026-04-01');return;}
@@ -459,7 +470,7 @@ function saveSc(exId){
     var keepIds=[];
     siblings.forEach(function(sib){
       if(projIds.indexOf(sib.projectId)>=0){
-        sib.task=task;sib.name=name;sib.occSeq=occSeq;sib.type=type;sib.start=start;sib.end=end;sib.note=note;sib.hidden=hidden;sib.domestic=domestic;
+        sib.task=task;sib.name=name;sib.occSeq=occSeq;sib.type=type;sib.start=start;sib.end=end;sib.note=note;sib.hidden=hidden;sib.domestic=domestic;_gwApply(sib);
         if(batchId)sib.batchId=batchId;
         _touch(sib);
         keepIds.push(sib.projectId);
@@ -467,7 +478,7 @@ function saveSc(exId){
     });
     projIds.forEach(function(pid){
       if(keepIds.indexOf(pid)>=0)return;
-      var rec={id:genId('s',S.schedules),projectId:pid,task:task,name:name,occSeq:occSeq,type:type,start:start,end:end,note:note,hidden:hidden,domestic:domestic};
+      var rec={id:genId('s',S.schedules),projectId:pid,task:task,name:name,occSeq:occSeq,type:type,start:start,end:end,note:note,hidden:hidden,domestic:domestic};_gwApply(rec);
       if(batchId)rec.batchId=batchId;
       S.schedules.push(_touch(rec));
     });
@@ -480,7 +491,7 @@ function saveSc(exId){
   } else {
     var newBatchId=projIds.length>1?genId('sb'):null;
     projIds.forEach(function(pid){
-      var rec={id:genId('s',S.schedules),projectId:pid,task:task,name:name,occSeq:occSeq,type:type,start:start,end:end,note:note,hidden:hidden,domestic:domestic};
+      var rec={id:genId('s',S.schedules),projectId:pid,task:task,name:name,occSeq:occSeq,type:type,start:start,end:end,note:note,hidden:hidden,domestic:domestic};_gwApply(rec);
       if(newBatchId)rec.batchId=newBatchId;
       S.schedules.push(_touch(rec));
     });
