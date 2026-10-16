@@ -789,6 +789,18 @@ function _mpMonthOverlap(ym,start,end){
   var monthEnd=nextY+'-'+String(nextM).padStart(2,'0')+'-01';
   return start<monthEnd&&end>=monthStart;
 }
+// 프로젝트(설비)명에 "1,2호기"처럼 여러 호기가 적혀 있으면 그 호기 수만큼의 대수로 센다 (괄호 안 "생산 1,2호기"는 무시)
+// 예) "iPIS-HL1000 1,2호기(생산 1,2호기)" → 2대, "1~3호기" → 3대, "70호기" → 1대, 호기 표기가 없으면 1대
+function _mpUnitCount(name){
+  var m=String(name||'').replace(/[(（].*$/,'').match(/(\d+(?:\s*[,，~～]\s*\d+)*)\s*호기/);
+  if(!m) return 1;
+  var n=0;
+  m[1].split(/[,，]/).forEach(function(tok){
+    var r=tok.split(/[~～]/).map(function(x){return parseInt(x,10);});
+    n+=(r.length>1&&r[1]>=r[0]&&r[1]-r[0]<50)?(r[1]-r[0]+1):1;
+  });
+  return n||1;
+}
 function _mpMonthGroup(ym,phase){
   var groups={};
   if(phase==='hq'){
@@ -810,7 +822,7 @@ function _mpMonthGroup(ym,phase){
       var region=(site&&site.country)||'기타';
       var siteName=(site&&site.name)||proj.siteId;
       var key=region+'|'+siteName+'|'+proj.name;
-      groups[key]=(groups[key]||0)+1;
+      groups[key]=(groups[key]||0)+_mpUnitCount(proj.name);
     });
   }
   var keys=Object.keys(groups);
