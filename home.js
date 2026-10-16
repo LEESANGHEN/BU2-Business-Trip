@@ -350,9 +350,9 @@ function renderHomeTab(){
   // 상태 카드 바로 아래: 월별 출하 설비 수 / 월별 설비 셋업 수량을 나란히 두어 홈에서 가장 먼저 보이게 한다
   html+='<div class="home-grid2">'+_homeMonthlyChartCardHtml(t('homeShipChartTitle'),'homeChartHint','#5a9aee',_homeMonthlyShipData(),'shipMonth')
     +_homeMonthlyChartCardHtml(t('homeSetupChartTitle'),'homeChartHint','#4aaa70',_homeMonthlySetupData(),'setupMonth')+'</div>';
-  // 왼쪽: 빠른 작업 위 / 다가오는 셋업 일정 아래, 오른쪽: 인원 유형별 출장 현황(왼쪽 두 칸 높이)
-  html+='<div class="home-grid2"><div class="home-col">'+_homeQuickActionsCardHtml()+_homeUpcomingCardHtml()+'</div>'+_homeTypeCardHtml()+'</div>';
   html+='<div class="home-grid2">'+_homeCountryCardHtml()+_homeEngCardHtml()+'</div>';
+  // 국가별 프로젝트 현황 / 엔지니어별 전체 출장일수 아래: 왼쪽 빠른 작업 위 / 다가오는 셋업 일정 아래, 오른쪽 인원 유형별 출장 현황(왼쪽 두 칸 높이)
+  html+='<div class="home-grid2"><div class="home-col">'+_homeQuickActionsCardHtml()+_homeUpcomingCardHtml()+'</div>'+_homeTypeCardHtml()+'</div>';
   html+='<div class="home-grid2">'+_homeRecentCardHtml()+_homeHighlightCardHtml()+'</div>';
   wrap.innerHTML=html;
 }
