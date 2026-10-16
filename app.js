@@ -1300,7 +1300,7 @@ function switchTab(tab){
   if(tab==='setup') renderSetupTab();
   if(tab==='person') renderPersonTab();
   if(tab==='equip') renderEquipTab();
-  if(tab==='vision') renderMonthlyAggTab();
+  if(tab==='vision') renderMonthlyAggTab(true);
   closeGlobalNav();
 }
 

@@ -1097,3 +1097,6 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .pd-rz:hover,body.pd-resizing .pd-rz{background:rgba(58,122,192,.45)}
 body.pd-resizing{cursor:col-resize;user-select:none}
 .pd-table .pd-no,.pd-table .pd-link,.pd-table .pd-delcell{min-width:0}
+
+.pm-person-table tr.ma-cur td{background:rgba(58,122,192,.14)}
+.pm-person-table tr.ma-cur td:first-child{box-shadow:inset 3px 0 0 #3a7ac0;font-weight:700}

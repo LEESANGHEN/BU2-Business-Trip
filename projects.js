@@ -94,6 +94,17 @@ function renderProjectsTab(){
   renderProjectsBody();
   var _newScroll=wrap.querySelector('.pm-body-scroll');
   if(_newScroll){_newScroll.scrollTop=_sTop;_newScroll.scrollLeft=_sLeft;}
+  if(centerNow&&_newScroll) _maCenterNow(_newScroll,months,nowYm);
+}
+// 탭에 들어올 때 이번 달 줄(없으면 가장 가까운 다음 달, 그것도 없으면 마지막 달)이 화면 세로 중앙에 오게 스크롤한다
+function _maCenterNow(sc,months,nowYm){
+  var target=months.find(function(m){return m>=nowYm;})||months[months.length-1];
+  var tr=sc.querySelector('tr[data-ym="'+target+'"]'); if(!tr) return;
+  var go=function(){
+    var r=tr.getBoundingClientRect(), c=sc.getBoundingClientRect();
+    sc.scrollTop+=(r.top+r.height/2)-(c.top+c.height/2);
+  };
+  go(); requestAnimationFrame(go);
 }
 
 function setMpSearch(v){_mpSearch=v.trim().toLowerCase();renderProjectsBody();}
@@ -721,7 +732,7 @@ function importExcelSeedMasterProjects(){
 /* ══════════════════════════════════════════
    월별 집계 (구 "이력관리" 탭 자리) — S.masterProjects에서 매번 파생 계산
 ══════════════════════════════════════════ */
-function renderMonthlyAggTab(){
+function renderMonthlyAggTab(centerNow){
   var sidebar=document.getElementById('aggSidebar');
   var main=document.getElementById('aggMain');
   if(sidebar)sidebar.innerHTML='';
@@ -738,11 +749,12 @@ function renderMonthlyAggTab(){
     +'<th>'+t('maMonth')+'</th><th>'+t('maHqCount')+'</th><th>'+t('maHqList')+'</th>'
     +'<th>'+t('maSiteCount')+'</th><th>'+t('maSiteList')+'</th>'
     +'<th>'+t('maPeople')+'</th><th>'+t('maPeopleList')+'</th></tr></thead><tbody>';
+  var nowYm=TODAY.getFullYear()+'-'+String(TODAY.getMonth()+1).padStart(2,'0');
   months.forEach(function(ym){
     var hq=_mpMonthGroup(ym,'hq');
     var site=_mpMonthGroup(ym,'site');
     var people=_mpMonthTravelers(ym);
-    html+='<tr class="pm-person-row">'
+    html+='<tr class="pm-person-row'+(ym===nowYm?' ma-cur':'')+'" data-ym="'+ym+'">'
       +'<td>'+ym+'</td>'
       +'<td>'+hq.count+'</td><td style="white-space:pre-line;font-size:11px;text-align:left">'+_esc(hq.list.join('\n'))+'</td>'
       +'<td>'+site.count+'</td><td style="white-space:pre-line;font-size:11px;text-align:left">'+_esc(site.list.join('\n'))+'</td>'
