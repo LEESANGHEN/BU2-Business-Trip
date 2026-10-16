@@ -361,6 +361,7 @@ function _spAttachListHtml(attachments){
     return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:6px;padding:5px 8px">'
       +'<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(a.link?'🔗 ':'')+_esc(a.name||'')+'</span>'
       +(a.link?'<span style="color:var(--tx-faint);flex-shrink:0">링크</span>':'<span style="color:var(--tx-faint);flex-shrink:0">'+_spFmtFileSize(a.size)+'</span>')
+      +((!a.link&&_fpIsDwg(a))?'<button class="btn sm" style="flex-shrink:0" title="이 DWG를 PDF로 바꿔 같은 목록에 추가" onclick="spDwgToPdf(\x27'+_spModalMpId.replace(/'/g,"\\'")+'\x27,\x27'+fidAttr+'\x27)">PDF 변환</button>':'')
       +(a.link?'':'<button class="btn sm" style="flex-shrink:0" onclick="spPreviewAttachment(\x27'+_spModalMpId.replace(/'/g,"\\'")+'\x27,\x27'+fidAttr+'\x27)">미리보기</button>')
       +'<a href="'+_esc(a.downloadUrl||a.viewUrl||'#')+'" target="_blank" rel="noopener" class="btn sm" style="flex-shrink:0;text-decoration:none">'+(a.link?'열기':'다운로드')+'</a>'
       +'<button class="btn sm red" style="flex-shrink:0" onclick="spDeleteAttachment(\''+_spModalMpId.replace(/'/g,"\\'")+'\',\''+fidAttr+'\')">삭제</button>'
@@ -634,6 +635,7 @@ function spHandleFileUpload(inputEl){
             attachments.push({id:data.fileId,name:data.name,size:data.size,downloadUrl:data.downloadUrl,viewUrl:data.viewUrl,uploadedAt:Date.now()});
             _spSetProgress(mpId,{attachments:attachments});
             _spRefreshAttachList();
+            if(_fpIsDwg(file)) _spMakePdf(file,mpId); // DWG를 올리면 PDF도 함께 올린다
           }
         }
         if(remaining===0&&statusEl) statusEl.textContent='';
@@ -675,6 +677,30 @@ function spPreviewAttachment(mpId,fileId){
   var mp=S.masterProjects.find(function(x){return x.id===mpId;}); if(!mp) return;
   var a=(_spProgress(mp).attachments||[]).find(function(x){return String(x.id)===String(fileId);});
   if(a) openFilePreview(a);
+}
+// DWG를 PDF로 바꿔 같은 첨부 목록에 올린다(올릴 때 자동 실행, 이미 올린 DWG는 "PDF 변환" 버튼)
+function _spUploadPdf(pdf,mpId){
+  _spModalMpId=mpId;
+  spHandleFileUpload({files:[pdf],value:''});
+}
+function _spMakePdf(file,mpId){
+  var st=document.getElementById('sp_attach_status'); var say=function(t){ var el=document.getElementById('sp_attach_status'); if(el) el.textContent=t; };
+  say(file.name+' PDF 변환 중...');
+  file.arrayBuffer().then(function(buf){ return fpDwgToPdfFile(buf,file.name.replace(/\.dwg$/i,'')+'.pdf',say); })
+    .then(function(pdf){ _spUploadPdf(pdf,mpId); })
+    .catch(function(e){ say(''); alert('DWG는 올렸지만 PDF 변환은 하지 못했습니다: '+(e&&e.message||e)); });
+}
+function spDwgToPdf(mpId,fileId){
+  var mp=S.masterProjects.find(function(x){return x.id===mpId;}); if(!mp) return;
+  var list=_spProgress(mp).attachments||[];
+  var a=list.find(function(x){return String(x.id)===String(fileId);}); if(!a) return;
+  var base=a.name.replace(/\.dwg$/i,'');
+  if(list.some(function(x){return x.name===base+'.pdf';})&&!confirm(base+'.pdf 가 이미 있습니다. 한 번 더 만들까요?')) return;
+  var say=function(t){ var el=document.getElementById('sp_attach_status'); if(el) el.textContent=t; };
+  say(a.name+' 불러오는 중...');
+  _fpBytes(a,false,'').then(function(buf){ return fpDwgToPdfFile(buf,base+'.pdf',say); })
+    .then(function(pdf){ _spUploadPdf(pdf,mpId); })
+    .catch(function(e){ say(''); alert('PDF 변환에 실패했습니다: '+(e&&e.message||e)); });
 }
 function spDeleteAttachment(mpId,fileId){
   if(!confirm('첨부파일을 삭제할까요?')) return;

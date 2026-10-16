@@ -505,6 +505,7 @@ function _pdFilesHtml(row,key){
     return '<div class="pd-file">'+thumb
       +'<div style="flex:1;min-width:0"><div class="pd-fname" title="'+_esc(f.name||'')+'">'+_esc(f.name||'')+'</div><div style="font-size:10px;color:var(--tx-faint)">'+_pdFormatSize(f.size)+'</div></div>'
       +'<button class="btn sm" onclick="pdPreviewFile(\x27'+fid+'\x27)">미리보기</button>'
+      +(_fpIsDwg(f)?'<button class="btn sm" onclick="pdDwgToPdf(\x27'+fid+'\x27)" title="이 DWG를 PDF로 바꿔 같은 칸에 추가">PDF 변환</button>':'')
       +(_pdIsXlsx(f)?'<button class="btn sm pri" onclick="pdEditFile(\''+fid+'\')">편집</button>':'')
       +'<a href="'+_esc(f.downloadUrl||f.viewUrl||'#')+'" target="_blank" rel="noopener" class="btn sm" style="text-decoration:none">다운로드</a>'
       +'<button class="btn sm red" onclick="pdDeleteFile(\''+fid+'\')">삭제</button></div>';
@@ -589,8 +590,8 @@ function pdOnPaste(e){
   });
   if(found) e.preventDefault();
 }
-function _pdUploadFile(file){
-  var ctx=_pdModal; if(!ctx) return;
+function _pdUploadFile(file,ctxIn){
+  var ctx=ctxIn||_pdModal; if(!ctx) return;
   var setSt=function(t){ var el=document.getElementById('pd_cell_status'); if(el&&_pdModal&&_pdModal.rowId===ctx.rowId&&_pdModal.key===ctx.key) el.textContent=t; };
   if(file.size>PD_MAX_MB*1024*1024){ alert(file.name+' 파일이 '+PD_MAX_MB+'MB를 초과하여 업로드할 수 없습니다.'); return; }
   var url=getSheetsUrl();
@@ -608,6 +609,7 @@ function _pdUploadFile(file){
       _pdRichCell(row,ctx.key).files.push({id:data.fileId,name:data.name,size:data.size,downloadUrl:data.downloadUrl,viewUrl:data.viewUrl,mimeType:file.type||'',uploadedAt:Date.now()});
       _touch(row); saveData();
       _pdRefreshCell(ctx.rowId,ctx.key); _pdRefreshModalFiles(ctx); setSt('');
+      if(_fpIsDwg(file)) _pdMakePdf(file,ctx); // DWG를 올리면 같은 칸에 PDF도 함께 올린다
     })
     .catch(function(){ alert('업로드 응답이 정상적이지 않습니다. (서버가 막 깨어나는 중일 수 있어요) 잠시 후 다시 시도해주세요.'); setSt(''); });
   };
@@ -618,6 +620,27 @@ function pdPreviewFile(fileId){
   var row=_pdRowById(ctx.rowId); if(!row) return;
   var f=_pdFiles(row,ctx.key).find(function(x){return String(x.id)===String(fileId);});
   if(f) openFilePreview(f);
+}
+// DWG 파일을 PDF로 바꿔 같은 칸에 올린다(올릴 때 자동 실행되고, 이미 올린 DWG는 목록의 "PDF 변환" 버튼으로 실행)
+function _pdMakePdf(file,ctx){
+  var setSt=function(t){ var el=document.getElementById('pd_cell_status'); if(el&&_pdModal&&_pdModal.rowId===ctx.rowId&&_pdModal.key===ctx.key) el.textContent=t; };
+  setSt(file.name+' PDF 변환 중...');
+  var get=file.arrayBuffer?file.arrayBuffer():Promise.reject(new Error('파일을 읽을 수 없습니다.'));
+  get.then(function(buf){ return fpDwgToPdfFile(buf,file.name.replace(/\.dwg$/i,'')+'.pdf',setSt); })
+    .then(function(pdf){ _pdUploadFile(pdf,ctx); })
+    .catch(function(e){ setSt(''); alert('DWG는 올렸지만 PDF 변환은 하지 못했습니다: '+(e&&e.message||e)); });
+}
+function pdDwgToPdf(fileId){
+  var ctx=_pdModal; if(!ctx) return;
+  var row=_pdRowById(ctx.rowId); if(!row) return;
+  var f=_pdFiles(row,ctx.key).find(function(x){return String(x.id)===String(fileId);}); if(!f) return;
+  var base=f.name.replace(/\.dwg$/i,'');
+  if(_pdFiles(row,ctx.key).some(function(x){return x.name===base+'.pdf';})&&!confirm(base+'.pdf 가 이미 있습니다. 한 번 더 만들까요?')) return;
+  var setSt=function(t){ var el=document.getElementById('pd_cell_status'); if(el) el.textContent=t; };
+  setSt(f.name+' 불러오는 중...');
+  _fpBytes(f,false,'').then(function(buf){ return fpDwgToPdfFile(buf,base+'.pdf',setSt); })
+    .then(function(pdf){ _pdUploadFile(pdf,ctx); })
+    .catch(function(e){ setSt(''); alert('PDF 변환에 실패했습니다: '+(e&&e.message||e)); });
 }
 function pdDeleteFile(fileId){
   if(!_pdModal||!confirm('첨부파일을 삭제할까요?')) return;

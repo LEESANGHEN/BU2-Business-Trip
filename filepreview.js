@@ -186,3 +186,72 @@ function _fpShowSvg(body,svgText){
     box.classList.toggle('inv',white); // 흰 배경에서는 흰색 선이 안 보이므로 색을 반전
   };
 }
+
+/* ── DWG → PDF 변환 (DWG를 올리면 같은 칸에 PDF도 함께 올리기 위한 변환기) ──
+   DWG를 이 브라우저 안에서 SVG로 바꾼 뒤 흰 배경(선 색은 CAD 색 그대로)의 고해상도 이미지로 그려 PDF 한 장에 담는다.
+   원본 도면 위에 그려지는 방식이라 글자/선은 이미지로 들어간다(검색·복사는 안 됨). 너무 큰 도면은 변환하지 않는다. */
+function _fpLoadScript(src){
+  return new Promise(function(res,rej){
+    var s=document.createElement('script'); s.src=src; s.onload=res;
+    s.onerror=function(){ rej(new Error('PDF 변환 도구를 불러오지 못했습니다.')); };
+    document.head.appendChild(s);
+  });
+}
+function _fpLoadJsPdf(){ return window.jspdf?Promise.resolve():_fpLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'); }
+function _fpIsDwg(f){ return FP_DWG_RE.test((f&&f.name)||''); }
+
+function fpDwgToPdfFile(buf,pdfName,onStage){
+  var say=onStage||function(){};
+  return Promise.all([_fpLoadDwgLib(),_fpLoadJsPdf()]).then(function(r){
+    say('도면을 변환하는 중...');
+    return new Promise(function(res){ setTimeout(res,50); }).then(function(){
+      var lib=r[0].lib, m=r[0].m;
+      var dwg=lib.dwg_read_data(buf,m.Dwg_File_Type.DWG);
+      if(!dwg) throw new Error('DWG 파일을 읽을 수 없습니다.');
+      var db=lib.convert(dwg), svg=String(lib.dwg_to_svg(db));
+      try{ lib.dwg_free(dwg); }catch(e){}
+      return svg;
+    });
+  }).then(function(svgText){
+    if(svgText.length>30*1024*1024) throw new Error('도면이 매우 커서(변환 결과 '+Math.round(svgText.length/1048576)+'MB) PDF로 변환하지 않았습니다.');
+    say('PDF를 만드는 중...');
+    svgText=svgText.replace(/(<text\b[^>]*>)([\s\S]*?)(<\/text>)/g,function(m,a,b,c){
+      return a+b.replace(/&(?!(?:amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g,'&amp;').replace(/<(?!\/?tspan\b)/g,'&lt;')+c;
+    });
+    var doc=new DOMParser().parseFromString(svgText,'image/svg+xml'), svg=doc.documentElement;
+    if(!svg||svg.nodeName.toLowerCase()!=='svg'||doc.querySelector('parsererror')) throw new Error('도면 변환 결과를 읽을 수 없습니다.');
+    // 실제 그려진 범위를 구하기 위해 화면 밖에 잠시 올려 둔다
+    var holder=document.createElement('div'); holder.style.cssText='position:absolute;left:-99999px;top:0;width:2000px;height:1000px;overflow:hidden';
+    svg.setAttribute('width','2000'); svg.setAttribute('height','1000');
+    var node=document.importNode(svg,true); holder.appendChild(node); document.body.appendChild(holder);
+    var bb; try{ bb=node.getBBox(); }catch(e){ bb=null; } holder.remove();
+    if(!bb||!(bb.width>0)||!(bb.height>0)) throw new Error('도면에 그릴 내용이 없습니다.');
+    var padX=bb.width*0.02, padY=bb.height*0.02, vbx=bb.x-padX, vby=bb.y-padY, vbw=bb.width+padX*2, vbh=bb.height+padY*2;
+    var long=5200, w=vbw>=vbh?long:Math.max(400,Math.round(long*vbw/vbh)), h=vbw>=vbh?Math.max(400,Math.round(long*vbh/vbw)):long;
+    svg.setAttribute('viewBox',[vbx,vby,vbw,vbh].join(' ')); svg.setAttribute('width',String(w)); svg.setAttribute('height',String(h));
+    svg.setAttribute('preserveAspectRatio','none');
+    var st=doc.createElementNS('http://www.w3.org/2000/svg','style');
+    st.textContent='path,line,polyline,circle,ellipse{vector-effect:non-scaling-stroke;stroke-width:1.6px}';
+    svg.insertBefore(st,svg.firstChild);
+    var xml=new XMLSerializer().serializeToString(svg);
+    var url=URL.createObjectURL(new Blob([xml],{type:'image/svg+xml;charset=utf-8'}));
+    return new Promise(function(res,rej){
+      var img=new Image();
+      img.onload=function(){ res({img:img,w:w,h:h,url:url}); };
+      img.onerror=function(){ URL.revokeObjectURL(url); rej(new Error('도면 이미지를 만들지 못했습니다.')); };
+      img.src=url;
+    });
+  }).then(function(o){
+    var a=document.createElement('canvas'); a.width=o.w; a.height=o.h;
+    var ca=a.getContext('2d'); ca.fillStyle='#000'; ca.fillRect(0,0,o.w,o.h); ca.drawImage(o.img,0,0,o.w,o.h);
+    URL.revokeObjectURL(o.url);
+    var b=document.createElement('canvas'); b.width=o.w; b.height=o.h;
+    var cb=b.getContext('2d'); cb.fillStyle='#fff'; cb.fillRect(0,0,o.w,o.h);
+    cb.filter='invert(1) hue-rotate(180deg)'; cb.drawImage(a,0,0); cb.filter='none'; // 검은 배경 CAD 색을 흰 배경용으로 반전
+    var pw=1190, ph=Math.round(pw*o.h/o.w); // A3 가로 기준 폭
+    var pdf=new window.jspdf.jsPDF({orientation:pw>=ph?'l':'p',unit:'pt',format:[pw,ph],compress:true});
+    pdf.addImage(b.toDataURL('image/png'),'PNG',0,0,pw,ph,undefined,'FAST');
+    var blob=pdf.output('blob');
+    return new File([blob],pdfName,{type:'application/pdf'});
+  });
+}
