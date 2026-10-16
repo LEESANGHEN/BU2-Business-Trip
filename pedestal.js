@@ -21,16 +21,15 @@ var PD_GROUPS=[
     {key:'equip',label:'설비 정보',type:'text',w:130,ac:1},
     {key:'productInfo',label:'제품 정보',type:'rich',w:130},
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
-    {key:'productName',label:'제품명',type:'text',w:120,ac:1},
+    {key:'productName',label:'Pedestal 정보',type:'rich',w:130}, // 예전 "제품명"(글자만) 칸 — 저장 키는 그대로라 기존 입력값은 글 내용으로 이어지고, 이제 파일/이미지도 넣을 수 있다
     {key:'trayInfo',label:'Tray 정보',type:'rich',w:120},
-    {key:'partList',label:'Part List',type:'rich',w:120},
     {key:'custQuote',label:'견적서',full:'고객사 견적서',type:'doc',w:150},
     {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
   ]},
   {label:'인텍플러스 ↔ PSMP',cols:[
     {key:'conceptDwg',label:'컨셉 도면',type:'rich',w:120},
     {key:'designDwg',label:'설계 도면',type:'rich',w:120},
-    {key:'bom',label:'BOM List',type:'rich',w:110},
+    {key:'bom',label:'Part List',type:'rich',w:110},
     {key:'psmpSN',label:'PSMP S/N',type:'text',w:120},
     {key:'psmpQuote',label:'견적서',full:'PSMP 견적서',type:'doc',w:150},
     {key:'psmpPO',label:'발주서',full:'PSMP 발주서',type:'doc',w:150}
@@ -61,7 +60,8 @@ function _pdNewRow(){
 function _pdRowById(id){ return S.pedestalRows.find(function(r){return r.id===id;}); }
 function _pdText(row,col){
   var c=row.cells&&row.cells[col.key];
-  if(col.type==='text') return (typeof c==='string')?c:'';
+  if(typeof c==='string') return c; // 글자 칸이었다가 파일 칸으로 바뀐 열(제품명→Pedestal 정보)의 기존 값도 글 내용으로 보여준다
+  if(col.type==='text') return '';
   return (c&&typeof c==='object'&&c.text)||'';
 }
 // Part List 칸에는 모든 행에 기본으로 들어가는 기준(Reference) 엑셀 양식이 있다.
@@ -79,7 +79,8 @@ function _pdFiles(row,key){
 function _pdRichCell(row,key){
   if(!row.cells) row.cells={};
   var c=row.cells[key];
-  if(!c||typeof c!=='object') c=row.cells[key]={text:'',files:(PD_DEFAULT_FILES[key]||[]).slice()};
+  if(typeof c==='string') c=row.cells[key]={text:c,files:[]};
+  else if(!c||typeof c!=='object') c=row.cells[key]={text:'',files:(PD_DEFAULT_FILES[key]||[]).slice()};
   if(!c.files) c.files=[];
   return c;
 }
