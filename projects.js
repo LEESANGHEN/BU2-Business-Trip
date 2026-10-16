@@ -94,7 +94,6 @@ function renderProjectsTab(){
   renderProjectsBody();
   var _newScroll=wrap.querySelector('.pm-body-scroll');
   if(_newScroll){_newScroll.scrollTop=_sTop;_newScroll.scrollLeft=_sLeft;}
-  if(centerNow&&_newScroll) _maCenterNow(_newScroll,months,nowYm);
 }
 // 탭에 들어올 때 이번 달 줄(없으면 가장 가까운 다음 달, 그것도 없으면 마지막 달)이 화면 세로 중앙에 오게 스크롤한다
 function _maCenterNow(sc,months,nowYm){
@@ -765,6 +764,7 @@ function renderMonthlyAggTab(centerNow){
   main.innerHTML=html;
   var _newScroll=document.getElementById('maScroll');
   if(_newScroll){_newScroll.scrollTop=_sTop;_newScroll.scrollLeft=_sLeft;}
+  if(centerNow&&_newScroll) _maCenterNow(_newScroll,months,nowYm);
 }
 function _mpAllMonths(){
   var min=null,max=null;
