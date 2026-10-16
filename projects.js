@@ -563,7 +563,7 @@ function _mpFormHtml(mp){
     +'</div>';
   html+='<div style="display:flex;gap:8px">'
     +'<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>'
-    +'<div class="fg" style="max-width:200px">'+dateFld('mp_customerReqShipDate','고객사 요청 출하 일정',ie?mp.customerReqShipDate:'')+'</div>'
+    +'<div class="fg" style="max-width:200px">'+dateFld('mp_customerReqShipDate','변경 출하 일정',ie?mp.customerReqShipDate:'')+'</div>'
     +'<div class="fg" style="flex:1"><label class="fl">출장 담당자</label><input type="text" id="mp_tripManager" value="'+v('tripManager')+'" autocomplete="off"></div>'
     +'</div>';
   html+='<div style="font-size:10px;color:var(--tx-muted);margin:-4px 0 10px">셋업 "종료"일은 자동으로 바뀌지 않습니다 — 목록 화면의 출하 일정 옆 (00일)은 셋업 종료일과 무관하게, 셋업 시작일부터 지금 적용되는 출하일 하루 전까지 셋업에 쓸 수 있는 일수를 별도로 계산해서 보여주는 참고용 숫자입니다.</div>';
