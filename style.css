@@ -1000,7 +1000,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 }
 
 /* ── Pedestal 이력 관리 ── */
-.pd-table{border-collapse:separate;border-spacing:0;font-size:12px;min-width:2580px;width:100%}
+.pd-table{border-collapse:separate;border-spacing:0;font-size:12px;table-layout:fixed}
 .pd-table th,.pd-table td{border-right:1px solid var(--bd-main);border-bottom:1px solid var(--bd-main);padding:0;background:var(--bg-base)}
 .pd-table thead th{position:sticky;z-index:2;background:var(--bg-grp);color:var(--tx-second);font-weight:700;text-align:center;padding:7px 6px;border-top:1px solid var(--bd-main)}
 .pd-table thead tr.pd-h1 th{top:0;height:32px}
@@ -1087,3 +1087,13 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .fp-dwg svg{width:100%;height:100%;display:block}
 .fp-dwg svg path,.fp-dwg svg line,.fp-dwg svg polyline,.fp-dwg svg circle,.fp-dwg svg ellipse{vector-effect:non-scaling-stroke;stroke-width:1px}
 .fp-dwg.inv svg{filter:invert(1) hue-rotate(180deg)}
+
+/* Pedestal 표 열 너비 조절 */
+.pd-table td{overflow:hidden}
+.pd-table input.pd-in[type=text],.pd-table input.pd-in[type=date]{min-width:0}
+.pd-snip{flex:1;min-width:0;max-width:none}
+.pd-table thead th{overflow:visible}
+.pd-rz{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:3}
+.pd-rz:hover,body.pd-resizing .pd-rz{background:rgba(58,122,192,.45)}
+body.pd-resizing{cursor:col-resize;user-select:none}
+.pd-table .pd-no,.pd-table .pd-link,.pd-table .pd-delcell{min-width:0}
