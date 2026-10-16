@@ -40,7 +40,7 @@ var PD_PART_COLS=[
   {key:'itemName',label:'품명',w:120,ac:1},
   {key:'spec',label:'규격',w:120,ac:1}
 ];
-var PD_PART_GROUP='구매 그룹 ↔ PSMP';
+var PD_PART_GROUP='구매 그룹 필요 정보';
 var _pdCols=[]; PD_GROUPS.forEach(function(g){ g.cols.forEach(function(c){_pdCols.push(c);}); });
 function _pdColByKey(k){ return _pdCols.find(function(c){return c.key===k;}); }
 
