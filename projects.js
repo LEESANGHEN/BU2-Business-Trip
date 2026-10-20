@@ -117,6 +117,15 @@ function homeGoToProjectsByStatus(status){
   _mpViewHidden=false;
   switchTab('projects');
 }
+// 홈의 지역/고객사/설비명 그래프에서 항목을 누르면 호출 — 다른 필터를 모두 초기화하고 그 값(key: region|customer|project)만 골라 프로젝트 관리로 이동한다
+function homeGoToProjectsBy(key,val){
+  _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
+  _mpMS[key]=[val];
+  _mpHideInactive=false;
+  _mpSearch='';
+  _mpViewHidden=false;
+  switchTab('projects');
+}
 // 홈 "월별 설비 셋업 수량 / 출하 설비 수" 막대를 더블클릭하면 호출 — 다른 필터를 모두 초기화하고 그 달(key: setupMonth|shipMonth)만 골라
 // 프로젝트 관리로 이동한다. 그래프는 상태와 무관하게 집계하므로 "진행중만 보기"는 끄고, 해당 일정 순으로 정렬해 보여준다
 function homeGoToProjectsByMonth(key,ym){

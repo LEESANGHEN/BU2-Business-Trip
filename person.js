@@ -259,7 +259,7 @@ function renderPersonTab(){
   html+='</div>'; // .pm-fixed-header 닫기
 
   // ── 결과 영역 (검색/정렬/타입 변경 시 이 div만 갱신)
-  html+='<div class="pm-body-scroll"><div id="pmBody"></div></div>';
+  html+='<div class="pm-body-scroll"><div class="home-grid2 pm-cards" id="pmCards">'+_homeEngCardHtml()+_homeTypeCardHtml()+'</div><div id="pmBody"></div></div>';
 
   wrap.innerHTML=html;
   renderPersonBody(); // 결과 채우기

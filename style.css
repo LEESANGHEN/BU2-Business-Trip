@@ -1108,3 +1108,23 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .pm-ms-range-row input[type=month]{width:118px;box-sizing:border-box;background:var(--bg-deep);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:4px;padding:3px 4px;font-size:12px;color-scheme:dark}
 .pm-ms-range-row span{color:var(--tx-muted)}
 .pm-ms-panel:has(.pm-ms-range){min-width:290px;max-width:320px}
+
+/* 홈 프로젝트 현황 그래프(도넛/랭킹 막대) */
+.home-donut-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.home-donut{width:150px;height:150px;flex-shrink:0;transform:rotate(0deg)}
+.home-donut-seg{cursor:pointer;transition:stroke-width .12s}
+.home-donut-seg:hover{stroke-width:7.5}
+.home-donut-n{fill:var(--tx-primary);font-size:7px;font-weight:700}
+.home-donut-s{fill:var(--tx-muted);font-size:2.6px}
+.home-leg{flex:1;min-width:150px;display:flex;flex-direction:column;gap:3px}
+.home-leg-row{display:flex;align-items:center;gap:8px;font-size:12px;padding:3px 6px;border-radius:5px;cursor:pointer}
+.home-leg-row:hover{background:var(--bg-sel)}
+.home-leg-lbl{flex:1;color:var(--tx-second);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.home-leg-n{font-weight:700;color:var(--tx-primary);width:28px;text-align:right}
+.home-leg-pct{color:var(--tx-faint);width:34px;text-align:right;font-size:11px}
+.home-rank-row{cursor:pointer;padding:2px 4px;border-radius:5px;margin-bottom:5px}
+.home-rank-row:hover{background:var(--bg-sel)}
+.home-rank-lbl{width:140px!important}
+.home-rank-row .home-bar-n{width:30px}
+.home-rank-more{font-size:11px;color:var(--tx-faint);padding:4px 4px 0}
+.pm-cards{margin:14px 0}
