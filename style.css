@@ -1145,3 +1145,8 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .mp-t .mp-ell{overflow:hidden;text-overflow:ellipsis;max-width:170px}
 .mp-t .mp-c-mgr{max-width:220px}
 .mp-t .mp-c-loc{max-width:130px}
+
+/* 다가오는 HQ 셋업 일정 */
+.home-up-row{cursor:pointer;gap:8px;align-items:center}
+.home-up-row:hover{background:var(--bg-sel)}
+.home-up-tag{flex-shrink:0;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;min-width:46px;text-align:center}

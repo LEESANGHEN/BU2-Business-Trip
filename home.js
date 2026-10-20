@@ -56,12 +56,38 @@ function _homeStatRowHtml(){
   return html;
 }
 
+// "다가오는 HQ 셋업 일정" — 출장 예정이 아니라 프로젝트 관리의 실제 HQ 일정을 기준으로 한다.
+// 앞으로 7일 이내(오늘 포함)에 닥치는 ① 생산 이관일(변경 이관일이 있으면 그 날짜) ② 출하 일정(고객사 요청 출하일이 있으면 그 날짜)을
+// 날짜순으로 알려준다. 완료된 프로젝트와 숨긴 프로젝트는 제외. 항목을 누르면 그 프로젝트 수정 창이 열린다
+var HOME_UPCOMING_DAYS=7, HOME_UPCOMING_MAX=6;
+function _homeUpcomingEvents(){
+  var out=[];
+  _mpActive().forEach(function(mp){
+    if(mp.status==='완료') return;
+    [['transfer',_mpEffectiveTransferDate(mp)],['ship',_mpEffectiveShipDate(mp)]].forEach(function(e){
+      if(!e[1]) return;
+      var d=Math.round((pd(e[1])-TODAY)/86400000);
+      if(d<0||d>HOME_UPCOMING_DAYS) return;
+      out.push({kind:e[0],date:e[1],dday:d,mp:mp});
+    });
+  });
+  return out.sort(function(a,b){return a.dday-b.dday||((a.kind==='transfer'?0:1)-(b.kind==='transfer'?0:1))||String(a.mp.projectName||'').localeCompare(String(b.mp.projectName||''),'ko');});
+}
 function _homeUpcomingCardHtml(){
-  var list=_homeUpcomingTrips(14,5);
-  var body=list.length?list.map(function(tr){
-    return '<div class="home-row"><span class="home-row-main">'+_esc(tr.name)+' · '+_esc(tr.siteName)+'</span>'
-      +'<span style="background:#1a3a5a;color:#5a9aee;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;flex-shrink:0">D-'+tr.dday+'</span></div>';
+  var list=_homeUpcomingEvents(), shown=list.slice(0,HOME_UPCOMING_MAX);
+  var tagStyle={transfer:'background:#3a2a10;color:#e0972e;border:1px solid #6a4a1a',ship:'background:#1a3a5a;color:#5a9aee;border:1px solid #2a5a8a'};
+  var body=shown.length?shown.map(function(ev){
+    var mp=ev.mp, unit=mp.prodUnit?(' · '+mp.prodUnit):'';
+    var tag=t(ev.kind==='transfer'?'homeTagTransfer':'homeTagShip');
+    var dl=ev.dday===0?t('homeToday'):('D-'+ev.dday), dm=parseInt(ev.date.slice(5,7),10)+'/'+parseInt(ev.date.slice(8,10),10);
+    var hot=ev.dday<=2?'background:#4a1a1a;color:#e05a5a':'background:var(--bg-hover);color:var(--tx-second)';
+    return '<div class="home-row home-up-row" onclick="openEditMasterProject(\''+_homeEscAttr(mp.id)+'\')" title="'+_homeEscAttr(t('homeUpcomingOpen'))+'">'
+      +'<span class="home-up-tag" style="'+tagStyle[ev.kind]+'">'+_esc(tag)+'</span>'
+      +'<span class="home-row-main">'+_esc((mp.projectName||'-')+' · '+(mp.customer||'-')+unit)+'</span>'
+      +'<span style="color:var(--tx-faint);font-size:11px;flex-shrink:0">'+dm+'</span>'
+      +'<span style="'+hot+';padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;flex-shrink:0;min-width:34px;text-align:center">'+dl+'</span></div>';
   }).join(''):'<div class="home-empty">'+_esc(t('homeUpcomingEmpty'))+'</div>';
+  if(list.length>shown.length) body+='<div class="home-rank-more">'+_esc(t('homeUpcomingMore').replace('{n}',list.length-shown.length))+'</div>';
   return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeUpcomingTitle'))+'</p>'+body+'</div>';
 }
 
