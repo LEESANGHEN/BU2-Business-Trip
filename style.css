@@ -1128,3 +1128,11 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .home-rank-row .home-bar-n{width:30px}
 .home-rank-more{font-size:11px;color:var(--tx-faint);padding:4px 4px 0}
 .pm-cards{margin:14px 0}
+
+/* 홈 프로젝트 현황 — 도넛 3개를 한 줄에 */
+.home-grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;margin-bottom:14px}
+.home-grid3>.home-card{margin-bottom:0!important;min-width:0}
+.home-donut-seg.nogo,.home-leg-row.nogo{cursor:default}
+.home-donut-seg.nogo:hover{stroke-width:6}
+.home-grid3 .home-donut{width:140px;height:140px}
+.home-grid3 .home-leg{min-width:170px}

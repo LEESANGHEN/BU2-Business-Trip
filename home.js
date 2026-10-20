@@ -95,51 +95,43 @@ function _homeSubTip(g,emptyKey){
 }
 var HOME_PALETTE2=HOME_PALETTE.concat(['#e0a05a','#8ad0a0','#d58aff','#7ab8ff','#ff9a8a']);
 
-// 지역별 — 도넛 그래프. 범례(또는 조각)를 누르면 프로젝트 관리가 그 지역으로 필터링되어 열린다
-function _homeCountryCardHtml(){
-  var g=_homeGroupBy(function(mp){return mp.region||'기타';},function(mp){return mp.customer||'';});
+// 지역 / 고객사(사이트) / 설비명(프로젝트)별 — 같은 모양의 도넛 그래프. 조각(또는 범례)을 누르면 프로젝트 관리가 그 항목으로 필터링되어 열린다.
+// 항목이 많으면 상위 top개만 조각으로 그리고 나머지는 회색 "그 외"로 묶는다(누르면 이동하지 않음)
+function _homeDonutCardHtml(title,hintKey,filterKey,keyFn,subFn,labelFn,top){
+  var g=_homeGroupBy(keyFn,subFn);
   var total=g.reduce(function(a,x){return a+x.count;},0);
-  if(!total) return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeCountryTitle'))+'</p><div class="home-empty">'+_esc(t('homeEmptyProjects'))+'</div></div>';
+  if(!total) return '<div class="home-card"><p class="home-card-h">'+_esc(title)+'</p><div class="home-empty">'+_esc(t('homeEmptyProjects'))+'</div></div>';
+  var shown=g.slice(0,top), rest=g.slice(top);
+  var items=shown.map(function(x,i){ return {v:x.value,label:labelFn(x.value),count:x.count,color:HOME_PALETTE2[i%HOME_PALETTE2.length],tip:_homeSubTip(x,'homeCountryTipEmpty'),go:true}; });
+  if(rest.length){
+    var rc=rest.reduce(function(a,x){return a+x.count;},0);
+    items.push({v:'',label:t('homeRankMore').replace('{k}',rest.length).replace(' · {n}대','').replace(' · {n} units',''),count:rc,color:'#666',
+      tip:rest.map(function(x){return labelFn(x.value)+'('+x.count+')';}).join('\n'),go:false});
+  }
   var R=15.9155, cum=0, segs='', legend='';
-  g.forEach(function(x,i){
-    var pct=x.count/total*100, c=HOME_PALETTE2[i%HOME_PALETTE2.length], label=tRegion(x.value);
-    var v=_homeEscAttr(x.value);
-    segs+='<circle class="home-donut-seg" r="'+R+'" cx="21" cy="21" fill="none" stroke="'+c+'" stroke-width="6" stroke-dasharray="'+pct.toFixed(3)+' '+(100-pct).toFixed(3)+'" stroke-dashoffset="'+(25-cum).toFixed(3)+'" data-v="'+v+'" onclick="homeGoToProjectsBy(\'region\',this.getAttribute(\'data-v\'))"><title>'+_homeEscAttr(label+' '+x.count+'대 ('+Math.round(pct)+'%)')+'</title></circle>';
+  items.forEach(function(x){
+    var pct=x.count/total*100, v=_homeEscAttr(x.v);
+    var click=x.go?' onclick="homeGoToProjectsBy(\''+filterKey+'\',this.getAttribute(\'data-v\'))"':'';
+    segs+='<circle class="home-donut-seg'+(x.go?'':' nogo')+'" r="'+R+'" cx="21" cy="21" fill="none" stroke="'+x.color+'" stroke-width="6" stroke-dasharray="'+pct.toFixed(3)+' '+(100-pct).toFixed(3)+'" stroke-dashoffset="'+(25-cum).toFixed(3)+'" data-v="'+v+'"'+click+'><title>'+_homeEscAttr(x.label+' '+x.count+'대 ('+Math.round(pct)+'%)')+'</title></circle>';
     cum+=pct;
-    legend+='<div class="home-leg-row" data-v="'+v+'" data-tip="'+_homeEscAttr(_homeSubTip(x,'homeCountryTipEmpty'))+'" onmouseenter="_homeShowChartTip(this)" onmouseleave="_homeHideChartTip()" onclick="homeGoToProjectsBy(\'region\',this.getAttribute(\'data-v\'))">'
-      +'<span class="home-bar-dot" style="background:'+c+'"></span><span class="home-leg-lbl">'+_esc(label)+'</span>'
+    legend+='<div class="home-leg-row'+(x.go?'':' nogo')+'" data-v="'+v+'" data-tip="'+_homeEscAttr(x.tip)+'" onmouseenter="_homeShowChartTip(this)" onmouseleave="_homeHideChartTip()"'+click+'>'
+      +'<span class="home-bar-dot" style="background:'+x.color+'"></span><span class="home-leg-lbl" title="'+_homeEscAttr(x.label)+'">'+_esc(x.label)+'</span>'
       +'<span class="home-leg-n">'+x.count+'</span><span class="home-leg-pct">'+Math.round(pct)+'%</span></div>';
   });
-  return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeCountryTitle'))+'</p>'
-    +'<p class="home-hint">'+_esc(t('homeDonutHint'))+'</p>'
+  return '<div class="home-card"><p class="home-card-h">'+_esc(title)+'</p>'
+    +'<p class="home-hint">'+_esc(t(hintKey))+'</p>'
     +'<div class="home-donut-wrap"><svg class="home-donut" viewBox="0 0 42 42"><circle r="'+R+'" cx="21" cy="21" fill="none" stroke="var(--bg-deep)" stroke-width="6"/>'+segs
     +'<text x="21" y="21.5" text-anchor="middle" class="home-donut-n">'+total+'</text><text x="21" y="26.5" text-anchor="middle" class="home-donut-s">'+_esc(t('homeDonutUnit'))+'</text></svg>'
     +'<div class="home-leg">'+legend+'</div></div></div>';
 }
-// 고객사(사이트)별 / 설비명(프로젝트)별 — 많은 순 가로 막대(상위 10개 + 나머지는 "그 외"). 막대를 누르면 그 항목으로 필터링된 프로젝트 관리가 열린다
-function _homeRankCardHtml(title,hintKey,filterKey,keyFn,subFn,subEmptyKey,color){
-  var g=_homeGroupBy(keyFn,subFn), TOP=10;
-  var shown=g.slice(0,TOP), rest=g.slice(TOP);
-  var max=shown.length?shown[0].count:1;
-  var body=shown.map(function(x){
-    var pct=Math.max(Math.round(x.count/max*100),4), label=x.value||t('homeUnassigned');
-    return '<div class="home-bar-row home-rank-row" data-v="'+_homeEscAttr(x.value)+'" data-tip="'+_homeEscAttr(_homeSubTip(x,subEmptyKey))+'" onmouseenter="_homeShowChartTip(this)" onmouseleave="_homeHideChartTip()" onclick="homeGoToProjectsBy(\''+filterKey+'\',this.getAttribute(\'data-v\'))">'
-      +'<span class="home-bar-lbl home-rank-lbl" title="'+_homeEscAttr(label)+'">'+_esc(label)+'</span>'
-      +'<div class="home-bar-track"><div class="home-bar-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'
-      +'<span class="home-bar-n">'+x.count+'</span></div>';
-  }).join('');
-  if(rest.length){
-    var rn=rest.reduce(function(a,x){return a+x.count;},0);
-    body+='<div class="home-rank-more">'+_esc(t('homeRankMore').replace('{k}',rest.length).replace('{n}',rn))+'</div>';
-  }
-  if(!shown.length) body='<div class="home-empty">'+_esc(t('homeEmptyProjects'))+'</div>';
-  return '<div class="home-card"><p class="home-card-h">'+_esc(title)+'</p><p class="home-hint">'+_esc(t(hintKey))+'</p>'+body+'</div>';
+function _homeCountryCardHtml(){
+  return _homeDonutCardHtml(t('homeCountryTitle'),'homeDonutHint','region',function(mp){return mp.region||'기타';},function(mp){return mp.customer||'';},function(v){return tRegion(v);},8);
 }
 function _homeCustomerCardHtml(){
-  return _homeRankCardHtml(t('homeCustTitle'),'homeRankHint','customer',function(mp){return mp.customer||'';},function(mp){return mp.projectName||'';},'homeCountryTipEmpty','#5a9aee');
+  return _homeDonutCardHtml(t('homeCustTitle'),'homeDonutHint2','customer',function(mp){return mp.customer||'';},function(mp){return mp.projectName||'';},function(v){return v||t('homeUnassigned');},8);
 }
 function _homeProjectCardHtml(){
-  return _homeRankCardHtml(t('homeProjTitle'),'homeRankHint','project',function(mp){return mp.projectName||'';},function(mp){return mp.customer||'';},'homeCountryTipEmpty','#4aaa70');
+  return _homeDonutCardHtml(t('homeProjTitle'),'homeDonutHint2','project',function(mp){return mp.projectName||'';},function(mp){return mp.customer||'';},function(v){return v||t('homeUnassigned');},8);
 }
 
 // Field 셋업 간트 차트 기본 화면과 동일한 기준(숨김 아님 + 과거 아님)으로 "지금 실제로
@@ -391,8 +383,8 @@ function renderHomeTab(){
     +_homeMonthlyChartCardHtml(t('homeSetupChartTitle'),'homeChartHint','#4aaa70',_homeMonthlySetupData(),'setupMonth')+'</div>';
   // 프로젝트 현황 그래프(프로젝트 관리 탭 데이터): 지역별 도넛 / 고객사(사이트)별 막대 → 이번 달 하이라이트·다가오는 셋업 일정 / 설비별 막대
   // (엔지니어별 출장일수·인원유형별 출장 현황은 "인원 출장일" 탭으로 옮겼다)
-  html+='<div class="home-grid2">'+_homeCountryCardHtml()+_homeCustomerCardHtml()+'</div>';
-  html+='<div class="home-grid2"><div class="home-col">'+_homeHighlightCardHtml()+_homeUpcomingCardHtml()+'</div>'+_homeProjectCardHtml()+'</div>';
+  html+='<div class="home-grid3">'+_homeCountryCardHtml()+_homeCustomerCardHtml()+_homeProjectCardHtml()+'</div>';
+  html+='<div class="home-grid2">'+_homeHighlightCardHtml()+_homeUpcomingCardHtml()+'</div>';
   html+='<div class="home-grid2">'+_homeRecentCardHtml()+_homeQuickActionsCardHtml()+'</div>';
   wrap.innerHTML=html;
 }
