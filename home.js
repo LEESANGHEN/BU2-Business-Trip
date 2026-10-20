@@ -403,12 +403,11 @@ function renderHomeTab(){
   var html='';
   html+=_homeGreetingHtml();
   html+=_homeStatRowHtml();
-  // 상태 카드 바로 아래: 월별 출하 설비 수 / 월별 설비 셋업 수량을 나란히 두어 홈에서 가장 먼저 보이게 한다
-  html+='<div class="home-grid2">'+_homeMonthlyChartCardHtml(t('homeShipChartTitle'),'homeChartHint','#5a9aee',_homeMonthlyShipData(),'shipMonth')
-    +_homeMonthlyChartCardHtml(t('homeSetupChartTitle'),'homeChartHint','#4aaa70',_homeMonthlySetupData(),'setupMonth')+'</div>';
-  // 프로젝트 현황 그래프(프로젝트 관리 탭 데이터): 지역별 도넛 / 고객사(사이트)별 막대 → 이번 달 하이라이트·다가오는 셋업 일정 / 설비별 막대
+  // 상태 카드 바로 아래: 프로젝트 현황 도넛 3개(지역/고객사/설비) → 그 아래 월별 출하 설비 수 / 월별 설비 셋업 수량
   // (엔지니어별 출장일수·인원유형별 출장 현황은 "인원 출장일" 탭으로 옮겼다)
   html+='<div class="home-grid3">'+_homeCountryCardHtml()+_homeCustomerCardHtml()+_homeProjectCardHtml()+'</div>';
+  html+='<div class="home-grid2">'+_homeMonthlyChartCardHtml(t('homeShipChartTitle'),'homeChartHint','#5a9aee',_homeMonthlyShipData(),'shipMonth')
+    +_homeMonthlyChartCardHtml(t('homeSetupChartTitle'),'homeChartHint','#4aaa70',_homeMonthlySetupData(),'setupMonth')+'</div>';
   html+='<div class="home-grid3">'+_homeHighlightCardHtml()+_homeUpcomingCardHtml('transfer')+_homeUpcomingCardHtml('ship')+'</div>';
   html+='<div class="home-grid2">'+_homeRecentCardHtml()+_homeQuickActionsCardHtml()+'</div>';
   wrap.innerHTML=html;
