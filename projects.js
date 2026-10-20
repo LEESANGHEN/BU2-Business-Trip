@@ -214,8 +214,17 @@ var _MP_MS_DEFS={
     return arr.map(function(v){return {value:v,label:v};});
   }
 };
+// 이관월/셋업월/출하월은 체크 선택 말고 "년/월 ~ 년/월" 기간으로도 거를 수 있다 (_mpMS[key+'Range']={from,to}, 'YYYY-MM')
+var _MP_RANGE_KEYS={transferMonth:1,setupMonth:1,shipMonth:1};
+function _mpRange(key){ var r=_mpMS[key+'Range']; return (r&&(r.from||r.to))?r:null; }
+function _mpRangeText(r){ return (r.from||'')+' ~ '+(r.to||''); }
+function _mpInRange(r,ym){ return !!ym&&(!r.from||ym>=r.from)&&(!r.to||ym<=r.to); }
 function _mpMsSummary(key){
-  var sel=_mpMS[key];
+  var sel=_mpMS[key], rg=_mpRange(key);
+  if(rg){
+    if(!sel.length) return _mpRangeText(rg);
+    return sel.length+t('mpFilterNSelected')+' + '+_mpRangeText(rg);
+  }
   if(!sel.length) return t('optAll');
   if(sel.length===1){
     var opt=_MP_MS_DEFS[key]().find(function(o){return o.value===sel[0];});
@@ -226,7 +235,15 @@ function _mpMsSummary(key){
 function _mpMsOptionsHtml(key){
   var opts=_MP_MS_DEFS[key]();
   var sel=_mpMS[key];
-  var html='<label class="pm-ms-opt all"><input type="checkbox" '+(sel.length===0?'checked':'')+' onchange="_mpMsClearAll(\''+key+'\')">'+t('optAll')+'</label>';
+  var rg=_mpRange(key)||{from:'',to:''};
+  var html='';
+  if(_MP_RANGE_KEYS[key]){
+    html+='<div class="pm-ms-range" onclick="event.stopPropagation()"><div class="pm-ms-range-h">기간 직접 설정 (년/월 ~ 년/월)</div>'
+      +'<div class="pm-ms-range-row"><input type="month" id="mpRg_'+key+'_f" value="'+_esc(rg.from||'')+'" onchange="_mpMsRange(\''+key+'\')">'
+      +'<span>~</span><input type="month" id="mpRg_'+key+'_t" value="'+_esc(rg.to||'')+'" onchange="_mpMsRange(\''+key+'\')">'
+      +'<button type="button" class="btn sm" onclick="_mpMsRangeClear(\''+key+'\')" title="기간 지우기">지우기</button></div></div>';
+  }
+  html+='<label class="pm-ms-opt all"><input type="checkbox" '+(sel.length===0&&!_mpRange(key)?'checked':'')+' onchange="_mpMsClearAll(\''+key+'\')">'+t('optAll')+'</label>';
   opts.forEach(function(o){
     var vAttr=String(o.value).replace(/'/g,"\\'");
     var checked=sel.indexOf(o.value)>=0;
@@ -263,8 +280,22 @@ function _mpMsToggle(key,value){
   _mpMsRefresh(key);
   renderProjectsBody();
 }
+function _mpMsRange(key){
+  var f=document.getElementById('mpRg_'+key+'_f'), to=document.getElementById('mpRg_'+key+'_t');
+  var a=(f&&f.value)||'', b=(to&&to.value)||'';
+  if(a&&b&&a>b){ var x=a; a=b; b=x; if(f) f.value=a; if(to) to.value=b; } // 거꾸로 넣으면 자동으로 바로잡는다
+  if(a||b) _mpMS[key+'Range']={from:a,to:b}; else delete _mpMS[key+'Range'];
+  var lbl=document.getElementById('mpMsLbl_'+key); if(lbl) lbl.textContent=_mpMsSummary(key);
+  var all=document.querySelector('#mpMsPanel_'+key+' .pm-ms-opt.all input'); if(all) all.checked=(_mpMS[key].length===0&&!_mpRange(key));
+  renderProjectsBody();
+}
+function _mpMsRangeClear(key){
+  delete _mpMS[key+'Range'];
+  var f=document.getElementById('mpRg_'+key+'_f'), to=document.getElementById('mpRg_'+key+'_t'); if(f) f.value=''; if(to) to.value='';
+  _mpMsRange(key);
+}
 function _mpMsClearAll(key){
-  _mpMS[key]=[];
+  _mpMS[key]=[]; delete _mpMS[key+'Range'];
   _mpMsRefresh(key);
   var panel=document.getElementById('mpMsPanel_'+key);
   if(panel) panel.style.display='none';
@@ -291,6 +322,10 @@ function _mpFilteredProjects(){
     if(_mpMS.transferMonth.length&&_mpMS.transferMonth.indexOf(_mpTransferMonth(mp))<0)return false;
     if(_mpMS.setupMonth.length&&!_mpMS.setupMonth.some(function(ym){return _mpMonthOverlap(ym,mp.setupStart,mp.setupEnd);}))return false;
     if(_mpMS.shipMonth.length&&_mpMS.shipMonth.indexOf(_mpShipMonth(mp))<0)return false;
+    var rgT=_mpRange('transferMonth'); if(rgT&&!_mpInRange(rgT,_mpTransferMonth(mp)))return false;
+    var rgS=_mpRange('setupMonth'); // 셋업 기간이 한 달이라도 겹치면 포함
+    if(rgS&&!(mp.setupStart&&mp.setupEnd&&(!rgS.to||mp.setupStart.slice(0,7)<=rgS.to)&&(!rgS.from||mp.setupEnd.slice(0,7)>=rgS.from)))return false;
+    var rgH=_mpRange('shipMonth'); if(rgH&&!_mpInRange(rgH,_mpShipMonth(mp)))return false;
     if(_mpHideInactive&&!_mpViewHidden&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){
       var hay=[mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit,mp.serial,mp.tripManager].join(' ').toLowerCase();
