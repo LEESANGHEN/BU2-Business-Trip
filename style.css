@@ -1150,3 +1150,7 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .home-up-row{cursor:pointer;gap:8px;align-items:center}
 .home-up-row:hover{background:var(--bg-sel)}
 .home-up-tag{flex-shrink:0;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;min-width:46px;text-align:center}
+.home-up-row{justify-content:flex-start}
+.home-up-row .home-row-main{flex:1;min-width:0;text-align:left}
+.home-up-date{flex-shrink:0;width:38px;text-align:right;color:var(--tx-faint);font-size:11px}
+.home-up-dd{flex-shrink:0;width:44px;text-align:center}

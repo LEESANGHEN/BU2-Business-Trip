@@ -84,8 +84,8 @@ function _homeUpcomingCardHtml(){
     return '<div class="home-row home-up-row" onclick="openEditMasterProject(\''+_homeEscAttr(mp.id)+'\')" title="'+_homeEscAttr(t('homeUpcomingOpen'))+'">'
       +'<span class="home-up-tag" style="'+tagStyle[ev.kind]+'">'+_esc(tag)+'</span>'
       +'<span class="home-row-main">'+_esc((mp.projectName||'-')+' · '+(mp.customer||'-')+unit)+'</span>'
-      +'<span style="color:var(--tx-faint);font-size:11px;flex-shrink:0">'+dm+'</span>'
-      +'<span style="'+hot+';padding:2px 8px;border-radius:5px;font-size:10px;font-weight:600;flex-shrink:0;min-width:34px;text-align:center">'+dl+'</span></div>';
+      +'<span class="home-up-date">'+dm+'</span>'
+      +'<span style="'+hot+';padding:2px 0;border-radius:5px;font-size:10px;font-weight:600" class="home-up-dd">'+dl+'</span></div>';
   }).join(''):'<div class="home-empty">'+_esc(t('homeUpcomingEmpty'))+'</div>';
   if(list.length>shown.length) body+='<div class="home-rank-more">'+_esc(t('homeUpcomingMore').replace('{n}',list.length-shown.length))+'</div>';
   return '<div class="home-card"><p class="home-card-h">'+_esc(t('homeUpcomingTitle'))+'</p>'+body+'</div>';
