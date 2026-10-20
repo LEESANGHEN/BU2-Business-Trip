@@ -1136,3 +1136,12 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .home-donut-seg.nogo:hover{stroke-width:6}
 .home-grid3 .home-donut{width:140px;height:140px}
 .home-grid3 .home-leg{min-width:170px}
+
+/* 프로젝트 관리 표 — 화면 100%에서 모든 칸이 한 줄로 보이도록 촘촘하게(긴 글은 …로 줄이고 마우스를 올리면 전체 표시) */
+.mp-t{width:100%}
+.mp-t th,.mp-t td{white-space:nowrap}
+.mp-t th{padding:8px 6px;font-size:12px;letter-spacing:0}
+.mp-t td{padding:7px 6px}
+.mp-t .mp-ell{overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.mp-t .mp-c-mgr{max-width:220px}
+.mp-t .mp-c-loc{max-width:130px}

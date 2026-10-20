@@ -437,7 +437,7 @@ function _colLabel(key,defaultLbl){
 }
 
 function renderProjectsTable(rows){
-  var html='<table class="pm-person-table"><thead><tr>';
+  var html='<table class="pm-person-table mp-t"><thead><tr>';
   var _allSelected=rows.length>0&&rows.every(function(mp){return !!_mpSelectedIds[mp.id];});
   html+='<th style="width:28px"><input type="checkbox" '+(_allSelected?'checked':'')+' onclick="event.stopPropagation()" onchange="toggleMpSelectAll(this.checked)" title="화면에 보이는 전체 선택"></th>';
   html+=thS('category','colCategory',t('colCategory'))+thS('region','colRegionHdr',t('mpRegion'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
@@ -527,15 +527,15 @@ function renderProjectRow(mp){
     +'<td><input type="checkbox" '+(_mpSelectedIds[mp.id]?'checked':'')+' onchange="toggleMpRowSelect(\''+mp.id+'\',this.checked)"></td>'
     +'<td>'+_mpCategoryBadge(mp.category)+'</td>'
     +'<td>'+_esc(tRegion(mp.region||''))+'</td>'
-    +'<td>'+_esc(mp.customer||'')+'</td>'
-    +'<td>'+_esc(mp.projectName||'')+'</td>'
+    +'<td class="mp-ell mp-c-cust" title="'+_esc(mp.customer||'')+'">'+_esc(mp.customer||'')+'</td>'
+    +'<td class="mp-ell mp-c-proj" title="'+_esc(mp.projectName||'')+'">'+_esc(mp.projectName||'')+'</td>'
     +'<td>'+serialCell+'</td>'
     +'<td>'+_esc(unitLbl)+'</td>'
     +'<td>'+transferLbl+'</td>'
     +'<td>'+setupLbl+'</td>'
-    +'<td>'+_esc(mp.setupLocation||'-')+'</td>'
+    +'<td class="mp-ell mp-c-loc" title="'+_esc(mp.setupLocation||'')+'">'+_esc(mp.setupLocation||'-')+'</td>'
     +'<td>'+shipLbl+'</td>'
-    +'<td>'+_esc(mp.tripManager||'-')+'</td>'
+    +'<td class="mp-ell mp-c-mgr" title="'+_esc(mp.tripManager||'')+'">'+_esc(mp.tripManager||'-')+'</td>'
     +'<td>'+_mpStatusBadge(_mpEffectiveStatus(mp))+'</td>'
     +'</tr>';
 }
