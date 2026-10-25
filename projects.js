@@ -360,7 +360,7 @@ function _mpBsmLoad(){
 }
 function _mpNz(x){ return String(x||'').replace(/\s+/g,'').toUpperCase().replace(/O/g,'0'); }
 function _mpBsmItem(mp){ return (_mpBsm&&_mpBsm.items&&mp.serial)?(_mpBsm.items[_mpNz(mp.serial)]||null):null; }
-function _mpFd(iso){ return iso?iso.slice(2).replace(/-/g,'.'):''; }   // 날짜는 YY.MM.DD
+function _mpFd(iso){ return iso?iso.slice(2).replace(/-/g,'.'):''; }   // 날짜는 YY.MM.DD (셋업 완료는 프로젝트에 저장된 셋업 완료일 setupDone)
 // 이관→출하 일수: 음수이거나 1년을 넘으면 입력 오류일 가능성이 커서 표시하지 않는다
 function _mpDaysToShip(mp){
   var a=_mpEffectiveTransferDate(mp), b=_mpEffectiveShipDate(mp); if(!a||!b) return null;
@@ -393,7 +393,7 @@ function renderProjectsBody(){
     else if(k==='shipDate') v=String(_mpEffectiveShipDate(a)||'').localeCompare(String(_mpEffectiveShipDate(b)||''),'ko');
     // 상태는 화면에 보이는 값(_mpEffectiveStatus: 생산중/셋업 등)을 홈 대시보드 카드와 같은 순서로 비교한다.
     // 저장값(mp.status)은 대부분 "진행중" 하나라 그대로 비교하면 정렬이 안 된다
-    else if(k==='setupDone'){ var sa=(_mpBsmItem(a)||{}).sc||'9999', sb=(_mpBsmItem(b)||{}).sc||'9999'; v=sa.localeCompare(sb); }
+    else if(k==='setupDone'){ v=String(a.setupDone||'9999').localeCompare(String(b.setupDone||'9999')); }
     else if(k==='daysToShip'){ var da=_mpDaysToShip(a), db=_mpDaysToShip(b); v=(da==null?99999:da)-(db==null?99999:db); }
     else if(k==='prog'){ var pa=_mpBsmItem(a), pb=_mpBsmItem(b); v=(pa?pa.pct:-1)-(pb?pb.pct:-1); }
     else if(k==='status') v=_mpStatusRank(a)-_mpStatusRank(b);
@@ -481,7 +481,7 @@ function renderProjectsTable(rows){
   html+=thS('prodUnit','colUnitCombined2',(typeof _lang!=='undefined'&&_lang!=='ko')?t('colUnitCombined'):'생산 호기(현장 호기)');
   html+=thS('transferDate','colTransferDay','이관일');
   html+=thS('setupLocation','colSetupLocation',t('colSetupLocation'));
-  html+=thS('setupDone','colSetupDone','셋업 완료','BSM에서 셋업 진행률 100%로 실제 완료 등록된 설비만 그 기준일을 표시합니다');
+  html+=thS('setupDone','colSetupDone2','셋업 완료','셋업 완료일 — 기본값은 출하일 2일 전이며, 수정 창에서 직접 바꿀 수 있습니다');
   html+=thS('shipDate','colShipDay','출하일');
   html+=thS('daysToShip','colTransferToShip','이관→출하','이관일부터 출하일까지 일수');
   html+=thS('prog','colProgress','진행 현황','BSM 진행 단계와 전체 진척률'+((_mpBsm&&_mpBsm.updated)?(' (BSM 스냅샷 '+_mpBsm.updated.slice(0,10)+' 기준)'):''));
@@ -542,10 +542,10 @@ function renderProjectRow(mp){
   var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
   var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
   // 이관일/출하일은 "변경" 값(override)이 있으면 그 값을, 없으면 최초 등록값을 보여준다(_mpEffectiveTransferDate/_mpEffectiveShipDate).
-  // 날짜는 모두 YY.MM.DD. 셋업 완료는 BSM에서 셋업 진행률 100%로 실제 완료 등록된 설비만 그 기준일을 보여준다.
+  // 날짜는 모두 YY.MM.DD. 셋업 완료는 저장된 셋업 완료일(기본: 출하일 2일 전).
   var transferLbl=_mpFd(_mpEffectiveTransferDate(mp))||'-';
   var shipLbl=_mpFd(_mpEffectiveShipDate(mp))||'-';
-  var bsm=_mpBsmItem(mp), doneLbl=(bsm&&bsm.sc)?_mpFd(bsm.sc):'-';
+  var doneLbl=_mpFd(mp.setupDone)||'-';
   var days=_mpDaysToShip(mp);
   // 수정은 시리얼 넘버를 클릭했을 때만 가능하다(행 클릭/수정 버튼 없음). 시리얼이 비어있는 행도
   // 수정할 수 있도록 빈 값일 땐 "(미입력)"을 같은 링크 모양으로 보여준다
@@ -591,12 +591,15 @@ function _mpReadRegionField(){
 // 셋업 시작일을 입력/수정할 때 생산 이관일 칸이 비어있으면 "시작일 - 1일"을 자동으로 채워준다
 // (이미 값이 있으면 건드리지 않음 — 직접 입력/수정한 값을 덮어쓰지 않기 위함)
 function _mpWireTransferAutofill(){
-  var startEl=document.getElementById('mp_setupStart');
-  var transferEl=document.getElementById('mp_transferDate');
-  if(!startEl||!transferEl)return;
-  startEl.onchange=function(){
-    if(!transferEl.value&&this.value) transferEl.value=_addDaysStr(this.value,-1);
-  };
+  var transferEl=document.getElementById('mp_transferDate'), shipEl=document.getElementById('mp_shipDate'), doneEl=document.getElementById('mp_setupDone');
+  var startEl=document.getElementById('mp_setupStart'), endEl=document.getElementById('mp_setupEnd');
+  if(!transferEl||!shipEl||!doneEl) return;
+  // 셋업 완료일을 직접 고치지 않았다면(비어 있거나 출하일 2일 전과 같으면) 출하일을 바꿀 때 같이 따라간다
+  var auto=!doneEl.value||(shipEl.value&&doneEl.value===_addDaysStr(shipEl.value,-2));
+  doneEl.addEventListener('input',function(){ auto=false; });
+  shipEl.addEventListener('change',function(){ if(auto&&shipEl.value) doneEl.value=_addDaysStr(shipEl.value,-2); });
+  // 이관일을 입력하면 비어 있는 셋업 시작을 이관일 다음날로
+  transferEl.addEventListener('change',function(){ if(startEl&&!startEl.value&&transferEl.value) startEl.value=_addDaysStr(transferEl.value,1); });
 }
 function openAddMasterProject(){
   mw(_mpFormHtml(null),true);
@@ -613,43 +616,40 @@ function _mpFormHtml(mp){
   var ie=!!mp;
   function v(f){return ie?_esc(mp[f]||''):'';}
   function dateFld(id,label,val){
-    return '<div class="fg" style="flex:1"><label class="fl">'+label+'</label>'
-      +'<input type="date" id="'+id+'" value="'+_esc(val||'')+'"></div>';
+    return '<div class="fg"><label class="fl">'+label+'</label><input type="date" id="'+id+'" value="'+_esc(val||'')+'"></div>';
   }
+  function txt(id,label,val,extra){
+    return '<div class="fg"><label class="fl">'+label+'</label><input type="text" id="'+id+'" value="'+val+'" autocomplete="off"'+(extra||'')+'></div>';
+  }
+  function sec(t){return '<div class="mp-sec">'+t+'</div>';}
+  // 이관일/출하일은 입력칸 하나 — 현재 적용되는 값(변경값이 있으면 그 값)을 보여준다
+  var effT=ie?_mpEffectiveTransferDate(mp):'', effS=ie?_mpEffectiveShipDate(mp):'';
   var html='<div class="mtit">'+(ie?'프로젝트 수정':'프로젝트 등록')+'</div>';
-  html+='<div style="display:flex;gap:8px">'
-    +'<div class="fg" style="flex:1"><label class="fl">구분</label><input type="text" id="mp_category" value="'+v('category')+'" list="mp_category_list" autocomplete="off"></div>'
-    +'<div class="fg" style="flex:1"><label class="fl">지역</label>'+_mpRegionFieldHtml(ie?mp.region:'')+'</div>'
+  html+=sec('기본 정보');
+  html+='<div class="mp-grid mp-g2">'
+    +'<div class="fg"><label class="fl">구분</label><input type="text" id="mp_category" value="'+v('category')+'" list="mp_category_list" autocomplete="off"></div>'
+    +'<div class="fg"><label class="fl">지역</label>'+_mpRegionFieldHtml(ie?mp.region:'')+'</div>'
+    +txt('mp_customer','고객사',v('customer'))+txt('mp_projectName','프로젝트(설비명)',v('projectName'))
     +'</div>';
   html+='<datalist id="mp_category_list"><option value="Repeat Order"><option value="신규 개발"><option value="기타"></datalist>';
-  html+='<div style="display:flex;gap:8px">'
-    +'<div class="fg" style="flex:1"><label class="fl">고객사</label><input type="text" id="mp_customer" value="'+v('customer')+'" autocomplete="off"></div>'
-    +'<div class="fg" style="flex:1"><label class="fl">프로젝트</label><input type="text" id="mp_projectName" value="'+v('projectName')+'" autocomplete="off"></div>'
+  html+='<div class="mp-grid mp-g3">'
+    +txt('mp_serial','설비 시리얼 넘버',v('serial'))
+    +txt('mp_prodUnit','생산 호기',v('prodUnit'),' placeholder="예: 70호기 (\'생산\' 제외)"')
+    +txt('mp_customerUnit','현장 호기',v('customerUnit'))
     +'</div>';
-  html+='<div style="display:flex;gap:8px">'
-    +'<div class="fg" style="flex:1"><label class="fl">생산 호기</label><input type="text" id="mp_prodUnit" value="'+v('prodUnit')+'" placeholder="예: 70호기 (\'생산\' 제외하고 입력)" autocomplete="off"></div>'
-    +'<div class="fg" style="flex:1"><label class="fl">고객사 호기</label><input type="text" id="mp_customerUnit" value="'+v('customerUnit')+'" autocomplete="off"></div>'
-    +'<div class="fg" style="flex:1"><label class="fl">프로젝트 시리얼</label><input type="text" id="mp_serial" value="'+v('serial')+'" autocomplete="off"></div>'
+  html+=sec('일정');
+  html+='<div class="mp-grid mp-g3">'
+    +dateFld('mp_transferDate','이관일',effT)+dateFld('mp_setupDone','셋업 완료일',ie?mp.setupDone:'')+dateFld('mp_shipDate','출하일',effS)
     +'</div>';
-  html+='<div style="display:flex;gap:8px">'
-    +'<div class="fg" style="max-width:200px">'+dateFld('mp_transferDate','생산 이관일',ie?mp.transferDate:'')+'</div>'
-    +'<div class="fg" style="max-width:200px">'+dateFld('mp_transferDateOverride','변경 이관일',ie?mp.transferDateOverride:'')+'</div>'
+  html+='<div class="mp-hint">셋업 완료일은 출하일 2일 전이 기본값입니다. 출하일을 바꾸면(셋업 완료일을 직접 고치지 않은 경우) 자동으로 따라갑니다.</div>';
+  html+=sec('셋업 · 출장');
+  html+='<div class="mp-grid mp-g3">'
+    +txt('mp_setupLocation','셋업 장소',v('setupLocation'))+txt('mp_setupManager','셋업 담당자',v('setupManager'))+txt('mp_tripManager','출장 담당자',v('tripManager'))
     +'</div>';
-  html+='<div style="font-size:10px;color:var(--tx-muted);margin:-4px 0 4px">생산 이관일은 직접 입력/수정할 수 있습니다(기본값: 본사 셋업 시작일 바로 전날). 변경 이관일에 값을 입력하면 본사 셋업 시작일이 이 날짜의 다음날로 자동 변경됩니다.</div>';
-  html+='<div style="font-size:11px;color:var(--tx-muted);margin:10px 0 4px;font-weight:600">본사 셋업</div>';
-  html+='<div style="display:flex;gap:8px">'
-    +dateFld('mp_setupStart','시작',ie?mp.setupStart:'')
-    +dateFld('mp_setupEnd','종료',ie?mp.setupEnd:'')
-    +'<div class="fg" style="flex:1"><label class="fl">담당자</label><input type="text" id="mp_setupManager" value="'+v('setupManager')+'" autocomplete="off"></div>'
-    +'<div class="fg" style="flex:1"><label class="fl">셋업 장소</label><input type="text" id="mp_setupLocation" value="'+v('setupLocation')+'" autocomplete="off"></div>'
-    +'</div>';
-  html+='<div style="display:flex;gap:8px">'
-    +'<div class="fg" style="max-width:200px">'+dateFld('mp_shipDate','출하 일정',ie?mp.shipDate:'')+'</div>'
-    +'<div class="fg" style="max-width:200px">'+dateFld('mp_customerReqShipDate','변경 출하 일정',ie?mp.customerReqShipDate:'')+'</div>'
-    +'<div class="fg" style="flex:1"><label class="fl">출장 담당자</label><input type="text" id="mp_tripManager" value="'+v('tripManager')+'" autocomplete="off"></div>'
-    +'</div>';
-  html+='<div style="font-size:10px;color:var(--tx-muted);margin:-4px 0 10px">셋업 "종료"일은 자동으로 바뀌지 않습니다 — 목록 화면의 출하 일정 옆 (00일)은 셋업 종료일과 무관하게, 셋업 시작일부터 지금 적용되는 출하일 하루 전까지 셋업에 쓸 수 있는 일수를 별도로 계산해서 보여주는 참고용 숫자입니다.</div>';
-  html+='<div class="fg"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
+  html+='<details class="mp-adv"><summary>본사 셋업 기간 <span>(HQ 셋업 간트 · 월별 집계용)</span></summary>'
+    +'<div class="mp-grid mp-g2">'+dateFld('mp_setupStart','시작',ie?mp.setupStart:'')+dateFld('mp_setupEnd','종료',ie?mp.setupEnd:'')+'</div>'
+    +'<div class="mp-hint">비워 두면 시작은 이관일 다음날, 종료는 셋업 완료일로 자동 입력됩니다.</div></details>';
+  html+='<div class="fg" style="margin-top:14px"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="PO 대기"><option value="PO 발행"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
   if(ie) html+='<button class="btn red sm" onclick="delMasterProject(\''+mp.id+'\')">삭제</button>'
@@ -663,31 +663,46 @@ function _mpFormHtml(mp){
 
 function _mpReadForm(){
   function v(id){var el=document.getElementById(id);return el?el.value.trim():'';}
+  // 이관일·출하일은 입력칸이 하나다(현재 적용되는 값). 저장할 때 _mpAssignDates가 최초값/변경값 중 맞는 쪽에 넣는다
   return {
     category:v('mp_category'), region:_mpReadRegionField(), customer:v('mp_customer'), projectName:v('mp_projectName'),
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
     setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'), setupLocation:v('mp_setupLocation'),
-    shipDate:v('mp_shipDate'), customerReqShipDate:v('mp_customerReqShipDate'), tripManager:v('mp_tripManager'),
-    transferDate:v('mp_transferDate'), transferDateOverride:v('mp_transferDateOverride'),
+    tripManager:v('mp_tripManager'), setupDone:v('mp_setupDone'),
+    transferDate:v('mp_transferDate'), shipDate:v('mp_shipDate'),
     status:v('mp_status')
   };
 }
+// 하나로 합친 이관일/출하일을 프로젝트에 넣는다: "변경" 값이 이미 있으면 그 값을 고치고(최초값은 기록으로 남김), 없으면 최초값 칸에 넣는다
+function _mpAssignDates(mp,f){
+  var tv=f.transferDate, sv=f.shipDate; delete f.transferDate; delete f.shipDate;
+  Object.keys(f).forEach(function(k){mp[k]=f[k];});
+  var oldT=_mpEffectiveTransferDate(mp);
+  if(mp.transferDateOverride){ mp.transferDateOverride=tv; if(tv&&tv!==oldT) mp.setupStart=_addDaysStr(tv,1); } else mp.transferDate=tv;
+  if(mp.customerReqShipDate) mp.customerReqShipDate=sv; else mp.shipDate=sv;
+  if(mp.transferDateOverride===undefined) mp.transferDateOverride='';
+  if(mp.customerReqShipDate===undefined) mp.customerReqShipDate='';
+  var eT=_mpEffectiveTransferDate(mp), eS=_mpEffectiveShipDate(mp);
+  // 비어 있는 칸은 자동으로 채운다: 셋업 완료일=출하일 2일 전, 셋업 시작=이관일 다음날, 셋업 종료=셋업 완료일
+  if(!mp.setupDone&&eS) mp.setupDone=_addDaysStr(eS,-2);
+  if(!mp.setupStart&&eT) mp.setupStart=_addDaysStr(eT,1);
+  if(!mp.setupEnd&&mp.setupDone) mp.setupEnd=mp.setupDone;
+  if(!mp.transferDate&&!mp.transferDateOverride&&mp.setupStart) mp.transferDate=_addDaysStr(mp.setupStart,-1);
+  return mp;
+}
 // 변경 이관일이 입력되어 있으면, 본사 셋업 시작일을 그 다음날로 자동 맞춘다
 // (생산 이관일 자체는 이제 폼에서 직접 입력/수정하는 일반 필드다 — renderProjectRow는 저장된 값을 그대로 보여준다)
-function _mpApplyTransferOverride(f){
-  if(f.transferDateOverride) f.setupStart=_addDaysStr(f.transferDateOverride,1);
-  return f;
-}
 // renderProjectsTab() 자체가 스크롤 위치를 기억했다가 복원하므로 그냥 호출하면 된다
 // (예전엔 이 함수에서 직접 처리했으나 모든 재렌더 경로에 적용되도록 renderProjectsTab()으로 옮김)
 function _mpRenderTabKeepScroll(){
   renderProjectsTab();
 }
 function saveAddMasterProject(){
-  var f=_mpApplyTransferOverride(_mpReadForm());
+  var f=_mpReadForm();
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
-  if(!f.transferDate&&f.setupStart) f.transferDate=_addDaysStr(f.setupStart,-1);
-  var mp=_touch(f);
+  var mp={transferDateOverride:'',customerReqShipDate:''};
+  _mpAssignDates(mp,f);
+  _touch(mp);
   mp.id=_mpId();
   S.masterProjects.push(mp);
   saveData();cm();_mpRenderTabKeepScroll();
@@ -695,10 +710,9 @@ function saveAddMasterProject(){
 function saveEditMasterProject(id){
   var mp=S.masterProjects.find(function(m){return m.id===id;});
   if(!mp)return;
-  var f=_mpApplyTransferOverride(_mpReadForm());
+  var f=_mpReadForm();
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
-  Object.keys(f).forEach(function(k){mp[k]=f[k];});
-  if(!mp.transferDate&&mp.setupStart) mp.transferDate=_addDaysStr(mp.setupStart,-1);
+  _mpAssignDates(mp,f);
   _touch(mp);
   saveData();cm();_mpRenderTabKeepScroll();
 }

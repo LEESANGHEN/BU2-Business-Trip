@@ -1156,3 +1156,18 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .home-up-dd{flex-shrink:0;width:44px;text-align:center}
 /* BU1/BU3 진행 현황 점(BSM 상태 색) */
 .bu-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+
+/* 프로젝트 등록/수정 모달 — 구역별 정리 */
+.mp-sec{font-size:11px;font-weight:700;color:var(--tx-muted);letter-spacing:.04em;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--bd-subtle)}
+.mp-sec:first-of-type{margin-top:4px}
+.mp-grid{display:grid;gap:10px}
+.mp-g2{grid-template-columns:1fr 1fr}
+.mp-g3{grid-template-columns:1fr 1fr 1fr}
+.mp-grid .fg{margin-bottom:0;min-width:0}
+.mp-grid input[type=text],.mp-grid input[type=date],.mp-grid select{width:100%;box-sizing:border-box}
+.mp-hint{font-size:10px;color:var(--tx-muted);margin:6px 0 2px;line-height:1.5}
+.mp-adv{margin:10px 0 2px;border:1px solid var(--bd-subtle);border-radius:6px;padding:6px 10px}
+.mp-adv summary{cursor:pointer;font-size:11px;font-weight:600;color:var(--tx-second)}
+.mp-adv summary span{font-weight:400;color:var(--tx-muted)}
+.mp-adv[open] .mp-grid{margin-top:8px}
+@media (max-width:640px){.mp-g2,.mp-g3{grid-template-columns:1fr}}

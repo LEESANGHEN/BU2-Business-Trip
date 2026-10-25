@@ -163,6 +163,7 @@ function saveBatchMasterProject(){
       setupStart:row.setupStart,setupEnd:row.setupEnd,setupManager:'',setupLocation:row.setupLocation,
       shipDate:row.shipDate,customerReqShipDate:'',transferDate:row.transferDate,transferDateOverride:'',status:row.status};
     if(!f.transferDate&&f.setupStart) f.transferDate=_addDaysStr(f.setupStart,-1);
+    if(!f.setupDone&&(f.customerReqShipDate||f.shipDate)) f.setupDone=_addDaysStr(f.customerReqShipDate||f.shipDate,-2); // 셋업 완료일 기본값 = 출하일 2일 전
     var mp=_touch(f); mp.id=_mpId();
     S.masterProjects.push(mp); made.push(mp);
   });
