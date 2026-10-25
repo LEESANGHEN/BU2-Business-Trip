@@ -57,6 +57,7 @@ function bu1SetSort(k){
   if(_bu1.sortKey===k) _bu1.asc=!_bu1.asc; else{ _bu1.sortKey=k; _bu1.asc=true; }
   renderBu1Body();
 }
+function bu1Retry(){ _bu1Err=''; _bu1Load(true); renderBu1Tab(); }
 function bu1Search(v){ _bu1.q=v.trim().toLowerCase(); renderBu1Body(); }
 function bu1SetStatus(v){ _bu1.st=(_bu1.st===v)?'':v; renderBu1Tab(); }
 function bu1SetFam(v){ _bu1.fam=(_bu1.fam===v)?'':v; renderBu1Tab(); }
@@ -106,7 +107,7 @@ function renderBu1Tab(){
   if(!_bu1Data){
     if(!_bu1Loading&&!_bu1Err) _bu1Load();
     wrap.innerHTML='<div style="padding:40px;text-align:center;color:#707080;font-size:13px">'
-      +(_bu1Err?(_esc(_bu1Err)+'<br><br><button class="btn sm" onclick="_bu1Err='';_bu1Load(true);renderBu1Tab()">다시 시도</button>'):'BU1 생산 계획을 불러오는 중...')+'</div>';
+      +(_bu1Err?(_esc(_bu1Err)+'<br><br><button class="btn sm" onclick="bu1Retry()">다시 시도</button>'):'BU1 생산 계획을 불러오는 중...')+'</div>';
     return;
   }
   var prev=wrap.querySelector('.pm-body-scroll'), sTop=prev?prev.scrollTop:0, sLeft=prev?prev.scrollLeft:0;
