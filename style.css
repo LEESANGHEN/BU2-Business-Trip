@@ -1171,3 +1171,11 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .mp-adv summary span{font-weight:400;color:var(--tx-muted)}
 .mp-adv[open] .mp-grid{margin-top:8px}
 @media (max-width:640px){.mp-g2,.mp-g3{grid-template-columns:1fr}}
+
+/* 프로젝트 관리 — 필터 결과 수량 요약 */
+.mp-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 4px 2px;font-size:12px;color:var(--tx-second)}
+.mp-sum-total b{font-size:15px;color:var(--tx-primary)}
+.mp-sum-of{font-size:11px;color:var(--tx-faint)}
+.mp-sum-sep{font-size:11px;color:var(--tx-faint);margin-left:6px}
+.mp-sum-chip{background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:12px;padding:2px 10px;font-size:11px}
+.mp-sum-chip b{color:#7aafee;margin-left:2px}

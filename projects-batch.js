@@ -12,11 +12,10 @@ var MPB_COLS=[
   {k:'serial',l:'프로젝트 시리얼',t:'text',w:130,noFill:true},
   {k:'prodUnit',l:'생산 호기',t:'text',w:90,inc:true,noFill:true,ph:'70호기'},
   {k:'customerUnit',l:'고객사 호기',t:'text',w:90,inc:true,noFill:true},
-  {k:'transferDate',l:'생산 이관일',t:'date',w:128},
-  {k:'setupStart',l:'셋업 시작',t:'date',w:128},
-  {k:'setupEnd',l:'셋업 종료',t:'date',w:128},
+  {k:'transferDate',l:'이관일',t:'date',w:128},
+  {k:'setupDone',l:'셋업 완료일',t:'date',w:128},
+  {k:'shipDate',l:'출하일',t:'date',w:128},
   {k:'setupLocation',l:'셋업 장소',t:'text',w:100},
-  {k:'shipDate',l:'출하 일정',t:'date',w:128},
   {k:'status',l:'상태',t:'text',w:90,list:'mpb_status_list'}
 ];
 var _mpbRows=[];
@@ -160,9 +159,8 @@ function saveBatchMasterProject(){
     if(row.serial) have[key]=1;
     var f={category:common.category,region:common.region,customer:common.customer,projectName:common.projectName,
       prodUnit:row.prodUnit,customerUnit:row.customerUnit,serial:row.serial,
-      setupStart:row.setupStart,setupEnd:row.setupEnd,setupManager:'',setupLocation:row.setupLocation,
+      setupDone:row.setupDone,setupManager:'',setupLocation:row.setupLocation,
       shipDate:row.shipDate,customerReqShipDate:'',transferDate:row.transferDate,transferDateOverride:'',status:row.status};
-    if(!f.transferDate&&f.setupStart) f.transferDate=_addDaysStr(f.setupStart,-1);
     if(!f.setupDone&&(f.customerReqShipDate||f.shipDate)) f.setupDone=_addDaysStr(f.customerReqShipDate||f.shipDate,-2); // 셋업 완료일 기본값 = 출하일 2일 전
     var mp=_touch(f); mp.id=_mpId();
     S.masterProjects.push(mp); made.push(mp);

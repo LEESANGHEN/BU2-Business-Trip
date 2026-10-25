@@ -72,8 +72,7 @@ function _spCalcRange(){
   var all=[];
   _spFilteredProjects().forEach(function(mp){
     var tr=_mpEffectiveTransferDate(mp); if(tr) all.push(tr);
-    if(mp.setupStart) all.push(mp.setupStart);
-    if(mp.setupEnd) all.push(mp.setupEnd);
+    var sdn=_mpSetupDoneDate(mp); if(sdn) all.push(sdn);
     var sh=_mpEffectiveShipDate(mp); if(sh) all.push(sh);
     var p=_spProgress(mp);
     if(p.midInspectionDate) all.push(p.midInspectionDate);
@@ -203,11 +202,17 @@ function renderSetupSidebar(){
 // 이관/셋업/출하 진행 데이터 — 각 프로젝트 레코드에 새 필드로 저장(마이그레이션 불필요, 없으면 기본값)
 // 이관·출하 완료 여부는 더 이상 수동 체크값을 저장하지 않는다 — _spTransferDone/_spShipDone이
 // 프로젝트 관리에 적용된 날짜(최초 일정 또는 변경된 일정) 기준으로 매번 자동 계산한다
-var SP_PROGRESS_DEFAULT={setupPct:0,manager:'',dept:'',midInspectionDate:'',finalInspectionDate:'',checklist:{},notes:'',attachments:[]};
+var SP_PROGRESS_DEFAULT={manager:'',dept:'',midInspectionDate:'',finalInspectionDate:'',checklist:{},notes:'',attachments:[]};
 function _spProgress(mp){ return Object.assign({},SP_PROGRESS_DEFAULT,mp.progress||{}); }
-function _spOverallPct(mp){
-  var p=_spProgress(mp);
-  return Math.round(((_spTransferDone(mp)?100:0)+(p.setupPct||0)+(_spShipDone(mp)?100:0))/3);
+// 진행률은 직접 입력하지 않는다 — 이관일부터 출하일까지의 기간 중 오늘까지 지난 비율(%)로 매일 자동 계산한다
+// (이관일 당일 0%, 출하일 100%, 하루가 지날 때마다 막대가 초록색으로 채워지며 퍼센트가 올라간다)
+function _spAutoPct(mp){
+  var tr=_mpEffectiveTransferDate(mp), sh=_mpEffectiveShipDate(mp);
+  if(!tr||!sh) return 0;
+  var total=Math.round((pd(sh)-pd(tr))/86400000);
+  if(total<=0) return TODAY>=pd(sh)?100:0;
+  var el=Math.round((TODAY-pd(tr))/86400000);
+  return Math.max(0,Math.min(100,Math.round(el/total*100)));
 }
 function _spSetProgress(mpId,patch){
   var mp=S.masterProjects.find(function(x){return x.id===mpId;});
@@ -216,42 +221,6 @@ function _spSetProgress(mpId,patch){
   _touch(mp); saveData();
   renderSetupBody();
 }
-function spSetSetupPct(mpId,val){ _spSetProgress(mpId,{setupPct:Math.max(0,Math.min(100,parseInt(val,10)||0))}); }
-
-// 셋업 간트 바는 항상 출하 하루 전까지를 종료 시점으로 맞춘다 — 출하일이 늦춰지면 연장되고,
-// 반대로 출하일이 등록된 셋업 종료일보다 앞당겨지면 셋업 바도 그만큼 단축된다.
-// (실제 mp.setupEnd 값은 건드리지 않고, 렌더 시점에만 계산 — 출하일이 다시 바뀌면 자동으로 재조정됨)
-function _spEffectiveSetupEnd(mp){
-  var end=mp.setupEnd;
-  var ship=_mpEffectiveShipDate(mp);
-  if(ship){
-    var shipMinus1=new Date(pd(ship).getTime()-86400000);
-    var y=shipMinus1.getFullYear(),m=String(shipMinus1.getMonth()+1).padStart(2,'0'),d=String(shipMinus1.getDate()).padStart(2,'0');
-    end=y+'-'+m+'-'+d;
-    // 셋업 시작일보다 앞서지 않도록 보정(출하일이 셋업 시작일보다도 빠른 극단적인 경우)
-    if(mp.setupStart&&pd(end)<pd(mp.setupStart)) end=mp.setupStart;
-  }
-  return end;
-}
-
-// 셋업 %를 슬라이더 대신 클릭해서 직접 숫자로 입력할 수 있게(임시로 <input type=number>로 치환)
-function spEditSetupPct(spanEl,mpId){
-  var cur=parseInt(spanEl.textContent,10)||0;
-  var input=document.createElement('input');
-  input.type='number'; input.min=0; input.max=100; input.value=cur;
-  input.style.cssText='width:42px;font-size:10px;padding:0 2px;border-radius:3px;border:1px solid var(--bd-main);background:var(--bg-deep);color:var(--tx-main)';
-  spanEl.replaceWith(input);
-  input.focus(); input.select();
-  var done=false;
-  function commit(){ if(done) return; done=true; spSetSetupPct(mpId,input.value); }
-  function cancel(){ if(done) return; done=true; renderSetupBody(); }
-  input.addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); commit(); }
-    else if(e.key==='Escape'){ e.preventDefault(); cancel(); }
-  });
-  input.addEventListener('blur',commit);
-}
-
 function _spRenderRow(mp,idx){
   var p=_spProgress(mp);
   var transferDate=_mpEffectiveTransferDate(mp);
@@ -269,6 +238,7 @@ function _spRenderRow(mp,idx){
 
   // 이관·출하 완료 여부/날짜는 프로젝트 관리에 적용된 일정(최초 일정 또는 변경된 일정) 기준으로
   // 자동 계산한다(수동 체크 없음 — 날짜를 바꾸고 싶으면 프로젝트 관리에서 해당 일정 자체를 수정)
+  var autoPct=_spAutoPct(mp), setupRg=_mpSetupRange(mp);
   var transferDone=_spTransferDone(mp);
   var transferDateShown=transferDone?transferDate:'';
   var shipDone=_spShipDone(mp);
@@ -277,24 +247,23 @@ function _spRenderRow(mp,idx){
   fixedHtml+='<div style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--tx-second);flex-wrap:wrap">'
     +'<label style="display:flex;align-items:center;gap:3px" title="프로젝트 관리의 이관일 기준으로 자동 체크됩니다"><input type="checkbox" '+(transferDone?'checked':'')+' disabled style="accent-color:#5a9aee">이관'
     +(transferDateShown?' <span style="color:var(--tx-faint)">'+fmtFull(transferDateShown)+'</span>':'')+'</label>'
-    +'<span style="display:flex;align-items:center;gap:4px">셋업'
-    +'<input type="range" min="0" max="100" value="'+(p.setupPct||0)+'" oninput="this.nextElementSibling.textContent=this.value+\'%\'" onchange="spSetSetupPct(\''+idAttr+'\',this.value)" style="width:56px;accent-color:#4aaa70">'
-    +'<span onclick="spEditSetupPct(this,\''+idAttr+'\')" style="cursor:pointer;min-width:28px;display:inline-block;text-align:right" title="클릭하여 직접 입력">'+(p.setupPct||0)+'%</span>'
-    +(mp.setupStart&&mp.setupEnd?' <span style="color:var(--tx-faint)">('+fmtFull(mp.setupStart)+'~'+fmtFull(mp.setupEnd)+')</span>':'')+'</span>'
+    +'<span style="display:flex;align-items:center;gap:4px;white-space:nowrap" title="이관일부터 출하일까지 기간 중 오늘까지 지난 비율(자동 계산, 직접 입력하지 않음)">진행 <b style="color:#4aaa70">'+autoPct+'%</b>'
+    +(setupRg?' <span style="color:var(--tx-faint)">(셋업 '+fmtFull(setupRg.start)+'~'+fmtFull(setupRg.end)+')</span>':'')+'</span>'
     +'<label style="display:flex;align-items:center;gap:3px" title="프로젝트 관리의 출하일 기준으로 자동 체크됩니다"><input type="checkbox" '+(shipDone?'checked':'')+' disabled style="accent-color:#b39ddb">출하'
     +(shipDateShown?' <span style="color:var(--tx-faint)">'+fmtFull(shipDateShown)+'</span>':'')+'</label>'
     +'</div>';
   fixedHtml+='</div>';
 
   var segHtml='';
-  if(mp.setupStart&&mp.setupEnd){
-    var effEnd=_spEffectiveSetupEnd(mp);
-    var x1=_spD2px(mp.setupStart), x2=_spD2px(effEnd)+Math.round(_spWPX/7);
+  // 막대 = 이관일 ~ 출하일. 초록색 채움은 오늘까지 지난 비율(자동)이며 날짜가 지날 때마다 늘어난다
+  if(transferDate&&shipDate){
+    var x1=_spD2px(transferDate), x2=_spD2px(shipDate)+Math.round(_spWPX/7);
     var w=Math.max(x2-x1,4);
-    var fillPct=Math.max(0,Math.min(100,p.setupPct||0));
-    var extNote=effEnd===mp.setupEnd?'':(pd(effEnd)>pd(mp.setupEnd)?' · 출하일정 반영 연장':' · 출하일정 반영 단축');
-    segHtml+='<div onclick="openSpProgressModal(\''+idAttr+'\')" title="셋업 '+fmtFull(mp.setupStart)+' ~ '+fmtFull(effEnd)+' ('+(p.setupPct||0)+'%)'+extNote+' · 클릭하여 상세 기록" style="position:absolute;top:8px;left:'+x1+'px;width:'+w+'px;height:16px;border-radius:4px;background:var(--bg-deep);border:1px solid var(--bd-main);overflow:hidden;z-index:2;cursor:pointer">'
-      +'<div style="height:100%;width:'+fillPct+'%;background:#4aaa70"></div></div>';
+    segHtml+='<div onclick="openSpProgressModal(\''+idAttr+'\')" title="이관 '+fmtFull(transferDate)+' ~ 출하 '+fmtFull(shipDate)+' · 진행 '+autoPct+'% (자동 계산) · 클릭하여 상세 기록" style="position:absolute;top:8px;left:'+x1+'px;width:'+w+'px;height:16px;border-radius:4px;background:var(--bg-deep);border:1px solid var(--bd-main);overflow:hidden;z-index:2;cursor:pointer">'
+      +'<div style="height:100%;width:'+autoPct+'%;background:#4aaa70"></div>'
+      +'<span style="position:absolute;left:0;right:0;top:0;line-height:14px;text-align:center;font-size:10px;font-weight:600;color:#fff;text-shadow:0 0 2px rgba(0,0,0,.7);pointer-events:none">'+autoPct+'%</span></div>';
+    var doneD=_mpSetupDoneDate(mp);
+    if(doneD){ var dx=_spD2px(doneD)+Math.round(_spWPX/14); segHtml+='<div title="셋업 완료 '+fmtFull(doneD)+'" style="position:absolute;top:4px;left:'+(dx-1)+'px;width:2px;height:24px;background:#e0e0ec;opacity:.8;z-index:3"></div>'; }
   }
   if(transferDate){
     var tx=_spD2px(transferDate);

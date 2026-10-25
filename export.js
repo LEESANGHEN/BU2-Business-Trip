@@ -89,7 +89,7 @@ function _buildProjectsSheet(wb){
   var rIdx=2;
   rows.forEach(function(mp){
     var bg=rIdx%2===0?'#1c1c24':'#181820';
-    var setupLbl=(mp.setupStart&&mp.setupEnd)?(mp.setupStart+' ~ '+mp.setupEnd):'';
+    var _sr=_mpSetupRange(mp), setupLbl=_sr?(_sr.start+' ~ '+_sr.end):'';
     var transferDate=mp.transferDate||'';
     var row=ws.getRow(rIdx);
     [mp.category,mp.region,mp.customer,mp.projectName,mp.serial,mp.prodUnit,mp.customerUnit,transferDate,mp.transferDateOverride,setupLbl,mp.shipDate,mp.customerReqShipDate,_mpEffectiveStatus(mp)].forEach(function(v,i){

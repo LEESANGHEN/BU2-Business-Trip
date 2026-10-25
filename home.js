@@ -307,11 +307,11 @@ function _homeMonthlyShipData(){
     return {label:m.label,ym:m.ym,value:items.length,items:items};
   });
 }
-// HQ 셋업 기간이 그 달과 겹치는 프로젝트 수 + 목록 (월별 집계 탭의 "본사 셋업" 계산과 동일 기준)
+// 셋업 기간(이관일 다음날 ~ 셋업 완료일)이 그 달과 겹치는 프로젝트 수 + 목록 (월별 집계 탭의 "본사 셋업" 계산과 동일 기준)
 function _homeMonthlySetupData(){
   return _homeMonthlyMonths().map(function(m){
     var items=[];
-    _mpActive().forEach(function(mp){ if(_mpMonthOverlap(m.ym,mp.setupStart,mp.setupEnd)) items.push(_homeMpLabel(mp)); });
+    _mpActive().forEach(function(mp){ var rg=_mpSetupRange(mp); if(rg&&_mpMonthOverlap(m.ym,rg.start,rg.end)) items.push(_homeMpLabel(mp)); });
     return {label:m.label,ym:m.ym,value:items.length,items:items};
   });
 }

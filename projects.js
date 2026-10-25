@@ -88,6 +88,7 @@ function renderProjectsTab(){
   html+='<button class="btn sm" onclick="openBatchMasterProject()" title="같은 설비를 시리얼/호기만 바꿔 여러 대 한 번에 등록">+ 여러 대 등록</button>';
   html+='<button class="btn pri sm" onclick="openAddMasterProject()">'+t('mpAddProject')+'</button>';
   html+='</div>';
+  html+='<div class="mp-summary" id="mpSummary"></div>';
   html+='</div>';
   html+='<div class="pm-body-scroll"><div id="mpBody"></div></div>';
   wrap.innerHTML=html;
@@ -166,6 +167,18 @@ function _mpEffectiveShipDate(mp){ return mp.customerReqShipDate||mp.shipDate; }
 function _mpShipMonth(mp){ var d=_mpEffectiveShipDate(mp); return d?d.slice(0,7):''; }
 // 변경 이관일이 입력되면(이관일을 다시 조정한 것) 그 프로젝트는 원래 생산 이관일 대신
 // 변경된 이관일 기준으로 "이관월"을 판단한다
+// ── 셋업 기간은 따로 등록하지 않는다: 이관일 다음날 ~ 셋업 완료일(없으면 출하일 2일 전). 예전에 저장된 setupStart/setupEnd 값은 계산에 쓰지 않는다 ──
+// 대시보드 월별 설비 셋업 수량, 월별 집계, 셋업월 필터, HQ 셋업 간트가 모두 이관일 · 셋업 완료일 · 출하일 3가지만 기준으로 계산한다
+function _mpSetupDoneDate(mp){
+  if(mp.setupDone) return mp.setupDone;
+  var sh=_mpEffectiveShipDate(mp); return sh?_addDaysStr(sh,-2):'';
+}
+function _mpSetupRange(mp){
+  var t=_mpEffectiveTransferDate(mp), e=_mpSetupDoneDate(mp);
+  if(!t||!e) return null;
+  var st=_addDaysStr(t,1); if(e<st) e=st;
+  return {start:st,end:e};
+}
 function _mpEffectiveTransferDate(mp){ return mp.transferDateOverride||mp.transferDate; }
 function _mpTransferMonth(mp){ var d=_mpEffectiveTransferDate(mp); return d?d.slice(0,7):''; }
 
@@ -203,9 +216,9 @@ var _MP_MS_DEFS={
   setupMonth:function(){
     var arr=[];
     _mpViewList().forEach(function(mp){
-      if(!mp.setupStart||!mp.setupEnd) return;
-      var y=parseInt(mp.setupStart.slice(0,4),10), m=parseInt(mp.setupStart.slice(5,7),10), guard=0;
-      var endYm=mp.setupEnd.slice(0,7);
+      var rg=_mpSetupRange(mp); if(!rg) return;
+      var y=parseInt(rg.start.slice(0,4),10), m=parseInt(rg.start.slice(5,7),10), guard=0;
+      var endYm=rg.end.slice(0,7);
       while(guard++<60){
         var ym=y+'-'+String(m).padStart(2,'0');
         if(ym>endYm) break;
@@ -329,11 +342,12 @@ function _mpFilteredProjects(){
     if(_mpMS.project.length&&_mpMS.project.indexOf(mp.projectName||'')<0)return false;
     if(_mpMS.status.length&&_mpMS.status.indexOf(_mpEffectiveStatus(mp)||'')<0)return false;
     if(_mpMS.transferMonth.length&&_mpMS.transferMonth.indexOf(_mpTransferMonth(mp))<0)return false;
-    if(_mpMS.setupMonth.length&&!_mpMS.setupMonth.some(function(ym){return _mpMonthOverlap(ym,mp.setupStart,mp.setupEnd);}))return false;
+    var _rg=_mpSetupRange(mp); // 셋업월 필터 = 이관일 다음날 ~ 셋업 완료일 기간이 그 달과 겹치는지
+    if(_mpMS.setupMonth.length&&!(_rg&&_mpMS.setupMonth.some(function(ym){return _mpMonthOverlap(ym,_rg.start,_rg.end);})))return false;
     if(_mpMS.shipMonth.length&&_mpMS.shipMonth.indexOf(_mpShipMonth(mp))<0)return false;
     var rgT=_mpRange('transferMonth'); if(rgT&&!_mpInRange(rgT,_mpTransferMonth(mp)))return false;
     var rgS=_mpRange('setupMonth'); // 셋업 기간이 한 달이라도 겹치면 포함
-    if(rgS&&!(mp.setupStart&&mp.setupEnd&&(!rgS.to||mp.setupStart.slice(0,7)<=rgS.to)&&(!rgS.from||mp.setupEnd.slice(0,7)>=rgS.from)))return false;
+    if(rgS&&!(_rg&&(!rgS.to||_rg.start.slice(0,7)<=rgS.to)&&(!rgS.from||_rg.end.slice(0,7)>=rgS.from)))return false;
     var rgH=_mpRange('shipMonth'); if(rgH&&!_mpInRange(rgH,_mpShipMonth(mp)))return false;
     if(_mpHideInactive&&!_mpViewHidden&&_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0)return false;
     if(_mpSearch){
@@ -374,11 +388,37 @@ function _mpProgHtml(mp){
   return '<span title="'+_esc(tip)+'"><span class="bu-dot" style="background:'+b[0]+'"></span>'+_esc(p.wf)+' '+p.pct+'%</span>';
 }
 
+/* ── 필터 결과 요약: 지금 보이는 설비가 총 몇 대인지, 제품군별로 몇 대인지 ── */
+function _mpFamily(mp){
+  var n=String(mp.projectName||'');
+  if(/HL\s*\d{3,4}/i.test(n)) return 'HL';
+  if(/NBGA/i.test(n)) return 'NBGA';
+  if(/QPM/i.test(n)) return 'QPM';
+  if(/LTV/i.test(n)) return 'LTV';
+  if(/FP3D/i.test(n)) return 'FP3D';
+  if(/MPSI/i.test(n)) return 'MPSI';
+  if(/VRS/i.test(n)) return 'VRS';
+  if(/590/.test(n)) return '590';
+  if(/580/.test(n)) return '580';
+  if(/640/.test(n)) return '640HX';
+  if(/NTV|SMTV|CTV|BTV/i.test(n)) return 'NTV(SMTV)';
+  return '기타(개조·이설 등)';
+}
+function _mpUpdateSummary(rows){
+  var el=document.getElementById('mpSummary'); if(!el) return;
+  var fam={}; rows.forEach(function(mp){ var f=_mpFamily(mp); fam[f]=(fam[f]||0)+1; });
+  var keys=Object.keys(fam).sort(function(a,b){return fam[b]-fam[a]||a.localeCompare(b,'ko');});
+  var all=_mpViewList().length;
+  var h='<span class="mp-sum-total">총 <b>'+rows.length+'</b>대'+(rows.length!==all?' <span class="mp-sum-of">(전체 '+all+'대 중)</span>':'')+'</span>';
+  if(keys.length) h+='<span class="mp-sum-sep">제품군별</span>'+keys.map(function(k){ return '<span class="mp-sum-chip">'+_esc(k)+' <b>'+fam[k]+'</b></span>'; }).join('');
+  el.innerHTML=h;
+}
 function renderProjectsBody(){
   var body=document.getElementById('mpBody');
   if(!body)return;
   _mpBsmLoad();
   var rows=_mpFilteredProjects();
+  _mpUpdateSummary(rows);
   if(!rows.length){
     body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">'
       +(_mpViewHidden?'숨긴 프로젝트가 없습니다. 목록에서 프로젝트를 선택하고 "선택 숨기기"를 누르면 여기에 모입니다.':S.masterProjects.length?'해당 조건의 프로젝트가 없습니다.':'등록된 프로젝트가 없습니다. 엑셀 데이터를 가져오거나 새로 등록하세요.')
@@ -588,18 +628,13 @@ function _mpReadRegionField(){
 }
 
 /* ── CRUD 모달 ── */
-// 셋업 시작일을 입력/수정할 때 생산 이관일 칸이 비어있으면 "시작일 - 1일"을 자동으로 채워준다
-// (이미 값이 있으면 건드리지 않음 — 직접 입력/수정한 값을 덮어쓰지 않기 위함)
 function _mpWireTransferAutofill(){
-  var transferEl=document.getElementById('mp_transferDate'), shipEl=document.getElementById('mp_shipDate'), doneEl=document.getElementById('mp_setupDone');
-  var startEl=document.getElementById('mp_setupStart'), endEl=document.getElementById('mp_setupEnd');
-  if(!transferEl||!shipEl||!doneEl) return;
+  var shipEl=document.getElementById('mp_shipDate'), doneEl=document.getElementById('mp_setupDone');
+  if(!shipEl||!doneEl) return;
   // 셋업 완료일을 직접 고치지 않았다면(비어 있거나 출하일 2일 전과 같으면) 출하일을 바꿀 때 같이 따라간다
   var auto=!doneEl.value||(shipEl.value&&doneEl.value===_addDaysStr(shipEl.value,-2));
   doneEl.addEventListener('input',function(){ auto=false; });
   shipEl.addEventListener('change',function(){ if(auto&&shipEl.value) doneEl.value=_addDaysStr(shipEl.value,-2); });
-  // 이관일을 입력하면 비어 있는 셋업 시작을 이관일 다음날로
-  transferEl.addEventListener('change',function(){ if(startEl&&!startEl.value&&transferEl.value) startEl.value=_addDaysStr(transferEl.value,1); });
 }
 function openAddMasterProject(){
   mw(_mpFormHtml(null),true);
@@ -641,14 +676,11 @@ function _mpFormHtml(mp){
   html+='<div class="mp-grid mp-g3">'
     +dateFld('mp_transferDate','이관일',effT)+dateFld('mp_setupDone','셋업 완료일',ie?mp.setupDone:'')+dateFld('mp_shipDate','출하일',effS)
     +'</div>';
-  html+='<div class="mp-hint">셋업 완료일은 출하일 2일 전이 기본값입니다. 출하일을 바꾸면(셋업 완료일을 직접 고치지 않은 경우) 자동으로 따라갑니다.</div>';
+  html+='<div class="mp-hint">셋업 기간은 따로 입력하지 않습니다 — 이관일 다음날부터 셋업 완료일까지가 셋업 기간으로 계산됩니다(대시보드·월별 집계·셋업월 필터·HQ 셋업 간트). 셋업 완료일의 기본값은 출하일 2일 전이며, 출하일을 바꾸면(직접 고치지 않은 경우) 자동으로 따라갑니다.</div>';
   html+=sec('셋업 · 출장');
   html+='<div class="mp-grid mp-g3">'
     +txt('mp_setupLocation','셋업 장소',v('setupLocation'))+txt('mp_setupManager','셋업 담당자',v('setupManager'))+txt('mp_tripManager','출장 담당자',v('tripManager'))
     +'</div>';
-  html+='<details class="mp-adv"><summary>본사 셋업 기간 <span>(HQ 셋업 간트 · 월별 집계용)</span></summary>'
-    +'<div class="mp-grid mp-g2">'+dateFld('mp_setupStart','시작',ie?mp.setupStart:'')+dateFld('mp_setupEnd','종료',ie?mp.setupEnd:'')+'</div>'
-    +'<div class="mp-hint">비워 두면 시작은 이관일 다음날, 종료는 셋업 완료일로 자동 입력됩니다.</div></details>';
   html+='<div class="fg" style="margin-top:14px"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="PO 대기"><option value="PO 발행"><option value="LOI 접수"></datalist>';
   html+='<div class="mfoot">';
@@ -667,7 +699,7 @@ function _mpReadForm(){
   return {
     category:v('mp_category'), region:_mpReadRegionField(), customer:v('mp_customer'), projectName:v('mp_projectName'),
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
-    setupStart:v('mp_setupStart'), setupEnd:v('mp_setupEnd'), setupManager:v('mp_setupManager'), setupLocation:v('mp_setupLocation'),
+    setupManager:v('mp_setupManager'), setupLocation:v('mp_setupLocation'),
     tripManager:v('mp_tripManager'), setupDone:v('mp_setupDone'),
     transferDate:v('mp_transferDate'), shipDate:v('mp_shipDate'),
     status:v('mp_status')
@@ -677,17 +709,13 @@ function _mpReadForm(){
 function _mpAssignDates(mp,f){
   var tv=f.transferDate, sv=f.shipDate; delete f.transferDate; delete f.shipDate;
   Object.keys(f).forEach(function(k){mp[k]=f[k];});
-  var oldT=_mpEffectiveTransferDate(mp);
-  if(mp.transferDateOverride){ mp.transferDateOverride=tv; if(tv&&tv!==oldT) mp.setupStart=_addDaysStr(tv,1); } else mp.transferDate=tv;
+  if(mp.transferDateOverride) mp.transferDateOverride=tv; else mp.transferDate=tv;
   if(mp.customerReqShipDate) mp.customerReqShipDate=sv; else mp.shipDate=sv;
   if(mp.transferDateOverride===undefined) mp.transferDateOverride='';
   if(mp.customerReqShipDate===undefined) mp.customerReqShipDate='';
-  var eT=_mpEffectiveTransferDate(mp), eS=_mpEffectiveShipDate(mp);
-  // 비어 있는 칸은 자동으로 채운다: 셋업 완료일=출하일 2일 전, 셋업 시작=이관일 다음날, 셋업 종료=셋업 완료일
+  var eS=_mpEffectiveShipDate(mp);
+  // 비어 있는 셋업 완료일은 출하일 2일 전으로 자동 입력
   if(!mp.setupDone&&eS) mp.setupDone=_addDaysStr(eS,-2);
-  if(!mp.setupStart&&eT) mp.setupStart=_addDaysStr(eT,1);
-  if(!mp.setupEnd&&mp.setupDone) mp.setupEnd=mp.setupDone;
-  if(!mp.transferDate&&!mp.transferDateOverride&&mp.setupStart) mp.transferDate=_addDaysStr(mp.setupStart,-1);
   return mp;
 }
 // 변경 이관일이 입력되어 있으면, 본사 셋업 시작일을 그 다음날로 자동 맞춘다
@@ -794,7 +822,7 @@ function _mpCloneSeed(seed){
   return {
     category:seed.category,region:seed.region,customer:seed.customer,projectName:seed.projectName,
     prodUnit:seed.prodUnit,customerUnit:seed.customerUnit,serial:seed.serial,
-    setupStart:seed.setupStart,setupEnd:seed.setupEnd,setupManager:seed.setupManager,
+    setupManager:seed.setupManager,
     shipDate:seed.shipDate,
     trip1Start:seed.trip1Start,trip1End:seed.trip1End,trip1Manager:seed.trip1Manager,
     trip2Start:seed.trip2Start,trip2End:seed.trip2End,trip2Manager:seed.trip2Manager,
@@ -855,7 +883,7 @@ function renderMonthlyAggTab(centerNow){
 function _mpAllMonths(){
   var min=null,max=null;
   _mpActive().forEach(function(mp){
-    [mp.setupStart,mp.setupEnd,mp.trip1Start,mp.trip1End].forEach(function(d){
+    [_mpEffectiveTransferDate(mp),_mpSetupDoneDate(mp),_mpEffectiveShipDate(mp),mp.trip1Start,mp.trip1End].forEach(function(d){
       if(!d)return;
       if(!min||d<min)min=d;
       if(!max||d>max)max=d;
@@ -903,7 +931,7 @@ function _mpMonthGroup(ym,phase){
   var groups={};
   if(phase==='hq'){
     _mpActive().forEach(function(mp){
-      if(!_mpMonthOverlap(ym,mp.setupStart,mp.setupEnd))return;
+      var rg=_mpSetupRange(mp); if(!rg||!_mpMonthOverlap(ym,rg.start,rg.end))return;
       var key=(mp.region||'기타')+'|'+(mp.customer||'')+'|'+(mp.projectName||'');
       groups[key]=(groups[key]||0)+1;
     });
