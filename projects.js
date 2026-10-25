@@ -134,7 +134,7 @@ function homeGoToProjectsByMonth(key,ym){
   _mpHideInactive=false;
   _mpSearch='';
   _mpViewHidden=false;
-  _mpSortKey=(key==='setupMonth')?'setupStart':'shipDate';
+  _mpSortKey=(key==='setupMonth')?'transferDate':'shipDate';
   _mpSortAsc=true;
   switchTab('projects');
 }
@@ -343,9 +343,41 @@ function _mpFilteredProjects(){
     return true;
   });
 }
+/* ── BSM 스냅샷(진행 현황·셋업 완료) — BU2 데이터와 별도 시트(BSM_SNAPSHOT, action=loadBsm)에서 읽기 전용으로 덧붙인다 ──
+   BSM(service.intekplus.com/bsm)은 앱에서 직접 읽을 수 없어서, BSM에서 뽑은 시리얼별 단계·진척률을 Sheets에 스냅샷으로 저장해 두고
+   시리얼로 맞춰 본다. 프로젝트 데이터(S.masterProjects)는 건드리지 않는다. */
+var _mpBsm=null, _mpBsmLoading=false, _mpBsmTried=false;
+function _mpBsmLoad(){
+  if(_mpBsm||_mpBsmLoading||_mpBsmTried) return;
+  var url=(typeof getSheetsUrl==='function')?getSheetsUrl():''; if(!url) return;
+  _mpBsmLoading=true; _mpBsmTried=true;
+  fetch(url+'?action=loadBsm').then(function(r){return r.json();}).then(function(d){
+    if(d&&d.items) _mpBsm=d;
+  }).catch(function(){}).then(function(){
+    _mpBsmLoading=false;
+    if(_mpBsm&&typeof _activeTab!=='undefined'&&_activeTab==='projects') renderProjectsBody();
+  });
+}
+function _mpNz(x){ return String(x||'').replace(/\s+/g,'').toUpperCase().replace(/O/g,'0'); }
+function _mpBsmItem(mp){ return (_mpBsm&&_mpBsm.items&&mp.serial)?(_mpBsm.items[_mpNz(mp.serial)]||null):null; }
+function _mpFd(iso){ return iso?iso.slice(2).replace(/-/g,'.'):''; }   // 날짜는 YY.MM.DD
+// 이관→출하 일수: 음수이거나 1년을 넘으면 입력 오류일 가능성이 커서 표시하지 않는다
+function _mpDaysToShip(mp){
+  var a=_mpEffectiveTransferDate(mp), b=_mpEffectiveShipDate(mp); if(!a||!b) return null;
+  var d=Math.round((pd(b)-pd(a))/86400000); return (d<0||d>365)?null:d;
+}
+var _MP_BST={d:['#e05a5a','지연'],a:['#e0972e','위험'],o:['#4aaa70','정상']};
+function _mpProgHtml(mp){
+  var p=_mpBsmItem(mp); if(!p) return '-';
+  var b=_MP_BST[p.bst]||['#888',''];
+  var tip='BSM '+(b[1]?b[1]+' · ':'')+p.wf+' · 전체 '+p.pct+'% (구매 '+p.gu+'% · 기구 '+p.ki+'% · 전장 '+p.je+'% · 셋업 '+p.se+'%)';
+  return '<span title="'+_esc(tip)+'"><span class="bu-dot" style="background:'+b[0]+'"></span>'+_esc(p.wf)+' '+p.pct+'%</span>';
+}
+
 function renderProjectsBody(){
   var body=document.getElementById('mpBody');
   if(!body)return;
+  _mpBsmLoad();
   var rows=_mpFilteredProjects();
   if(!rows.length){
     body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">'
@@ -361,6 +393,9 @@ function renderProjectsBody(){
     else if(k==='shipDate') v=String(_mpEffectiveShipDate(a)||'').localeCompare(String(_mpEffectiveShipDate(b)||''),'ko');
     // 상태는 화면에 보이는 값(_mpEffectiveStatus: 생산중/셋업 등)을 홈 대시보드 카드와 같은 순서로 비교한다.
     // 저장값(mp.status)은 대부분 "진행중" 하나라 그대로 비교하면 정렬이 안 된다
+    else if(k==='setupDone'){ var sa=(_mpBsmItem(a)||{}).sc||'9999', sb=(_mpBsmItem(b)||{}).sc||'9999'; v=sa.localeCompare(sb); }
+    else if(k==='daysToShip'){ var da=_mpDaysToShip(a), db=_mpDaysToShip(b); v=(da==null?99999:da)-(db==null?99999:db); }
+    else if(k==='prog'){ var pa=_mpBsmItem(a), pb=_mpBsmItem(b); v=(pa?pa.pct:-1)-(pb?pb.pct:-1); }
     else if(k==='status') v=_mpStatusRank(a)-_mpStatusRank(b);
     else if(k==='prodUnit'||k==='customerUnit') v=_mpUnitCompare(a[k],b[k]);
     else v=String(a[k]||'').localeCompare(String(b[k]||''),'ko');
@@ -440,13 +475,16 @@ function renderProjectsTable(rows){
   var html='<table class="pm-person-table mp-t"><thead><tr>';
   var _allSelected=rows.length>0&&rows.every(function(mp){return !!_mpSelectedIds[mp.id];});
   html+='<th style="width:28px"><input type="checkbox" '+(_allSelected?'checked':'')+' onclick="event.stopPropagation()" onchange="toggleMpSelectAll(this.checked)" title="화면에 보이는 전체 선택"></th>';
-  html+=thS('category','colCategory',t('colCategory'))+thS('region','colRegionHdr',t('mpRegion'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
-  html+=thS('serial','colSerial',t('colSerial'));
-  html+=thS('prodUnit','colUnitCombined',t('colUnitCombined'));
-  html+=thS('transferDate','colTransferDate',t('colTransferDate'));
-  html+=thS('setupStart','colSetupPeriod',t('colSetupPeriod'),t('tipSetupPeriod'));
+  // 열: 구분 · 고객사 · 설비명 · 시리얼 · 생산 호기(현장 호기) · 이관일 · 셋업 장소 · 셋업 완료 · 출하일 · 이관→출하 · 진행 현황 · 출장 담당자 · 상태 (날짜는 YY.MM.DD)
+  html+=thS('category','colCategory',t('colCategory'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
+  html+=thS('serial','colSerialNo','설비 시리얼 넘버');
+  html+=thS('prodUnit','colUnitCombined',(typeof _lang!=='undefined'&&_lang!=='ko')?t('colUnitCombined'):'생산 호기(현장 호기)');
+  html+=thS('transferDate','colTransferDay','이관일');
   html+=thS('setupLocation','colSetupLocation',t('colSetupLocation'));
-  html+=thS('shipDate','colShipDate',t('colShipDate'));
+  html+=thS('setupDone','colSetupDone','셋업 완료','BSM에서 셋업 진행률 100%로 실제 완료 등록된 설비만 그 기준일을 표시합니다');
+  html+=thS('shipDate','colShipDay','출하일');
+  html+=thS('daysToShip','colTransferToShip','이관→출하','이관일부터 출하일까지 일수');
+  html+=thS('prog','colProgress','진행 현황','BSM 진행 단계와 전체 진척률'+((_mpBsm&&_mpBsm.updated)?(' (BSM 스냅샷 '+_mpBsm.updated.slice(0,10)+' 기준)'):''));
   html+=thS('tripManager','colTripManager',t('colTripManager'));
   html+=thS('status','colStatusHdr',t('mpStatus'));
   html+='</tr></thead><tbody>';
@@ -500,41 +538,31 @@ function _mpCategoryBadge(cat){ return _mpBadge(cat,_MP_CATEGORY_BADGE_STYLE); }
 function _mpStatusBadge(st){ return _mpBadge(st,_MP_STATUS_BADGE_STYLE,tStatus(st)); }
 
 function renderProjectRow(mp){
-  var setupLbl=(mp.setupStart&&mp.setupEnd)?(fmtFull(mp.setupStart)+' ~ '+fmtFull(mp.setupEnd)+'('+dd(mp.setupStart,mp.setupEnd)+'일)'):'-';
   // 생산 호기는 입력값에 "생산"을 붙이지 않고 저장(예: "70호기")하므로, 화면 표시할 때만 "생산 "을 붙인다
   var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
   var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
-  // 이관일/출하일은 "변경" 값(override)이 있으면 그 값을, 없으면 최초 등록값을 보여준다 — 편집
-  // 모달에는 최초값/변경값 입력란이 각각 따로 있지만, 목록 화면은 열 수를 줄이려고 한 칸에
-  // "지금 적용되는" 값만 표시한다(_mpEffectiveTransferDate/_mpEffectiveShipDate)
-  var transferLbl=_mpEffectiveTransferDate(mp)?fmtFull(_mpEffectiveTransferDate(mp)):'-';
-  // 출하 일정 옆 (00일) = 기존 셋업 시작일부터 "지금 적용되는" 출하일 하루 전까지, 셋업 가능한 일수.
-  // 출하일이 바뀌어도 셋업 시작일 자체는 안 건드리고, 그 출하일 기준으로 셋업에 쓸 수 있는 기간이
-  // 얼마나 되는지만 계산해서 보여준다(셋업 종료일 자동 변경과는 별개로, 참고용 일수 표시)
-  var effShip=_mpEffectiveShipDate(mp);
-  var shipLbl='-';
-  if(effShip){
-    shipLbl=fmtFull(effShip);
-    if(mp.setupStart){
-      var shipSetupDays=Math.round((pd(effShip)-pd(mp.setupStart))/86400000);
-      shipLbl+='('+shipSetupDays+'일)';
-    }
-  }
+  // 이관일/출하일은 "변경" 값(override)이 있으면 그 값을, 없으면 최초 등록값을 보여준다(_mpEffectiveTransferDate/_mpEffectiveShipDate).
+  // 날짜는 모두 YY.MM.DD. 셋업 완료는 BSM에서 셋업 진행률 100%로 실제 완료 등록된 설비만 그 기준일을 보여준다.
+  var transferLbl=_mpFd(_mpEffectiveTransferDate(mp))||'-';
+  var shipLbl=_mpFd(_mpEffectiveShipDate(mp))||'-';
+  var bsm=_mpBsmItem(mp), doneLbl=(bsm&&bsm.sc)?_mpFd(bsm.sc):'-';
+  var days=_mpDaysToShip(mp);
   // 수정은 시리얼 넘버를 클릭했을 때만 가능하다(행 클릭/수정 버튼 없음). 시리얼이 비어있는 행도
   // 수정할 수 있도록 빈 값일 땐 "(미입력)"을 같은 링크 모양으로 보여준다
   var serialCell='<span class="mp-serial-link" onclick="openEditMasterProject(\''+mp.id+'\')" title="클릭하여 수정">'+(mp.serial?_esc(mp.serial):'(미입력)')+'</span>';
   return '<tr class="pm-person-row">'
     +'<td><input type="checkbox" '+(_mpSelectedIds[mp.id]?'checked':'')+' onchange="toggleMpRowSelect(\''+mp.id+'\',this.checked)"></td>'
     +'<td>'+_mpCategoryBadge(mp.category)+'</td>'
-    +'<td>'+_esc(tRegion(mp.region||''))+'</td>'
     +'<td class="mp-ell mp-c-cust" title="'+_esc(mp.customer||'')+'">'+_esc(mp.customer||'')+'</td>'
     +'<td class="mp-ell mp-c-proj" title="'+_esc(mp.projectName||'')+'">'+_esc(mp.projectName||'')+'</td>'
     +'<td>'+serialCell+'</td>'
     +'<td>'+_esc(unitLbl)+'</td>'
     +'<td>'+transferLbl+'</td>'
-    +'<td>'+setupLbl+'</td>'
     +'<td class="mp-ell mp-c-loc" title="'+_esc(mp.setupLocation||'')+'">'+_esc(mp.setupLocation||'-')+'</td>'
+    +'<td>'+doneLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
+    +'<td>'+(days==null?'-':days+'일')+'</td>'
+    +'<td>'+_mpProgHtml(mp)+'</td>'
     +'<td class="mp-ell mp-c-mgr" title="'+_esc(mp.tripManager||'')+'">'+_esc(mp.tripManager||'-')+'</td>'
     +'<td>'+_mpStatusBadge(_mpEffectiveStatus(mp))+'</td>'
     +'</tr>';
