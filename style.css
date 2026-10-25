@@ -1154,3 +1154,5 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .home-up-row .home-row-main{flex:1;min-width:0;text-align:left}
 .home-up-date{flex-shrink:0;width:38px;text-align:right;color:var(--tx-faint);font-size:11px}
 .home-up-dd{flex-shrink:0;width:44px;text-align:center}
+/* BU1/BU3 진행 현황 점(BSM 상태 색) */
+.bu-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}

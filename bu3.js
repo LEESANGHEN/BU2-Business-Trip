@@ -1,19 +1,21 @@
 /* ══════════════════════════════════════════
    프로젝트 관리(BU3) — 확인용(읽기 전용)
-   엑셀 "설비 생산 현황"에서 뽑은 BU3(고객사 AKM, AT&S의 NTV/640 설비) 생산 계획을
-   프로젝트 관리(BU2) 탭과 같은 표 모양·같은 필터 막대로 보여준다.
+   엑셀 "설비 생산 현황" + BSM(service.intekplus.com/bsm)에서 모은 BU3(고객사 AKM, AT&S의 NTV/640 설비) 생산 계획을 보여준다.
+   - 열: 구분 · 고객사 · 설비명 · 시리얼 · 생산 호기(현장 호기) · 이관일 · 셋업 장소 · 셋업 완료 · 출하일 · 이관→출하 · 진행 현황 · 출장 담당자 · 상태
+   - 날짜는 YY.MM.DD. "셋업 완료"는 BSM에서 셋업 진행률 100%로 실제 완료 등록된 설비만 그 기준일을 보여준다.
    - 데이터는 Apps Script의 별도 시트(BU3_TRIP_DATA, action=loadBu3)에서만 읽어 _bu3Data에 담는다. BU2 데이터(S, load/save)·홈 대시보드·
      월별 집계·엑셀 내보내기와 섞이지 않는다(저장/동기화 없음, 편집 없음). 공개 저장소에는 데이터 파일을 올리지 않는다.
-   - 엑셀에 없는 항목(국가, 출장 담당자)은 열/필터를 만들지 않았다.
    ══════════════════════════════════════════ */
 var _bu3={q:'',hideDone:false,sortKey:'tr',asc:true};
-// 다중 선택 필터(빈 배열=전체): fam 계열, cust 고객사, model 설비명, st 상태, tm 이관월, sm 셋업월, hm 출하월 / 월 필터는 기간 직접 설정(_bu3Rg)도 가능
-var _bu3MS={fam:[],cust:[],model:[],st:[],tm:[],sm:[],hm:[]};
-var _bu3Rg={tm:null,sm:null,hm:null};   // {from:'YYYY-MM',to:'YYYY-MM'}
+// 다중 선택 필터(빈 배열=전체): fam 계열, cust 고객사, model 설비명, st 상태, wf 진행 단계, tm 이관월, cm 셋업 완료월, hm 출하월 / 월 필터는 기간 직접 설정(_bu3Rg)도 가능
+var _bu3MS={fam:[],cust:[],model:[],st:[],wf:[],tm:[],cm:[],hm:[]};
+var _bu3Rg={tm:null,cm:null,hm:null};   // {from:'YYYY-MM',to:'YYYY-MM'}
 var _bu3Opts={};                        // 마지막으로 그린 옵션 목록(체크박스에서 인덱스로 참조)
 var BU3_STATUS_ORDER=['생산중(HQ)','셋업(HQ)','셋업(Field)','완료'];
-var BU3_FILTERS=[['fam','설비군'],['cust','고객사'],['model','설비명(프로젝트)'],['st','상태'],['tm','이관월'],['sm','셋업월'],['hm','출하월']];
-var BU3_RANGE={tm:1,sm:1,hm:1};
+var BU3_WF_ORDER=['설계','구매/자재','기구','전장','셋업/검증','출하','승인대기'];
+var BU3_FILTERS=[['fam','설비군'],['cust','고객사'],['model','설비명(프로젝트)'],['st','상태'],['wf','진행 단계'],['tm','이관월'],['cm','셋업 완료월'],['hm','출하월']];
+var BU3_RANGE={tm:1,cm:1,hm:1};
+var BU3_BST={d:['#e05a5a','지연'],a:['#e0972e','위험'],o:['#4aaa70','정상']};
 var _bu3Data=null, _bu3Loading=false, _bu3Err='';
 function _bu3Load(force){
   if(_bu3Loading||(_bu3Data&&!force)) return;
@@ -30,7 +32,9 @@ function _bu3Load(force){
   });
 }
 
-// BU2 프로젝트 관리의 상태 분류와 같은 방식: 완료(엑셀 출하유무) → 출하일이 지났으면 셋업(Field) → 이관일이 지났으면 셋업(HQ) → 그 외 생산중(HQ)
+// 날짜는 모두 YY.MM.DD
+function _bu3Fd(iso){ return iso?iso.slice(2).replace(/-/g,'.'):''; }
+// BU2 프로젝트 관리의 상태 분류와 같은 방식: 완료 → 출하일이 지났으면 셋업(Field) → 이관일이 지났으면 셋업(HQ) → 그 외 생산중(HQ)
 function _bu3Status(r){
   if(r.done) return '완료';
   if(r.shI&&pd(r.shI)<TODAY) return '셋업(Field)';
@@ -38,18 +42,17 @@ function _bu3Status(r){
   return '생산중(HQ)';
 }
 function _bu3Fam(r){ return /NTV/i.test(r.model)?'NTV':'640HX'; }
+// 이관→출하 일수: 음수이거나 1년을 넘으면 입력 오류(엑셀 연도 오기, BSM 옛 날짜)일 가능성이 커서 표시하지 않는다
+function _bu3Days(r){ var d=r.days; return (d===''||d==null||d<0||d>365)?null:d; }
 function _bu3Ym(iso){ return iso?iso.slice(0,7):''; }
-// 셋업 기간(시작/종료 날짜가 읽힌 행만). 한쪽만 있으면 그 날짜 하루로 본다
-function _bu3SetupRange(r){
-  var a=r.ssI||r.seI, b=r.seI||r.ssI;
-  return a?[a,b]:null;
-}
 function _bu3Val(r,key){
   if(key==='fam') return _bu3Fam(r);
   if(key==='cust') return r.cust;
   if(key==='model') return r.model;
   if(key==='st') return _bu3Status(r);
+  if(key==='wf') return r.p?r.p.wf:'';
   if(key==='tm') return _bu3Ym(r.trI);
+  if(key==='cm') return _bu3Ym(r.scI);
   if(key==='hm') return _bu3Ym(r.shI);
   return '';
 }
@@ -58,21 +61,10 @@ function _bu3AllRows(){ return (_bu3Data&&_bu3Data.rows)||[]; }
 // 필터 옵션 목록
 function _bu3Options(key){
   var rows=_bu3AllRows(), seen={}, out=[];
-  if(key==='sm'){
-    rows.forEach(function(r){
-      var rg=_bu3SetupRange(r); if(!rg) return;
-      var y=parseInt(rg[0].slice(0,4),10), m=parseInt(rg[0].slice(5,7),10), end=rg[1].slice(0,7), g=0;
-      while(g++<60){
-        var ym=y+'-'+String(m).padStart(2,'0'); if(ym>end) break;
-        if(!seen[ym]){ seen[ym]=1; out.push(ym); }
-        m++; if(m>12){ m=1; y++; }
-      }
-    });
-    return out.sort().map(function(v){return {v:v,l:v};});
-  }
   rows.forEach(function(r){ var v=_bu3Val(r,key); if(v&&!seen[v]){ seen[v]=1; out.push(v); } });
   if(key==='st') out.sort(function(a,b){return BU3_STATUS_ORDER.indexOf(a)-BU3_STATUS_ORDER.indexOf(b);});
-  else if(key==='fam') out.sort();
+  else if(key==='wf') out.sort(function(a,b){return BU3_WF_ORDER.indexOf(a)-BU3_WF_ORDER.indexOf(b);});
+  else if(key==='fam'||BU3_RANGE[key]) out.sort();
   else out.sort(function(a,b){return String(a).localeCompare(String(b),'ko');});
   return out.map(function(v){return {v:v,l:(key==='st')?tStatus(v):v};});
 }
@@ -83,23 +75,16 @@ function _bu3Rows(){
     var st=_bu3Status(r), k;
     if(_bu3.hideDone&&st==='완료') return false;
     for(k in _bu3MS){
-      if(k==='sm') continue;
       var sel=_bu3MS[k];
       if(sel.length&&sel.indexOf(_bu3Val(r,k))<0) return false;
     }
-    if(_bu3MS.sm.length){
-      var rg=_bu3SetupRange(r);
-      if(!rg||!_bu3MS.sm.some(function(ym){return _mpMonthOverlap(ym,rg[0],rg[1]);})) return false;
-    }
-    var t=_bu3Rg.tm; if(t&&!((!t.from||_bu3Ym(r.trI)>=t.from)&&(!t.to||_bu3Ym(r.trI)<=t.to)&&_bu3Ym(r.trI))) return false;
-    var h=_bu3Rg.hm; if(h&&!((!h.from||_bu3Ym(r.shI)>=h.from)&&(!h.to||_bu3Ym(r.shI)<=h.to)&&_bu3Ym(r.shI))) return false;
-    var s=_bu3Rg.sm;
-    if(s){
-      var sr=_bu3SetupRange(r);
-      if(!(sr&&(!s.to||sr[0].slice(0,7)<=s.to)&&(!s.from||sr[1].slice(0,7)>=s.from))) return false;
+    for(k in _bu3Rg){
+      var g=_bu3Rg[k]; if(!g) continue;
+      var ym=_bu3Val(r,k);
+      if(!ym||(g.from&&ym<g.from)||(g.to&&ym>g.to)) return false;
     }
     if(q){
-      var hay=[r.cust,r.model,r.serial,r.unit,r.loc,r.cat].join(' ').toLowerCase();
+      var hay=[r.cust,r.model,r.serial,r.unit,r.loc,r.cat,r.mgr,r.p?r.p.wf:''].join(' ').toLowerCase();
       if(hay.indexOf(q)<0) return false;
     }
     return true;
@@ -176,7 +161,10 @@ function bu3MsRangeClear(key){
 
 function _bu3SortVal(r,k){
   if(k==='tr') return r.trI||'9999';
+  if(k==='sc') return r.scI||'9999';
   if(k==='sh') return r.shI||'9999';
+  if(k==='days'){ var dd=_bu3Days(r); return dd==null?99999:dd; }
+  if(k==='prog') return r.p?r.p.pct:-1;
   if(k==='st') return BU3_STATUS_ORDER.indexOf(_bu3Status(r));
   return String(r[k]||'');
 }
@@ -192,14 +180,20 @@ function bu3ToggleDone(){
   if(_bu3.hideDone){
     _bu3.q=''; _bu3.sortKey='tr'; _bu3.asc=true;
     for(var k in _bu3MS) _bu3MS[k]=[];
-    _bu3Rg={tm:null,sm:null,hm:null};
+    _bu3Rg={tm:null,cm:null,hm:null};
   }
   renderBu3Tab();
 }
 
-function _bu3Th(key,label){
+function _bu3Th(key,label,tip){
   var on=_bu3.sortKey===key, arrow=on?(_bu3.asc?' ▲':' ▼'):'';
-  return '<th class="'+(on?'on':'')+'" onclick="bu3SetSort(\''+key+'\')">'+_esc(label)+arrow+'</th>';
+  return '<th class="'+(on?'on':'')+'"'+(tip?' title="'+_esc(tip)+'"':'')+' onclick="bu3SetSort(\''+key+'\')">'+_esc(label)+arrow+'</th>';
+}
+function _bu3ProgHtml(r){
+  var p=r.p; if(!p) return '-';
+  var b=BU3_BST[p.bst]||['#888',''];
+  var tip='BSM '+(b[1]?b[1]+' · ':'')+p.wf+' · 전체 '+p.pct+'% (구매 '+p.gu+'% · 기구 '+p.ki+'% · 전장 '+p.je+'% · 셋업 '+p.se+'%)';
+  return '<span title="'+_esc(tip)+'"><span class="bu-dot" style="background:'+b[0]+'"></span>'+_esc(p.wf)+' '+p.pct+'%</span>';
 }
 function renderBu3Body(){
   var body=document.getElementById('bu3Body'); if(!body) return;
@@ -212,25 +206,31 @@ function renderBu3Body(){
   });
   var cnt=document.getElementById('bu3Count'); if(cnt) cnt.textContent=rows.length+'건';
   if(!rows.length){
-    body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">조건에 맞는 BU3 설비가 없습니다.</div>';
+    body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">조건에 맞는 설비가 없습니다.</div>';
     return;
   }
   var h='<table class="pm-person-table mp-t"><thead><tr>'
     +_bu3Th('cat','구분')+_bu3Th('cust','고객사')+_bu3Th('model','설비명(프로젝트)')+_bu3Th('serial','설비 시리얼 넘버')
-    +_bu3Th('unit','생산 호기(현장 호기)')+_bu3Th('tr','생산 이관일')+'<th>셋업 일정</th>'+_bu3Th('loc','셋업 장소')+_bu3Th('sh','출하 일정')+_bu3Th('st','상태')
+    +_bu3Th('unit','생산 호기(현장 호기)')+_bu3Th('tr','이관일')+_bu3Th('loc','셋업 장소')
+    +_bu3Th('sc','셋업 완료','BSM에서 셋업 진행률 100%로 실제 완료 등록된 설비만 그 기준일을 표시합니다')
+    +_bu3Th('sh','출하일')+_bu3Th('days','이관→출하','이관일부터 출하일까지 일수')+_bu3Th('prog','진행 현황','BSM 진행 단계와 전체 진척률')
+    +_bu3Th('mgr','출장 담당자','BSM에 등록된 담당자')+_bu3Th('st','상태')
     +'</tr></thead><tbody>';
   rows.forEach(function(r){
-    var st=_bu3Status(r), dash=function(v){ return v?_esc(v):'-'; };
+    var st=_bu3Status(r), dash=function(v){ return v?_esc(v):'-'; }, fd=function(v){ return v?_bu3Fd(v):'-'; };
     h+='<tr class="pm-person-row">'
       +'<td>'+dash(r.cat)+'</td>'
       +'<td class="mp-ell mp-c-cust" title="'+_esc(r.cust)+'">'+dash(r.cust)+'</td>'
       +'<td class="mp-ell mp-c-proj" title="'+_esc(r.model)+'">'+dash(r.model)+'</td>'
-      +'<td>'+dash(r.serial)+'</td>'
-      +'<td>'+dash(r.unit)+'</td>'
-      +'<td class="mp-ell" title="'+_esc(r.tr)+'">'+dash(r.tr)+'</td>'
-      +'<td class="mp-ell" style="max-width:260px" title="'+_esc(r.ss)+'">'+dash(r.ss)+'</td>'
+      +'<td'+(r.src==='B'?' title="BSM에만 등록된 설비(엑셀에는 없음)"':'')+'>'+dash(r.serial)+(r.src==='B'?' <span style="color:var(--tx-faint)">*</span>':'')+'</td>'
+      +'<td class="mp-ell" title="'+_esc(r.unit)+'">'+dash(r.unit)+'</td>'
+      +'<td>'+fd(r.trI)+'</td>'
       +'<td class="mp-ell mp-c-loc" title="'+_esc(r.loc)+'">'+dash(r.loc)+'</td>'
-      +'<td class="mp-ell" title="'+_esc(r.sh)+'">'+dash(r.sh)+'</td>'
+      +'<td>'+fd(r.scI)+'</td>'
+      +'<td>'+fd(r.shI)+'</td>'
+      +'<td'+((_bu3Days(r)==null&&r.days!==''&&r.days!=null)?' title="날짜 입력 오류 가능성(음수 또는 1년 초과)으로 표시하지 않음: '+r.days+'일"':'')+'>'+(_bu3Days(r)==null?'-':_bu3Days(r)+'일')+'</td>'
+      +'<td>'+_bu3ProgHtml(r)+'</td>'
+      +'<td>'+dash(r.mgr)+'</td>'
       +'<td>'+_mpStatusBadge(st)+'</td></tr>';
   });
   h+='</tbody></table>';
