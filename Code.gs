@@ -41,6 +41,7 @@
 var SHEET_NAME = 'BU2_TRIP_DATA';
 var CHUNK_SIZE = 40000; // Google Sheets 셀 1개 최대 5만자 제한보다 여유있게 설정
 var ATTACH_FOLDER_NAME = 'BU2_TRIP_ATTACHMENTS'; // 셋업 진행 첨부파일 저장용 Drive 폴더(자동 생성)
+var BU1_SHEET_NAME = 'BU1_TRIP_DATA'; // "프로젝트 관리(BU1)" 확인용 탭 데이터(BU2 데이터와 별도 시트, load/save와 섞이지 않음)
 
 var FIELDS = ['groups', 'sites', 'projects', 'schedules', 'events', 'workTasks',
               'equipItems', 'equipUnits', 'equipSiteOrder', 'equipProjects',
@@ -82,6 +83,39 @@ function _writeState_(obj) {
   sh.getRange(1, 1, rows.length, 1).setValues(rows);
 }
 
+// BU1 확인용 데이터: BU2 상태(_readState_/_writeState_)와 완전히 분리된 시트에 같은 방식(청크)으로 저장한다
+function _getBu1Sheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sh = ss.getSheetByName(BU1_SHEET_NAME);
+  if (!sh) {
+    sh = ss.insertSheet(BU1_SHEET_NAME);
+    try { sh.hideSheet(); } catch (e) {}
+  }
+  return sh;
+}
+
+function _readBu1_() {
+  var sh = _getBu1Sheet_();
+  var lastRow = sh.getLastRow();
+  if (lastRow < 1) return {};
+  var vals = sh.getRange(1, 1, lastRow, 1).getValues();
+  var raw = vals.map(function (r) { return r[0] || ''; }).join('');
+  if (!raw) return {};
+  try { return JSON.parse(raw); } catch (e) { return {}; }
+}
+
+function _writeBu1_(obj) {
+  var sh = _getBu1Sheet_();
+  sh.clearContents();
+  var raw = JSON.stringify(obj);
+  var rows = [];
+  for (var i = 0; i < raw.length; i += CHUNK_SIZE) {
+    rows.push([raw.substring(i, i + CHUNK_SIZE)]);
+  }
+  if (!rows.length) rows.push(['']);
+  sh.getRange(1, 1, rows.length, 1).setValues(rows);
+}
+
 function _json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
@@ -109,6 +143,9 @@ function doGet(e) {
     out.deletedScheduleIds = state.deletedScheduleIds || [];
     return _json_(out);
   }
+  if (action === 'loadBu1') {
+    return _json_(_readBu1_());
+  }
   return _json_({ error: 'unknown action: ' + action });
 }
 
@@ -123,6 +160,11 @@ function doPost(e) {
       if (body.deletedIds !== undefined) state.deletedIds = body.deletedIds;
       if (body.deletedScheduleIds !== undefined) state.deletedScheduleIds = body.deletedScheduleIds;
       _writeState_(state);
+      return _json_({ ok: true });
+    }
+    if (body.action === 'saveBu1') {
+      // { action:'saveBu1', data:{ source, generated, rows:[...] } } — BU2 상태(FIELDS)는 건드리지 않는다
+      _writeBu1_(body.data || {});
       return _json_({ ok: true });
     }
     if (body.action === 'uploadFile') {

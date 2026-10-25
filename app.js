@@ -1283,6 +1283,7 @@ function switchTab(tab){
   document.getElementById('view_person').style.display=tab==='person'?'flex':'none';
   document.getElementById('view_equip').style.display=tab==='equip'?'flex':'none';
   document.getElementById('view_agg').style.display=tab==='vision'?'flex':'none';
+  document.getElementById('view_bu1').style.display=tab==='bu1'?'flex':'none';
   document.getElementById('tab_home').className='nav-item'+(tab==='home'?' on':'');
   document.getElementById('tab_projects').className='nav-item'+(tab==='projects'?' on':'');
   document.getElementById('tab_pedestal').className='nav-item'+(tab==='pedestal'?' on':'');
@@ -1291,6 +1292,7 @@ function switchTab(tab){
   document.getElementById('tab_person').className='nav-item'+(tab==='person'?' on':'');
   document.getElementById('tab_equip').className='nav-item'+(tab==='equip'?' on':'');
   document.getElementById('tab_vision').className='nav-item'+(tab==='vision'?' on':'');
+  document.getElementById('tab_bu1').className='nav-item'+(tab==='bu1'?' on':'');
   document.getElementById('ganttTools').style.display=tab==='gantt'?'flex':'none';
   document.getElementById('equipTools').style.display=tab==='equip'?'flex':'none';
   document.getElementById('setupTools').style.display=tab==='setup'?'flex':'none';
@@ -1301,6 +1303,7 @@ function switchTab(tab){
   if(tab==='person') renderPersonTab();
   if(tab==='equip') renderEquipTab();
   if(tab==='vision') renderMonthlyAggTab(true);
+  if(tab==='bu1') renderBu1Tab();
   closeGlobalNav();
 }
 
