@@ -478,7 +478,7 @@ function renderProjectsTable(rows){
   // 열: 구분 · 고객사 · 설비명 · 시리얼 · 생산 호기(현장 호기) · 이관일 · 셋업 장소 · 셋업 완료 · 출하일 · 이관→출하 · 진행 현황 · 출장 담당자 · 상태 (날짜는 YY.MM.DD)
   html+=thS('category','colCategory',t('colCategory'))+thS('customer','colCustomerHdr',t('mpCustomer'))+thS('projectName','colProject',t('colProject'));
   html+=thS('serial','colSerialNo','설비 시리얼 넘버');
-  html+=thS('prodUnit','colUnitCombined',(typeof _lang!=='undefined'&&_lang!=='ko')?t('colUnitCombined'):'생산 호기(현장 호기)');
+  html+=thS('prodUnit','colUnitCombined2',(typeof _lang!=='undefined'&&_lang!=='ko')?t('colUnitCombined'):'생산 호기(현장 호기)');
   html+=thS('transferDate','colTransferDay','이관일');
   html+=thS('setupLocation','colSetupLocation',t('colSetupLocation'));
   html+=thS('setupDone','colSetupDone','셋업 완료','BSM에서 셋업 진행률 100%로 실제 완료 등록된 설비만 그 기준일을 표시합니다');
