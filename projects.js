@@ -357,35 +357,12 @@ function _mpFilteredProjects(){
     return true;
   });
 }
-/* ── BSM 스냅샷(진행 현황·셋업 완료) — BU2 데이터와 별도 시트(BSM_SNAPSHOT, action=loadBsm)에서 읽기 전용으로 덧붙인다 ──
-   BSM(service.intekplus.com/bsm)은 앱에서 직접 읽을 수 없어서, BSM에서 뽑은 시리얼별 단계·진척률을 Sheets에 스냅샷으로 저장해 두고
-   시리얼로 맞춰 본다. 프로젝트 데이터(S.masterProjects)는 건드리지 않는다. */
-var _mpBsm=null, _mpBsmLoading=false, _mpBsmTried=false;
-function _mpBsmLoad(){
-  if(_mpBsm||_mpBsmLoading||_mpBsmTried) return;
-  var url=(typeof getSheetsUrl==='function')?getSheetsUrl():''; if(!url) return;
-  _mpBsmLoading=true; _mpBsmTried=true;
-  fetch(url+'?action=loadBsm').then(function(r){return r.json();}).then(function(d){
-    if(d&&d.items) _mpBsm=d;
-  }).catch(function(){}).then(function(){
-    _mpBsmLoading=false;
-    if(_mpBsm&&typeof _activeTab!=='undefined'&&_activeTab==='projects') renderProjectsBody();
-  });
-}
 function _mpNz(x){ return String(x||'').replace(/\s+/g,'').toUpperCase().replace(/O/g,'0'); }
-function _mpBsmItem(mp){ return (_mpBsm&&_mpBsm.items&&mp.serial)?(_mpBsm.items[_mpNz(mp.serial)]||null):null; }
 function _mpFd(iso){ return iso?iso.slice(2).replace(/-/g,'.'):''; }   // 날짜는 YY.MM.DD (셋업 완료는 프로젝트에 저장된 셋업 완료일 setupDone)
 // 이관→출하 일수: 음수이거나 1년을 넘으면 입력 오류일 가능성이 커서 표시하지 않는다
 function _mpDaysToShip(mp){
   var a=_mpEffectiveTransferDate(mp), b=_mpEffectiveShipDate(mp); if(!a||!b) return null;
   var d=Math.round((pd(b)-pd(a))/86400000); return (d<0||d>365)?null:d;
-}
-var _MP_BST={d:['#e05a5a','지연'],a:['#e0972e','위험'],o:['#4aaa70','정상']};
-function _mpProgHtml(mp){
-  var p=_mpBsmItem(mp); if(!p) return '-';
-  var b=_MP_BST[p.bst]||['#888',''];
-  var tip='BSM '+(b[1]?b[1]+' · ':'')+p.wf+' · 전체 '+p.pct+'% (구매 '+p.gu+'% · 기구 '+p.ki+'% · 전장 '+p.je+'% · 셋업 '+p.se+'%)';
-  return '<span title="'+_esc(tip)+'"><span class="bu-dot" style="background:'+b[0]+'"></span>'+_esc(p.wf)+' '+p.pct+'%</span>';
 }
 
 /* ── 필터 결과 요약: 지금 보이는 설비가 총 몇 대인지, 제품군별로 몇 대인지 ── */
@@ -416,7 +393,6 @@ function _mpUpdateSummary(rows){
 function renderProjectsBody(){
   var body=document.getElementById('mpBody');
   if(!body)return;
-  _mpBsmLoad();
   var rows=_mpFilteredProjects();
   _mpUpdateSummary(rows);
   if(!rows.length){
@@ -435,7 +411,6 @@ function renderProjectsBody(){
     // 저장값(mp.status)은 대부분 "진행중" 하나라 그대로 비교하면 정렬이 안 된다
     else if(k==='setupDone'){ v=String(a.setupDone||'9999').localeCompare(String(b.setupDone||'9999')); }
     else if(k==='daysToShip'){ var da=_mpDaysToShip(a), db=_mpDaysToShip(b); v=(da==null?99999:da)-(db==null?99999:db); }
-    else if(k==='prog'){ var pa=_mpBsmItem(a), pb=_mpBsmItem(b); v=(pa?pa.pct:-1)-(pb?pb.pct:-1); }
     else if(k==='status') v=_mpStatusRank(a)-_mpStatusRank(b);
     else if(k==='prodUnit'||k==='customerUnit') v=_mpUnitCompare(a[k],b[k]);
     else v=String(a[k]||'').localeCompare(String(b[k]||''),'ko');
@@ -524,7 +499,6 @@ function renderProjectsTable(rows){
   html+=thS('setupDone','colSetupDone2','셋업 완료','셋업 완료일 — 기본값은 출하일 2일 전이며, 수정 창에서 직접 바꿀 수 있습니다');
   html+=thS('shipDate','colShipDay','출하일');
   html+=thS('daysToShip','colTransferToShip','이관→출하','이관일부터 출하일까지 일수');
-  html+=thS('prog','colProgress','진행 현황','BSM 진행 단계와 전체 진척률'+((_mpBsm&&_mpBsm.updated)?(' (BSM 스냅샷 '+_mpBsm.updated.slice(0,10)+' 기준)'):''));
   html+=thS('tripManager','colTripManager',t('colTripManager'));
   html+=thS('status','colStatusHdr',t('mpStatus'));
   html+='</tr></thead><tbody>';
@@ -602,7 +576,6 @@ function renderProjectRow(mp){
     +'<td>'+doneLbl+'</td>'
     +'<td>'+shipLbl+'</td>'
     +'<td>'+(days==null?'-':days+'일')+'</td>'
-    +'<td>'+_mpProgHtml(mp)+'</td>'
     +'<td class="mp-ell mp-c-mgr" title="'+_esc(mp.tripManager||'')+'">'+_esc(mp.tripManager||'-')+'</td>'
     +'<td>'+_mpStatusBadge(_mpEffectiveStatus(mp))+'</td>'
     +'</tr>';
