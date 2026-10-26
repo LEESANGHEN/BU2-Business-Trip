@@ -499,7 +499,7 @@ function renderProjectsTable(rows){
   html+=thS('setupDone','colSetupDone2','셋업 완료','셋업 완료일 — 기본값은 출하일 2일 전이며, 수정 창에서 직접 바꿀 수 있습니다');
   html+=thS('shipDate','colShipDay','출하일');
   html+=thS('daysToShip','colTransferToShip','이관→출하','이관일부터 출하일까지 일수');
-  html+=thS('tripManager','colTripManager',t('colTripManager'));
+  html+=thS('tripManager','colFieldSetupMgr','Field 셋업 담당');
   html+=thS('status','colStatusHdr',t('mpStatus'));
   html+='</tr></thead><tbody>';
   rows.forEach(function(mp){html+=renderProjectRow(mp);});
@@ -652,7 +652,7 @@ function _mpFormHtml(mp){
   html+='<div class="mp-hint">셋업 기간은 따로 입력하지 않습니다 — 이관일 다음날부터 셋업 완료일까지가 셋업 기간으로 계산됩니다(대시보드·월별 집계·셋업월 필터·HQ 셋업 간트). 셋업 완료일의 기본값은 출하일 2일 전이며, 출하일을 바꾸면(직접 고치지 않은 경우) 자동으로 따라갑니다.</div>';
   html+=sec('셋업 · 출장');
   html+='<div class="mp-grid mp-g3">'
-    +txt('mp_setupLocation','셋업 장소',v('setupLocation'))+txt('mp_setupManager','셋업 담당자',v('setupManager'))+txt('mp_tripManager','출장 담당자',v('tripManager'))
+    +txt('mp_setupLocation','셋업 장소',v('setupLocation'))+txt('mp_setupManager','HQ 셋업 담당',v('setupManager'))+txt('mp_tripManager','Field 셋업 담당',v('tripManager'))
     +'</div>';
   html+='<div class="fg" style="margin-top:14px"><label class="fl">상태</label><input type="text" id="mp_status" value="'+v('status')+'" list="mp_status_list" autocomplete="off"></div>';
   html+='<datalist id="mp_status_list"><option value="진행중"><option value="완료"><option value="PO 대기"><option value="PO 발행"><option value="LOI 접수"></datalist>';
