@@ -1180,10 +1180,15 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .mp-sum-chip{background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:12px;padding:2px 10px;font-size:11px}
 .mp-sum-chip b{color:#7aafee;margin-left:2px}
 
-/* 프로젝트 등록/수정 — 날짜 직접 입력 + 달력 선택 */
-.mp-dt{position:relative;display:flex;gap:4px;align-items:stretch}
-.mp-dt input[type=text]{flex:1;min-width:0}
-.mp-dt-btn{flex:0 0 auto;width:34px;border:1px solid var(--bd-main);border-radius:5px;background:var(--bg-input);color:var(--tx-second);cursor:pointer;font-size:13px;padding:0}
-.mp-dt-btn:hover{border-color:#1a6bbf}
-.mp-dt-pk{position:absolute;right:0;bottom:0;width:34px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
-.mp-dt input.mp-dt-bad{border-color:#e05a5a!important}
+/* 날짜 입력칸 공통(dateinput.js) — 직접 입력 + 달력 버튼 */
+.dt-wrap{position:relative;display:flex;gap:3px;align-items:stretch;min-width:0}
+.dt-wrap>input.dt-txt{flex:1 1 auto;min-width:0;width:auto;box-sizing:border-box}
+.dt-wrap>input[type=date]{position:absolute!important;right:0;bottom:0;width:26px!important;min-width:0!important;height:1px!important;opacity:0!important;pointer-events:none!important;border:0!important;padding:0!important;margin:0!important}
+.dt-btn{flex:0 0 auto;width:28px;border:1px solid var(--bd-main);border-radius:5px;background:var(--bg-input);color:var(--tx-second);cursor:pointer;font-size:12px;padding:0;line-height:1}
+.dt-btn:hover{border-color:#1a6bbf}
+.dt-wrap>input.dt-txt.dt-bad{border-color:#e05a5a!important;box-shadow:0 0 0 1.5px #e05a5a}
+.pd-table .dt-wrap{gap:0}
+.pd-table .dt-btn{width:22px;border:none;background:transparent;font-size:11px}
+.mpb-table .dt-btn{width:24px}
+.pd-table .dt-txt::placeholder{color:transparent}
+.pd-table .dt-txt:focus::placeholder{color:var(--tx-faint)}

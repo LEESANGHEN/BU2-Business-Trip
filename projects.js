@@ -601,42 +601,13 @@ function _mpReadRegionField(){
 }
 
 /* ── CRUD 모달 ── */
-/* ── 날짜 칸: 직접 입력(20261027 · 2026-10-27 · 26.10.27 · 2026/10/27 등)과 달력 선택 둘 다 가능 ── */
-function _mpDtParse(txt){
-  var t=String(txt||'').trim(); if(!t) return '';
-  var y,mo,d, m=t.match(/^(\d{2}|\d{4})[-./\s]+(\d{1,2})[-./\s]+(\d{1,2})$/);
-  if(m){ y=m[1]; mo=m[2]; d=m[3]; }
-  else if(/^\d{8}$/.test(t)){ y=t.slice(0,4); mo=t.slice(4,6); d=t.slice(6,8); }
-  else if(/^\d{6}$/.test(t)){ y=t.slice(0,2); mo=t.slice(2,4); d=t.slice(4,6); }
-  else return null;
-  if(y.length===2) y='20'+y;
-  var dt=new Date(+y,+mo-1,+d);
-  if(dt.getFullYear()!==+y||dt.getMonth()!==+mo-1||dt.getDate()!==+d) return null;
-  return y+'-'+('0'+mo).slice(-2)+'-'+('0'+d).slice(-2);
-}
-function _mpDtNorm(el){
-  var r=_mpDtParse(el.value);
-  if(r===null){ el.classList.add('mp-dt-bad'); return; }
-  el.classList.remove('mp-dt-bad'); el.value=r;
-  var pk=document.getElementById(el.id+'_pk'); if(pk) pk.value=r;
-}
-function _mpDtPick(id){
-  var pk=document.getElementById(id+'_pk'); if(!pk) return;
-  try{ pk.showPicker(); }catch(e){ pk.focus(); pk.click(); }
-}
-function _mpDtPicked(id,pk){
-  var el=document.getElementById(id); if(!el||!pk.value) return;
-  el.value=pk.value; el.classList.remove('mp-dt-bad');
-  el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change'));
-}
 function _mpWireTransferAutofill(){
   var shipEl=document.getElementById('mp_shipDate'), doneEl=document.getElementById('mp_setupDone');
   if(!shipEl||!doneEl) return;
   // 셋업 완료일을 직접 고치지 않았다면(비어 있거나 출하일 2일 전과 같으면) 출하일을 바꿀 때 같이 따라간다
-  function shipOk(){ var r=_mpDtParse(shipEl.value); return r?r:''; }
-  var auto=!doneEl.value||(shipOk()&&doneEl.value===_addDaysStr(shipOk(),-2));
+  var auto=!doneEl.value||(shipEl.value&&doneEl.value===_addDaysStr(shipEl.value,-2));
   doneEl.addEventListener('input',function(){ auto=false; });
-  shipEl.addEventListener('change',function(){ if(auto&&shipOk()) doneEl.value=_addDaysStr(shipOk(),-2); });
+  shipEl.addEventListener('change',function(){ if(auto&&shipEl.value) doneEl.value=_addDaysStr(shipEl.value,-2); });
 }
 function openAddMasterProject(){
   mw(_mpFormHtml(null),true);
@@ -653,11 +624,7 @@ function _mpFormHtml(mp){
   var ie=!!mp;
   function v(f){return ie?_esc(mp[f]||''):'';}
   function dateFld(id,label,val){
-    return '<div class="fg"><label class="fl">'+label+'</label><div class="mp-dt">'
-      +'<input type="text" id="'+id+'" value="'+_esc(val||'')+'" placeholder="YYYY-MM-DD" maxlength="10" inputmode="numeric" autocomplete="off" title="직접 입력(예: 20261027, 26.10.27) 또는 오른쪽 달력 버튼으로 선택" onchange="_mpDtNorm(this)">'
-      +'<button type="button" class="mp-dt-btn" tabindex="-1" title="달력에서 선택" onclick="_mpDtPick(\''+id+'\')">&#128197;</button>'
-      +'<input type="date" class="mp-dt-pk" id="'+id+'_pk" value="'+_esc(val||'')+'" tabindex="-1" onchange="_mpDtPicked(\''+id+'\',this)">'
-      +'</div></div>';
+    return '<div class="fg"><label class="fl">'+label+'</label><input type="date" id="'+id+'" value="'+_esc(val||'')+'"></div>';
   }
   function txt(id,label,val,extra){
     return '<div class="fg"><label class="fl">'+label+'</label><input type="text" id="'+id+'" value="'+val+'" autocomplete="off"'+(extra||'')+'></div>';
@@ -699,25 +666,17 @@ function _mpFormHtml(mp){
   return html;
 }
 
-var _MP_DT_LBL={mp_transferDate:'이관일',mp_setupDone:'셋업 완료일',mp_shipDate:'출하일'};
 function _mpReadForm(){
   function v(id){var el=document.getElementById(id);return el?el.value.trim():'';}
-  var bad=[];
-  function dv(id){ var r=_mpDtParse(v(id)); if(r===null){ bad.push(_MP_DT_LBL[id]||id); return ''; } return r; }
   // 이관일·출하일은 입력칸이 하나다(현재 적용되는 값). 저장할 때 _mpAssignDates가 최초값/변경값 중 맞는 쪽에 넣는다
   return {
     category:v('mp_category'), region:_mpReadRegionField(), customer:v('mp_customer'), projectName:v('mp_projectName'),
     prodUnit:v('mp_prodUnit'), customerUnit:v('mp_customerUnit'), serial:v('mp_serial'),
     setupManager:v('mp_setupManager'), setupLocation:v('mp_setupLocation'),
-    tripManager:v('mp_tripManager'), setupDone:dv('mp_setupDone'),
-    transferDate:dv('mp_transferDate'), shipDate:dv('mp_shipDate'),
-    status:v('mp_status'), _bad:bad
+    tripManager:v('mp_tripManager'), setupDone:v('mp_setupDone'),
+    transferDate:v('mp_transferDate'), shipDate:v('mp_shipDate'),
+    status:v('mp_status')
   };
-}
-// 날짜 칸에 읽을 수 없는 값이 있으면 저장하지 않고 알려 준다
-function _mpFormOk(f){
-  if(f._bad&&f._bad.length){ alert('날짜 형식을 확인해 주세요: '+f._bad.join(', ')+'\n(예: 2026-10-27 · 20261027 · 26.10.27)'); return false; }
-  delete f._bad; return true;
 }
 // 하나로 합친 이관일/출하일을 프로젝트에 넣는다: "변경" 값이 이미 있으면 그 값을 고치고(최초값은 기록으로 남김), 없으면 최초값 칸에 넣는다
 function _mpAssignDates(mp,f){
@@ -742,7 +701,6 @@ function _mpRenderTabKeepScroll(){
 function saveAddMasterProject(){
   var f=_mpReadForm();
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
-  if(!_mpFormOk(f)) return;
   var mp={transferDateOverride:'',customerReqShipDate:''};
   _mpAssignDates(mp,f);
   _touch(mp);
@@ -755,7 +713,6 @@ function saveEditMasterProject(id){
   if(!mp)return;
   var f=_mpReadForm();
   if(!f.customer){alert('고객사를 입력해주세요.');return;}
-  if(!_mpFormOk(f)) return;
   _mpAssignDates(mp,f);
   _touch(mp);
   saveData();cm();_mpRenderTabKeepScroll();
