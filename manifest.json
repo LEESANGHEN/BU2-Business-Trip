@@ -1,6 +1,6 @@
 {
-  "name": "BU2 출장 일정 관리",
-  "short_name": "BU2 일정",
+  "name": "BU2 일정 관리",
+  "short_name": "BU2 일정 관리",
   "description": "BU2 기술운영1그룹 출장/셋업 일정 관리",
   "start_url": "./index.html",
   "scope": "./",
