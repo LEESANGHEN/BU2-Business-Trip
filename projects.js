@@ -7,6 +7,7 @@
 ══════════════════════════════════════════ */
 
 var _mpSearch='';
+var _mpFamSel='';   // 제품군 칩으로 고른 제품군(빈 값=전체)
 // 지역/고객사/설비명(프로젝트)/상태/이관월/출하월 필터 — 각각 다중 선택 가능(배열, 빈 배열=전체)
 var _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
 var _mpSortKey='category';
@@ -115,6 +116,7 @@ function homeGoToProjectsByStatus(status){
   _mpMS={region:[],customer:[],project:[],status:status?[status]:[],transferMonth:[],setupMonth:[],shipMonth:[]};
   _mpHideInactive=false;
   _mpSearch='';
+  _mpFamSel='';
   _mpViewHidden=false;
   switchTab('projects');
 }
@@ -124,6 +126,7 @@ function homeGoToProjectsBy(key,val){
   _mpMS[key]=[val];
   _mpHideInactive=false;
   _mpSearch='';
+  _mpFamSel='';
   _mpViewHidden=false;
   switchTab('projects');
 }
@@ -134,6 +137,7 @@ function homeGoToProjectsByMonth(key,ym){
   _mpMS[key]=[ym];
   _mpHideInactive=false;
   _mpSearch='';
+  _mpFamSel='';
   _mpViewHidden=false;
   _mpSortKey=(key==='setupMonth')?'transferDate':'shipDate';
   _mpSortAsc=true;
@@ -146,6 +150,7 @@ function togglePmHideInactive(){
   if(_mpHideInactive){
     _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
     _mpSearch='';
+    _mpFamSel='';
     _mpSortKey='category'; _mpSortAsc=false;
     _mpViewHidden=false;
     renderProjectsTab();
@@ -335,7 +340,7 @@ document.addEventListener('click',function(e){
   document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
 });
 
-function _mpFilteredProjects(){
+function _mpFilteredProjects(skipFam){
   return _mpViewList().filter(function(mp){
     if(_mpMS.region.length&&_mpMS.region.indexOf(mp.region||'기타')<0)return false;
     if(_mpMS.customer.length&&_mpMS.customer.indexOf(mp.customer||'')<0)return false;
@@ -354,6 +359,7 @@ function _mpFilteredProjects(){
       var hay=[mp.customer,mp.projectName,mp.prodUnit,mp.customerUnit,mp.serial,mp.tripManager].join(' ').toLowerCase();
       if(hay.indexOf(_mpSearch)<0)return false;
     }
+    if(!skipFam&&_mpFamSel&&_mpFamily(mp)!==_mpFamSel)return false;
     return true;
   });
 }
@@ -381,20 +387,30 @@ function _mpFamily(mp){
   if(/NTV|SMTV|CTV|BTV/i.test(n)) return 'NTV(SMTV)';
   return '기타(개조·이설 등)';
 }
-function _mpUpdateSummary(rows){
+// 제품군 칩을 누르면 그 제품군만 보이고(칩에 램프 점등), 다시 누르면 꺼져서 원래 필터·정렬 그대로 전체가 보인다
+function mpToggleFam(el){
+  var f=el.getAttribute('data-fam');
+  _mpFamSel=(_mpFamSel===f)?'':f;
+  renderProjectsBody();
+}
+function _mpUpdateSummary(baseRows,shown){
   var el=document.getElementById('mpSummary'); if(!el) return;
-  var fam={}; rows.forEach(function(mp){ var f=_mpFamily(mp); fam[f]=(fam[f]||0)+1; });
+  var fam={}; baseRows.forEach(function(mp){ var f=_mpFamily(mp); fam[f]=(fam[f]||0)+1; });
   var keys=Object.keys(fam).sort(function(a,b){return fam[b]-fam[a]||a.localeCompare(b,'ko');});
   var all=_mpViewList().length;
-  var h='<span class="mp-sum-total">총 <b>'+rows.length+'</b>대'+(rows.length!==all?' <span class="mp-sum-of">(전체 '+all+'대 중)</span>':'')+'</span>';
-  if(keys.length) h+='<span class="mp-sum-sep">제품군별</span>'+keys.map(function(k){ return '<span class="mp-sum-chip">'+_esc(k)+' <b>'+fam[k]+'</b></span>'; }).join('');
+  var h='<span class="mp-sum-total">총 <b>'+shown+'</b>대'+(shown!==all?' <span class="mp-sum-of">(전체 '+all+'대 중)</span>':'')+'</span>';
+  if(keys.length) h+='<span class="mp-sum-sep">제품군별</span>'+keys.map(function(k){
+    return '<span class="mp-sum-chip'+(_mpFamSel===k?' on':'')+'" data-fam="'+_esc(k)+'" onclick="mpToggleFam(this)" title="'+(_mpFamSel===k?'다시 누르면 전체 보기':'이 제품군만 보기')+'"><i class="mp-lamp"></i>'+_esc(k)+' <b>'+fam[k]+'</b></span>';
+  }).join('');
   el.innerHTML=h;
 }
 function renderProjectsBody(){
   var body=document.getElementById('mpBody');
   if(!body)return;
-  var rows=_mpFilteredProjects();
-  _mpUpdateSummary(rows);
+  var baseRows=_mpFilteredProjects(true);
+  if(_mpFamSel&&!baseRows.some(function(mp){return _mpFamily(mp)===_mpFamSel;})) _mpFamSel='';   // 다른 필터로 그 제품군이 사라지면 해제
+  var rows=_mpFamSel?baseRows.filter(function(mp){return _mpFamily(mp)===_mpFamSel;}):baseRows;
+  _mpUpdateSummary(baseRows,rows.length);
   if(!rows.length){
     body.innerHTML='<div style="padding:30px 10px;text-align:center;color:#707080;font-size:13px">'
       +(_mpViewHidden?'숨긴 프로젝트가 없습니다. 목록에서 프로젝트를 선택하고 "선택 숨기기"를 누르면 여기에 모입니다.':S.masterProjects.length?'해당 조건의 프로젝트가 없습니다.':'등록된 프로젝트가 없습니다. 엑셀 데이터를 가져오거나 새로 등록하세요.')

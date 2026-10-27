@@ -1177,7 +1177,11 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .mp-sum-total b{font-size:15px;color:var(--tx-primary)}
 .mp-sum-of{font-size:11px;color:var(--tx-faint)}
 .mp-sum-sep{font-size:11px;color:var(--tx-faint);margin-left:6px}
-.mp-sum-chip{background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:12px;padding:2px 10px;font-size:11px}
+.mp-sum-chip{background:var(--bg-deep);border:1px solid var(--bd-main);border-radius:12px;padding:2px 10px;font-size:11px;cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:5px}
+.mp-sum-chip:hover{border-color:#3a7ac0}
+.mp-lamp{width:7px;height:7px;border-radius:50%;background:#3a3d4d;display:inline-block;flex:0 0 auto}
+.mp-sum-chip.on{border-color:#4aaa70;background:rgba(74,170,112,.12);color:var(--tx-primary)}
+.mp-sum-chip.on .mp-lamp{background:#4aff9a;box-shadow:0 0 6px 1px #4aff9a}
 .mp-sum-chip b{color:#7aafee;margin-left:2px}
 
 /* 날짜 입력칸 공통(dateinput.js) — 직접 입력 + 달력 버튼 */
