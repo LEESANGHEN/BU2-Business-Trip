@@ -525,10 +525,22 @@ function renderProjectsTable(rows){
 
 // 구분/상태 값에 따라 색상 배지로 표시 (모르는 값이면 배지 없이 텍스트만 표시)
 var _MP_CATEGORY_BADGE_STYLE={
-  'Repeat Order':'background:#1a3a5a;color:#7aafee;border:1px solid #2a5a8a',
-  '신규 개발':'background:#2e2050;color:#b39ddb;border:1px solid #4a3a80',
-  '기타':'background:#3a2a10;color:#e0972e;border:1px solid #6a4a1a'
+  '신규':'background:#2e2050;color:#b39ddb;border:1px solid #4a3a80',
+  'R/O':'background:#1a3a5a;color:#7aafee;border:1px solid #2a5a8a',
+  '설비 이설':'background:#3a2a10;color:#e0972e;border:1px solid #6a4a1a',
+  '개조':'background:#103a3a;color:#2ecccc;border:1px solid #1a6a6a',
+  'Demo':'background:#3a1a2e;color:#e07ab0;border:1px solid #6a2a50',
+  '기타':'background:var(--bg-hover);color:var(--tx-dim);border:1px solid var(--bd-main)'
 };
+var _MP_CATEGORIES=['신규','R/O','설비 이설','개조','Demo'];
+// 구분 선택칸 — 목록에서 고른다. 저장된 값이 목록에 없으면(예전 이름은 새 이름으로, 그 외는 그대로) 맨 앞에 남겨 둔다
+function _mpCategorySelectHtml(cur){
+  var c=_mpCatNorm(cur||''), list=_MP_CATEGORIES.slice();
+  if(c&&list.indexOf(c)<0) list.unshift(c);
+  return '<select id="mp_category">'+(c?'':'<option value="">선택</option>')+list.map(function(o){ return '<option value="'+_esc(o)+'"'+(o===c?' selected':'')+'>'+_esc(o)+'</option>'; }).join('')+'</select>';
+}
+// 예전 이름(Repeat Order / 신규 개발)이 남아 있어도 새 이름으로 보여준다
+function _mpCatNorm(c){ return c==='Repeat Order'?'R/O':(c==='신규 개발'?'신규':c); }
 var _MP_STATUS_BADGE_STYLE={
   '생산중(HQ)':'background:#3a2a10;color:#e0972e;border:1px solid #6a4a1a',
   '셋업(HQ)':'background:#1a3a5a;color:#5a9aee;border:1px solid #2a5a8a',
@@ -564,7 +576,7 @@ function _mpBadge(val,styleMap,label){
   if(!st)return _esc(disp);
   return '<span style="'+st+';padding:3px 10px;border-radius:5px;font-size:12px;font-weight:500;white-space:nowrap">'+_esc(disp)+'</span>';
 }
-function _mpCategoryBadge(cat){ return _mpBadge(cat,_MP_CATEGORY_BADGE_STYLE); }
+function _mpCategoryBadge(cat){ return _mpBadge(_mpCatNorm(cat),_MP_CATEGORY_BADGE_STYLE); }
 function _mpStatusBadge(st){ return _mpBadge(st,_MP_STATUS_BADGE_STYLE,tStatus(st)); }
 
 function renderProjectRow(mp){
@@ -651,11 +663,10 @@ function _mpFormHtml(mp){
   var html='<div class="mtit">'+(ie?'프로젝트 수정':'프로젝트 등록')+'</div>';
   html+=sec('기본 정보');
   html+='<div class="mp-grid mp-g2">'
-    +'<div class="fg"><label class="fl">구분</label><input type="text" id="mp_category" value="'+v('category')+'" list="mp_category_list" autocomplete="off"></div>'
+    +'<div class="fg"><label class="fl">구분</label>'+_mpCategorySelectHtml(ie?mp.category:'')+'</div>'
     +'<div class="fg"><label class="fl">지역</label>'+_mpRegionFieldHtml(ie?mp.region:'')+'</div>'
     +txt('mp_customer','고객사',v('customer'))+txt('mp_projectName','프로젝트(설비명)',v('projectName'))
     +'</div>';
-  html+='<datalist id="mp_category_list"><option value="Repeat Order"><option value="신규 개발"><option value="기타"></datalist>';
   html+='<div class="mp-grid mp-g3">'
     +txt('mp_serial','설비 시리얼 넘버',v('serial'))
     +txt('mp_prodUnit','생산 호기',v('prodUnit'),' placeholder="예: 70호기 (\'생산\' 제외)"')

@@ -208,7 +208,7 @@ function renderBu1Body(){
   rows.forEach(function(r){
     var st=_bu1Status(r), dash=function(v){ return v?_esc(v):'-'; }, fd=function(v){ return v?_bu1Fd(v):'-'; };
     h+='<tr class="pm-person-row">'
-      +'<td>'+dash(r.cat)+'</td>'
+      +'<td>'+dash(_mpCatNorm(r.cat))+'</td>'
       +'<td class="mp-ell mp-c-cust" title="'+_esc(r.cust)+'">'+dash(r.cust)+'</td>'
       +'<td class="mp-ell mp-c-proj" title="'+_esc(r.model)+'">'+dash(r.model)+'</td>'
       +'<td'+(r.src==='B'?' title="BSM에만 등록된 설비(엑셀에는 없음)"':'')+'>'+dash(r.serial)+(r.src==='B'?' <span style="color:var(--tx-faint)">*</span>':'')+'</td>'
