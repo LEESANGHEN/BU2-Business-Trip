@@ -9,7 +9,7 @@
 var _mpSearch='';
 var _mpFamSel='';   // 제품군 칩으로 고른 제품군(빈 값=전체)
 // 지역/고객사/설비명(프로젝트)/상태/이관월/출하월 필터 — 각각 다중 선택 가능(배열, 빈 배열=전체)
-var _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
+var _mpMS={region:[],customer:[],project:[],location:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
 var _mpSortKey='category';
 var _mpSortAsc=false;
 var _mpHideInactive=true;     // 완료/LOI 접수/PO 대기/PO 발행 상태 숨기고 진행중(그 외 상태·공란)만 보기 — 기본 On
@@ -67,6 +67,8 @@ function renderProjectsTab(){
   html+='<div class="pm-ctrl-sep"></div>';
   html+=_mpMsHtml('project',t('mpFilterProject'));
   html+='<div class="pm-ctrl-sep"></div>';
+  html+=_mpMsHtml('location','셋업 장소');
+  html+='<div class="pm-ctrl-sep"></div>';
   html+=_mpMsHtml('status',t('mpStatus'));
   html+='<div class="pm-ctrl-sep"></div>';
   html+=_mpMsHtml('transferMonth',t('mpFilterTransferMonth'));
@@ -113,7 +115,7 @@ function setMpSearch(v){_mpSearch=v.trim().toLowerCase();renderProjectsBody();}
 // 프로젝트 관리 탭으로 이동한다("전체" 카드는 status를 빈 값으로). 진행중만 보기가 켜져
 // 있으면 완료/PO 대기 등의 상태가 가려져 아무것도 안 보일 수 있어 항상 꺼준다
 function homeGoToProjectsByStatus(status){
-  _mpMS={region:[],customer:[],project:[],status:status?[status]:[],transferMonth:[],setupMonth:[],shipMonth:[]};
+  _mpMS={region:[],customer:[],project:[],location:[],status:status?[status]:[],transferMonth:[],setupMonth:[],shipMonth:[]};
   _mpHideInactive=false;
   _mpSearch='';
   _mpFamSel='';
@@ -122,7 +124,7 @@ function homeGoToProjectsByStatus(status){
 }
 // 홈의 지역/고객사/설비명 그래프에서 항목을 누르면 호출 — 다른 필터를 모두 초기화하고 그 값(key: region|customer|project)만 골라 프로젝트 관리로 이동한다
 function homeGoToProjectsBy(key,val){
-  _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
+  _mpMS={region:[],customer:[],project:[],location:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
   _mpMS[key]=[val];
   _mpHideInactive=false;
   _mpSearch='';
@@ -133,7 +135,7 @@ function homeGoToProjectsBy(key,val){
 // 홈 "월별 설비 셋업 수량 / 출하 설비 수" 막대를 더블클릭하면 호출 — 다른 필터를 모두 초기화하고 그 달(key: setupMonth|shipMonth)만 골라
 // 프로젝트 관리로 이동한다. 그래프는 상태와 무관하게 집계하므로 "진행중만 보기"는 끄고, 해당 일정 순으로 정렬해 보여준다
 function homeGoToProjectsByMonth(key,ym){
-  _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
+  _mpMS={region:[],customer:[],project:[],location:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
   _mpMS[key]=[ym];
   _mpHideInactive=false;
   _mpSearch='';
@@ -148,7 +150,7 @@ function togglePmHideInactive(){
   // "진행중만 보기"를 켜는 순간에는 기본 화면으로 되돌린다 — 모든 필터/검색을 전체로 비우고
   // 구분 내림차순으로 정렬한다(끄는 경우는 현재 필터를 그대로 두고 완료 등까지 보여주기만 한다)
   if(_mpHideInactive){
-    _mpMS={region:[],customer:[],project:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
+    _mpMS={region:[],customer:[],project:[],location:[],status:[],transferMonth:[],setupMonth:[],shipMonth:[]};
     _mpSearch='';
     _mpFamSel='';
     _mpSortKey='category'; _mpSortAsc=false;
@@ -188,6 +190,7 @@ function _mpEffectiveTransferDate(mp){ return mp.transferDateOverride||mp.transf
 function _mpTransferMonth(mp){ var d=_mpEffectiveTransferDate(mp); return d?d.slice(0,7):''; }
 
 // ── 다중 선택 필터(국가(지역)/고객사(사이트)/설비명(프로젝트)/상태/이관월/출하월) 공용 드롭다운 ──
+var _MP_LOC_NONE='(미입력)';   // 셋업 장소가 비어 있는 프로젝트를 고르는 필터 항목
 var _MP_MS_DEFS={
   region:function(){
     var arr=[];
@@ -205,6 +208,13 @@ var _MP_MS_DEFS={
     var arr=[];
     _mpViewList().forEach(function(mp){if(mp.projectName&&arr.indexOf(mp.projectName)<0)arr.push(mp.projectName);});
     arr.sort(function(a,b){return a.localeCompare(b,'ko');});
+    return arr.map(function(v){return {value:v,label:v};});
+  },
+  location:function(){
+    var arr=[], blank=false;
+    _mpViewList().forEach(function(mp){var l=(mp.setupLocation||'').trim(); if(!l) blank=true; else if(arr.indexOf(l)<0) arr.push(l);});
+    arr.sort(function(a,b){return a.localeCompare(b,'ko');});
+    if(blank) arr.push(_MP_LOC_NONE);
     return arr.map(function(v){return {value:v,label:v};});
   },
   status:function(){
@@ -345,6 +355,7 @@ function _mpFilteredProjects(skipFam){
     if(_mpMS.region.length&&_mpMS.region.indexOf(mp.region||'기타')<0)return false;
     if(_mpMS.customer.length&&_mpMS.customer.indexOf(mp.customer||'')<0)return false;
     if(_mpMS.project.length&&_mpMS.project.indexOf(mp.projectName||'')<0)return false;
+    if(_mpMS.location.length&&_mpMS.location.indexOf((mp.setupLocation||'').trim()||_MP_LOC_NONE)<0)return false;
     if(_mpMS.status.length&&_mpMS.status.indexOf(_mpEffectiveStatus(mp)||'')<0)return false;
     if(_mpMS.transferMonth.length&&_mpMS.transferMonth.indexOf(_mpTransferMonth(mp))<0)return false;
     var _rg=_mpSetupRange(mp); // 셋업월 필터 = 이관일 다음날 ~ 셋업 완료일 기간이 그 달과 겹치는지
