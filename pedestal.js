@@ -20,12 +20,12 @@ var PD_GROUPS=[
     {key:'site',label:'사이트',type:'text',w:100,ac:1},
     {key:'equip',label:'설비 정보',type:'text',w:130,ac:1},
     {key:'custReqDate',label:'고객사 요청 출하일',type:'date',w:130},
+    {key:'hqInPlanDate',label:'본사 입고 예정일',type:'date',w:130},
     {key:'hqInDate',label:'본사 입고일',type:'date',w:120},
     {key:'realShipDate',label:'실제 출하일',type:'date',w:120},
-    {key:'productInfo',label:'제품 정보',type:'rich',w:130},
+    // 제품 정보 / Tray 정보 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
     {key:'productName',label:'Pedestal 정보',type:'rich',w:130}, // 예전 "제품명"(글자만) 칸 — 저장 키는 그대로라 기존 입력값은 글 내용으로 이어지고, 이제 파일/이미지도 넣을 수 있다
-    {key:'trayInfo',label:'Tray 정보',type:'rich',w:120},
     {key:'partList',label:'Conversion Kit Part List',lh:'Conversion Kit<br>Part List',type:'rich',w:140},
     {key:'custQuote',label:'견적서',full:'고객사 견적서',type:'doc',w:150},
     {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
@@ -39,9 +39,8 @@ var PD_GROUPS=[
 ];
 var PD_PART_COLS=[
   {key:'dwgNo',label:'도번',w:110},
-  {key:'itemName',label:'품명',w:120,ac:1},
-  {key:'spec',label:'규격',w:120,ac:1}
-];
+  {key:'itemName',label:'품명',w:120,ac:1}
+]; // '규격' 열은 2026-11-03에 화면에서 제거(부품 데이터의 spec 값은 그대로 남아 있음)
 var PD_PART_GROUP='구매 그룹 필요 정보';
 var _pdCols=[]; PD_GROUPS.forEach(function(g){ g.cols.forEach(function(c){_pdCols.push(c);}); });
 function _pdColByKey(k){ return _pdCols.find(function(c){return c.key===k;}); }
@@ -279,7 +278,7 @@ function _pdTableHtml(){
   h+='<col style="width:34px"></colgroup><thead>';
   h+='<tr class="pd-h1"><th rowspan="2" class="pd-no">No</th>';
   PD_GROUPS.forEach(function(g){ h+='<th colspan="'+g.cols.length+'">'+_esc(g.label)+'</th>'; });
-  h+='<th colspan="3">'+_esc(PD_PART_GROUP)+'</th>';
+  h+='<th colspan="'+PD_PART_COLS.length+'">'+_esc(PD_PART_GROUP)+'</th>';
   h+='<th rowspan="2" class="pd-delcell"></th></tr>';
   h+='<tr class="pd-h2">';
   _pdCols.forEach(function(c){ h+='<th>'+(c.lh||_esc(c.label))+'<div class="pd-rz" data-ck="'+c.key+'" title="끌어서 너비 조절 · 더블클릭: 기본 너비"></div></th>'; });
