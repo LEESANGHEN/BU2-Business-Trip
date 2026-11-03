@@ -31,9 +31,7 @@ var PD_GROUPS=[
     {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
   ]},
   {label:'인텍플러스 ↔ PSMP',cols:[
-    {key:'conceptDwg',label:'컨셉 도면',type:'rich',w:120},
-    {key:'designDwg',label:'설계 도면',type:'rich',w:120},
-    {key:'bom',label:'설계 Part List',type:'rich',w:120},
+    // 컨셉 도면 / 설계 도면 / 설계 Part List 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
     {key:'psmpSN',label:'PSMP S/N',type:'text',w:120},
     {key:'psmpQuote',label:'견적서',full:'PSMP 견적서',type:'doc',w:150},
     {key:'psmpPO',label:'발주서',full:'PSMP 발주서',type:'doc',w:150}
