@@ -6,7 +6,7 @@
    - rich 칸: 클릭하면 팝업 — 글 + 이미지/파일 첨부(Drive, Ctrl+V 붙여넣기 지원)
    - doc 칸(견적서/발주서): rich + 번호·리비전·날짜·금액을 별도 칸으로 기록
    - 한 설비(행)에 구매 부품(도번/품명/규격)을 여러 줄 달 수 있다 (row.parts)
-   - 프로젝트 관리 데이터와 연결(row.projectId) → 고객사/사이트/설비 정보 자동 입력
+   - (프로젝트 연결 열은 2026-11-03에 화면에서 제거했다)
    데이터: S.pedestalRows = [{id,mt,seq,projectId,cells:{key: 문자열|{text,files,...}},parts:[{dwgNo,itemName,spec}]}]
    기본 50행은 화면에만 있는 빈 행이고, 처음 입력하는 순간 실제 행으로 저장된다.
 ══════════════════════════════════════════ */
@@ -195,7 +195,6 @@ function _pdRowHtml(row,idx,isReal){
   var attrs=' data-rid="'+rid+'" data-idx="'+idx+'"';
   var h='<tr class="pd-row"'+attrs+' data-pi="0">';
   h+='<td class="pd-no" rowspan="'+n+'">'+(idx+1)+'</td>';
-  h+=_pdLinkCellHtml(row).replace('__RS__',n);
   _pdCols.forEach(function(col){ h+=_pdMainCellHtml(row,col).replace('__RS__',n); });
   h+=_pdPartCellsHtml(parts[0]);
   h+='<td class="pd-delcell" rowspan="'+n+'">'
@@ -207,7 +206,42 @@ function _pdRowHtml(row,idx,isReal){
 var PD_COLW_KEY='bu2_pd_colw';
 function _pdColWMap(){ try{ return JSON.parse(localStorage.getItem(PD_COLW_KEY)||'{}')||{}; }catch(e){ return {}; } }
 function _pdSaveColW(k,w){ try{ var m=_pdColWMap(); if(w==null) delete m[k]; else m[k]=w; localStorage.setItem(PD_COLW_KEY,JSON.stringify(m)); }catch(e){} }
-function _pdColW(c,m){ var v=m[c.key]; return (typeof v==='number'&&v>=40)?v:c.w; }
+var _pdAutoW=null;
+function _pdColW(c,m){ var v=m[c.key]; if(typeof v==='number'&&v>=40) return v; return (_pdAutoW&&_pdAutoW[c.key])||c.w; }
+// 저장된 너비가 없는 열은 머리글·입력된 글자 길이에 맞춰 너비를 정한다(글자를 캔버스로 재서 계산)
+function _pdComputeAutoW(){
+  var ff=getComputedStyle(document.body).fontFamily||'sans-serif';
+  var cv=document.createElement('canvas').getContext('2d');
+  function mw(s,font){ cv.font=font; return cv.measureText(String(s||'')).width; }
+  var body='12px '+ff, head='bold 11px '+ff, rows=_pdSortedRows(), out={}, tmp=document.createElement('div');
+  function hdr(c){ var t=(c.lh||c.label||'').replace(/<br\s*\/?>/gi,'|').replace(/<[^>]+>/g,''); var w=0; t.split('|').forEach(function(l){ w=Math.max(w,mw(l,head)); }); return w+26; }
+  _pdCols.forEach(function(col){
+    if(col.type==='date'){ out[col.key]=Math.max(132,Math.ceil(hdr(col))); return; }
+    var w=hdr(col);
+    rows.forEach(function(row){
+      tmp.innerHTML='<table><tbody><tr>'+_pdMainCellHtml(row,col).replace('__RS__',1)+'</tr></tbody></table>';
+      var td=tmp.querySelector('td'); if(!td) return;
+      var texts=[td.textContent]; [].forEach.call(td.querySelectorAll('input'),function(i){ texts.push(i.value); });
+      texts.forEach(function(t){ t=String(t||'').replace(/\s+/g,' ').trim(); if(t) w=Math.max(w,mw(t,body)+24); });
+    });
+    var cap=(col.type==='rich'||col.type==='doc')?300:260;
+    out[col.key]=Math.max(60,Math.min(cap,Math.ceil(w)));
+  });
+  PD_PART_COLS.forEach(function(c){
+    var w=hdr(c);
+    rows.forEach(function(row){ var p=_pdParts(row)[0]||{}; var t=p[c.key]; if(t) w=Math.max(w,mw(t,body)+24); });
+    out[c.key]=Math.max(60,Math.min(240,Math.ceil(w)));
+  });
+  return out;
+}
+// 저장해 둔 너비를 모두 지우고 자동 너비로 다시 맞춘다
+function pdAutoFitAll(){
+  try{ localStorage.removeItem(PD_COLW_KEY); }catch(e){}
+  renderPedestalTab();
+}
+(function(){ // 이 방식으로 바꾼 뒤 처음 열 때 한 번, 예전에 저장된 너비를 지워 자동 너비를 적용한다
+  try{ if(!localStorage.getItem('bu2_pd_colw_auto_v1')){ localStorage.removeItem('bu2_pd_colw'); localStorage.setItem('bu2_pd_colw_auto_v1','1'); } }catch(e){}
+})();
 function _pdSetTableW(){
   var t=document.getElementById('pdTable'); if(!t) return;
   var sum=0; [].forEach.call(t.querySelectorAll('col'),function(c){ sum+=parseFloat(c.style.width)||0; });
@@ -234,17 +268,18 @@ function _pdSetTableW(){
     var h=ev.target.closest&&ev.target.closest('.pd-rz'); if(!h) return;
     var k=h.getAttribute('data-ck'), def=_pdColByKey(k)||PD_PART_COLS.find(function(c){return c.key===k;});
     var col=document.querySelector('#pdTable col[data-ck="'+k+'"]');
-    if(def&&col){ col.style.width=def.w+'px'; _pdSaveColW(k,null); _pdSetTableW(); }
+    if(def&&col){ col.style.width=((_pdAutoW&&_pdAutoW[k])||def.w)+'px'; _pdSaveColW(k,null); _pdSetTableW(); }
   });
 })();
 
 function _pdTableHtml(){
+  _pdAutoW=_pdComputeAutoW();
   var cw=_pdColWMap();
-  var h='<table class="pd-table" id="pdTable"><colgroup><col style="width:44px"><col style="width:76px">';
+  var h='<table class="pd-table" id="pdTable"><colgroup><col style="width:44px">';
   _pdCols.forEach(function(c){ h+='<col data-ck="'+c.key+'" style="width:'+_pdColW(c,cw)+'px">'; });
   PD_PART_COLS.forEach(function(c){ h+='<col data-ck="'+c.key+'" style="width:'+_pdColW(c,cw)+'px">'; });
   h+='<col style="width:34px"></colgroup><thead>';
-  h+='<tr class="pd-h1"><th rowspan="2" class="pd-no">No</th><th rowspan="2" class="pd-link" style="min-width:76px">프로젝트<br>연결</th>';
+  h+='<tr class="pd-h1"><th rowspan="2" class="pd-no">No</th>';
   PD_GROUPS.forEach(function(g){ h+='<th colspan="'+g.cols.length+'">'+_esc(g.label)+'</th>'; });
   h+='<th colspan="3">'+_esc(PD_PART_GROUP)+'</th>';
   h+='<th rowspan="2" class="pd-delcell"></th></tr>';
@@ -261,7 +296,7 @@ function renderPedestalBody(){
   var q=_pdSearch, html='';
   if(q){
     real.forEach(function(row,i){ if(_pdSearchText(row).indexOf(q)>=0) html+=_pdRowHtml(row,i,true); });
-    if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+3)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">검색 결과가 없습니다.</td></tr>';
+    if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+2)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">검색 결과가 없습니다.</td></tr>';
   }else{
     real.forEach(function(row,i){ html+=_pdRowHtml(row,i,true); });
     for(var i=real.length;i<PD_MIN_ROWS;i++) html+=_pdRowHtml({cells:{}},i,false);
@@ -278,6 +313,7 @@ function renderPedestalTab(){
     +'<input class="pm-search" type="text" placeholder="고객사/설비/S/N/도번/품명 검색..." autocomplete="off" oninput="pdSearch(this.value)" value="'+_esc(_pdSearch)+'"></div>'
     +'<div style="flex:1"></div>'
     +'<span style="font-size:11px;color:var(--tx-muted)">셀을 클릭해 직접 입력 · 📎 칸은 클릭하면 글/이미지/파일 기록</span>'
+    +'<button class="btn sm" onclick="pdAutoFitAll()" title="모든 열의 너비를 입력된 글자 수에 맞춰 다시 정렬">↔ 열 너비 자동 맞춤</button>'
     +'<button class="btn sm" onclick="pdExportExcel()">⬇ 엑셀 내보내기</button>'
     +'<button class="btn pri sm" onclick="pdAddRows(10)">+ 행 10개 추가</button>'
     +'</div></div>'
