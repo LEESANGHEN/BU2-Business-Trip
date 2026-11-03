@@ -1198,4 +1198,19 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .pd-table .dt-txt:focus::placeholder{color:var(--tx-faint)}
 
 /* Pedestal 기록 팝업 — 기본 모달의 3배 */
-.modal.pd-xl{width:1380px;max-width:96vw;max-height:94vh}
+/* 세로도 크게: 화면 높이의 82~94%를 쓰고, 메모 입력창이 남는 높이를 채운다. 입력칸·글자는 크게 */
+.modal.pd-xl{width:1380px;max-width:96vw;min-height:82vh;max-height:94vh;padding:30px 36px;display:flex;flex-direction:column}
+.modal.pd-xl .mtit{font-size:20px;font-weight:600;margin-bottom:20px}
+.modal.pd-xl .fl{font-size:14px;font-weight:600;margin-bottom:6px}
+.modal.pd-xl .fg{margin-bottom:16px}
+.modal.pd-xl input[type=text],.modal.pd-xl select{font-size:16px;padding:12px 14px;border-radius:7px}
+.modal.pd-xl .dt-btn{width:46px;font-size:16px}
+.modal.pd-xl textarea{font-size:16px!important;line-height:1.65;padding:16px 18px!important;min-height:300px;border-radius:8px!important}
+.modal.pd-xl .fg:has(#pd_cell_text){flex:1 1 auto;display:flex;flex-direction:column;min-height:340px}
+.modal.pd-xl #pd_cell_text{flex:1 1 auto;resize:vertical}
+.modal.pd-xl .pd-file{padding:10px 14px;gap:14px;font-size:14px}
+.modal.pd-xl .pd-thumb{width:84px;height:84px}
+.modal.pd-xl .pd-fname{font-size:15px}
+.modal.pd-xl .btn.sm{font-size:14px;padding:8px 16px}
+.modal.pd-xl .mfoot{margin-top:20px;padding-top:16px}
+.modal.pd-xl select{width:104px!important;padding:12px 10px}
