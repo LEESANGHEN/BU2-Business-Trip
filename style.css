@@ -1196,3 +1196,6 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .mpb-table .dt-btn{width:24px}
 .pd-table .dt-txt::placeholder{color:transparent}
 .pd-table .dt-txt:focus::placeholder{color:var(--tx-faint)}
+
+/* Pedestal 기록 팝업 — 기본 모달의 3배 */
+.modal.pd-xl{width:1380px;max-width:96vw;max-height:94vh}

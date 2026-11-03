@@ -579,13 +579,15 @@ function openPedestalCell(td,key){
   var html='<div class="mtit">'+_esc(col.full||col.label)+' — No.'+(idx+1)+(cust?' · '+_esc(cust):'')+'</div>'
     +(isDoc?_pdDocFieldsHtml(row.cells&&row.cells[key]):'')
     +'<div class="fg"><label class="fl">'+(isDoc?'메모':'내용 (직접 입력)')+'</label>'
-    +'<textarea id="pd_cell_text" rows="'+(isDoc?3:6)+'" style="width:100%;box-sizing:border-box;resize:vertical;background:var(--bg-deep);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:6px;padding:8px;font-size:12px;font-family:inherit" placeholder="글로 기록하세요. 캡처한 이미지는 여기에 Ctrl+V로 바로 붙여넣을 수 있습니다." onchange="pdSaveCellText(this.value)" onpaste="pdOnPaste(event)">'+_esc(_pdText(row,col))+'</textarea></div>'
+    +'<textarea id="pd_cell_text" rows="'+(isDoc?9:18)+'" style="width:100%;box-sizing:border-box;resize:vertical;background:var(--bg-deep);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:6px;padding:8px;font-size:12px;font-family:inherit" placeholder="글로 기록하세요. 캡처한 이미지는 여기에 Ctrl+V로 바로 붙여넣을 수 있습니다." onchange="pdSaveCellText(this.value)" onpaste="pdOnPaste(event)">'+_esc(_pdText(row,col))+'</textarea></div>'
     +'<div class="fg"><label class="fl">첨부파일 (이미지/파일, 최대 '+PD_MAX_MB+'MB)</label>'
     +'<div id="pd_cell_files" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px">'+_pdFilesHtml(row,key)+'</div>'
     +'<button class="btn sm" onclick="pdPickFiles()">+ 파일 추가</button>'
     +'<span id="pd_cell_status" style="font-size:11px;color:var(--tx-muted);margin-left:8px"></span></div>'
     +'<div class="mfoot"><button class="btn sm pri" onclick="cm()">닫기</button></div>';
   mw(html);
+  // 기록 팝업은 기본 모달의 3배 크기(가로 460→1380px, 화면 폭이 모자라면 화면에 맞춤, 입력창 높이도 3배)
+  var mdl=document.querySelector('#mc .modal'); if(mdl) mdl.classList.add('pd-xl');
 }
 function _pdRefreshCell(rowId,key){
   var row=_pdRowById(rowId), col=_pdColByKey(key);
