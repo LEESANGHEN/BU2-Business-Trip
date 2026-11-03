@@ -1286,8 +1286,7 @@ function switchTab(tab){
   document.getElementById('view_bu1').style.display=tab==='bu1'?'flex':'none';
   document.getElementById('tab_home').className='nav-item'+(tab==='home'?' on':'');
   document.getElementById('tab_projects').className='nav-item'+(tab==='projects'?' on':'');
-  // Pedestal 탭 숨김 중 — 다시 열 때 index.html의 버튼 주석과 함께 해제
-  // document.getElementById('tab_pedestal').className='nav-item'+(tab==='pedestal'?' on':'');
+  document.getElementById('tab_pedestal').className='nav-item'+(tab==='pedestal'?' on':'');
   document.getElementById('tab_setup').className='nav-item'+(tab==='setup'?' on':'');
   document.getElementById('tab_gantt').className='nav-item'+(tab==='gantt'?' on':'');
   document.getElementById('tab_person').className='nav-item'+(tab==='person'?' on':'');
