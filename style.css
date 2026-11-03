@@ -1093,6 +1093,9 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .pd-table input.pd-in[type=text],.pd-table input.pd-in[type=date]{min-width:0}
 .pd-snip{flex:1;min-width:0;max-width:none}
 .pd-table thead th{overflow:visible}
+.pd-table thead th.pd-sortable{cursor:pointer;user-select:none}
+.pd-table thead th.pd-sortable:hover{background:var(--bg-hover)}
+.pd-table thead th.pd-sortable.on{color:#7aafee}
 .pd-rz{position:absolute;top:0;right:-3px;width:7px;height:100%;cursor:col-resize;z-index:3}
 .pd-rz:hover,body.pd-resizing .pd-rz{background:rgba(58,122,192,.45)}
 body.pd-resizing{cursor:col-resize;user-select:none}

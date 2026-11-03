@@ -49,6 +49,131 @@ function _pdColByKey(k){ return _pdCols.find(function(c){return c.key===k;}); }
 var _pdSearch='';
 var _pdModal=null; // 열려 있는 기록 팝업 {rowId,key}
 
+/* ── 분류(필터) · 정렬 — 프로젝트 관리 탭과 같은 방식 ──
+   고객사 / 사이트 / 입고월 / 출하월은 다중 선택, 입고월·출하월은 "년/월 ~ 년/월" 기간으로도 거를 수 있다.
+   입고월 = 본사 입고일(없으면 본사 입고 예정일)의 월, 출하월 = 실제 출하일(없으면 크로스독 납품 예상일, 그것도 없으면 고객사 요청 출하일)의 월.
+   글자/날짜 열의 머리글을 누르면 오름차순 → 내림차순 → 입력 순서(No) 순으로 정렬한다. */
+var PD_NONE='(미입력)';
+var PD_MS_LABEL={customer:'고객사',site:'사이트',inMonth:'입고월',shipMonth:'출하월'};
+var PD_MS_MONTH={inMonth:1,shipMonth:1};
+var _pdMS={customer:[],site:[],inMonth:[],shipMonth:[]};
+var _pdRg={};            // 입고월/출하월 기간 {key:{from,to}} ('YYYY-MM')
+var _pdSortKey='', _pdSortAsc=true; // 빈 값 = 입력 순서
+function _pdCellStr(row,key){ var c=row.cells&&row.cells[key]; return typeof c==='string'?c.trim():''; }
+function _pdMsVal(row,key){
+  if(key==='customer'||key==='site') return _pdCellStr(row,key);
+  var d=(key==='inMonth')
+    ?(_pdCellStr(row,'hqInDate')||_pdCellStr(row,'hqInPlanDate'))
+    :(_pdCellStr(row,'realShipDate')||_pdCellStr(row,'crossDockPlanDate')||_pdCellStr(row,'custReqDate'));
+  return d?d.slice(0,7):'';
+}
+function _pdRange(key){ var r=_pdRg[key]; return (r&&(r.from||r.to))?r:null; }
+function _pdViewActive(){
+  if(_pdSearch||_pdSortKey) return true;
+  return Object.keys(_pdMS).some(function(k){ return _pdMS[k].length||_pdRange(k); });
+}
+function _pdRowPass(row){
+  var any=false;
+  for(var k in _pdMS){
+    var sel=_pdMS[k], rg=_pdRange(k);
+    if(!sel.length&&!rg) continue;
+    any=true;
+    var v=_pdMsVal(row,k);
+    if(sel.length&&sel.indexOf(v||PD_NONE)<0) return false;
+    if(rg&&!(v&&(!rg.from||v>=rg.from)&&(!rg.to||v<=rg.to))) return false;
+  }
+  if(any&&!_pdRowHasData(row)) return false; // 분류 중에는 완전히 빈 행을 숨긴다
+  return true;
+}
+function _pdMsOptions(key){
+  var arr=[], blank=false;
+  S.pedestalRows.forEach(function(r){
+    if(!_pdRowHasData(r)) return;
+    var v=_pdMsVal(r,key); if(!v) blank=true; else if(arr.indexOf(v)<0) arr.push(v);
+  });
+  if(PD_MS_MONTH[key]) arr.sort(); else arr.sort(function(a,b){return a.localeCompare(b,'ko');});
+  if(blank) arr.push(PD_NONE);
+  return arr;
+}
+function _pdRangeText(r){ return (r.from||'')+' ~ '+(r.to||''); }
+function _pdMsSummary(key){
+  var sel=_pdMS[key], rg=_pdRange(key);
+  if(rg&&!sel.length) return _pdRangeText(rg);
+  var s=!sel.length?'전체':(sel.length===1?sel[0]:sel.length+'개 선택');
+  return rg?(s+' + '+_pdRangeText(rg)):s;
+}
+function _pdMsOptionsHtml(key){
+  var sel=_pdMS[key], rg=_pdRange(key)||{from:'',to:''}, html='';
+  if(PD_MS_MONTH[key]){
+    html+='<div class="pm-ms-range" onclick="event.stopPropagation()"><div class="pm-ms-range-h">기간 직접 설정 (년/월 ~ 년/월)</div>'
+      +'<div class="pm-ms-range-row"><input type="month" id="pdRg_'+key+'_f" value="'+_esc(rg.from||'')+'" onchange="pdMsRange(\''+key+'\')">'
+      +'<span>~</span><input type="month" id="pdRg_'+key+'_t" value="'+_esc(rg.to||'')+'" onchange="pdMsRange(\''+key+'\')">'
+      +'<button type="button" class="btn sm" onclick="pdMsRangeClear(\''+key+'\')" title="기간 지우기">지우기</button></div></div>';
+  }
+  html+='<label class="pm-ms-opt all"><input type="checkbox" '+(!sel.length&&!_pdRange(key)?'checked':'')+' onchange="pdMsClearAll(\''+key+'\')">전체</label>';
+  _pdMsOptions(key).forEach(function(v){
+    html+='<label class="pm-ms-opt"><input type="checkbox" data-v="'+_esc(v)+'" '+(sel.indexOf(v)>=0?'checked':'')+' onchange="pdMsToggle(\''+key+'\',this.getAttribute(\'data-v\'))">'+_esc(v)+'</label>';
+  });
+  return html;
+}
+function _pdMsHtml(key){
+  return '<div class="pm-ctrl-group"><span class="pm-ctrl-label">'+PD_MS_LABEL[key]+'</span><div class="pm-ms-wrap">'
+    +'<button type="button" class="pm-ms-trigger" onclick="pdMsTogglePanel(\''+key+'\')"><span id="pdMsLbl_'+key+'">'+_esc(_pdMsSummary(key))+'</span> ▾</button>'
+    +'<div class="pm-ms-panel" id="pdMsPanel_'+key+'" style="display:none">'+_pdMsOptionsHtml(key)+'</div></div></div>';
+}
+function _pdMsRefresh(key){
+  var p=document.getElementById('pdMsPanel_'+key); if(p) p.innerHTML=_pdMsOptionsHtml(key);
+  var l=document.getElementById('pdMsLbl_'+key); if(l) l.textContent=_pdMsSummary(key);
+}
+function pdMsTogglePanel(key){
+  var panel=document.getElementById('pdMsPanel_'+key); if(!panel) return;
+  var open=panel.style.display==='none';
+  document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
+  if(open){ _pdMsRefresh(key); panel.style.display='block'; } // 열 때 최신 입력값으로 목록을 다시 만든다
+}
+function pdMsToggle(key,v){
+  var a=_pdMS[key], i=a.indexOf(v);
+  if(i>=0) a.splice(i,1); else a.push(v);
+  _pdMsRefresh(key); renderPedestalBody();
+}
+function pdMsClearAll(key){
+  _pdMS[key]=[]; delete _pdRg[key];
+  _pdMsRefresh(key);
+  var p=document.getElementById('pdMsPanel_'+key); if(p) p.style.display='none';
+  renderPedestalBody();
+}
+function pdMsRange(key){
+  var f=document.getElementById('pdRg_'+key+'_f'), t2=document.getElementById('pdRg_'+key+'_t');
+  var a=(f&&f.value)||'', b=(t2&&t2.value)||'';
+  if(a&&b&&a>b){ var x=a; a=b; b=x; if(f) f.value=a; if(t2) t2.value=b; } // 거꾸로 넣으면 자동으로 바로잡는다
+  if(a||b) _pdRg[key]={from:a,to:b}; else delete _pdRg[key];
+  var l=document.getElementById('pdMsLbl_'+key); if(l) l.textContent=_pdMsSummary(key);
+  var all=document.querySelector('#pdMsPanel_'+key+' .pm-ms-opt.all input'); if(all) all.checked=(!_pdMS[key].length&&!_pdRange(key));
+  renderPedestalBody();
+}
+function pdMsRangeClear(key){
+  delete _pdRg[key];
+  var f=document.getElementById('pdRg_'+key+'_f'), t2=document.getElementById('pdRg_'+key+'_t'); if(f) f.value=''; if(t2) t2.value='';
+  pdMsRange(key);
+}
+function pdSetSort(ev,key){
+  if(ev&&ev.target&&ev.target.closest&&ev.target.closest('.pd-rz')) return; // 너비 조절 손잡이를 끌 때는 정렬하지 않는다
+  if(_pdSortKey!==key){ _pdSortKey=key; _pdSortAsc=true; }
+  else if(_pdSortAsc) _pdSortAsc=false;
+  else _pdSortKey='';
+  renderPedestalTab();
+}
+// 분류·정렬·검색을 모두 풀고 입력 순서로 되돌린다
+function _pdClearView(){
+  _pdSearch=''; _pdSortKey=''; _pdSortAsc=true; _pdRg={};
+  Object.keys(_pdMS).forEach(function(k){ _pdMS[k]=[]; });
+}
+function pdResetView(){ _pdClearView(); renderPedestalTab(); }
+document.addEventListener('click',function(e){ // 드롭다운 바깥을 누르면 닫는다(projects.js에도 같은 처리가 있으나 이 탭만 열려 있어도 동작하게 한다)
+  if(e.target.closest&&e.target.closest('.pm-ms-wrap')) return;
+  document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
+});
+
 /* ── 데이터 헬퍼 ── */
 function _pdSortedRows(){
   return S.pedestalRows.slice().sort(function(a,b){return (a.seq||0)-(b.seq||0);});
@@ -282,7 +407,12 @@ function _pdTableHtml(){
   h+='<th colspan="'+PD_PART_COLS.length+'">'+_esc(PD_PART_GROUP)+'</th>';
   h+='<th rowspan="2" class="pd-delcell"></th></tr>';
   h+='<tr class="pd-h2">';
-  _pdCols.forEach(function(c){ h+='<th>'+(c.lh||_esc(c.label))+'<div class="pd-rz" data-ck="'+c.key+'" title="끌어서 너비 조절 · 더블클릭: 기본 너비"></div></th>'; });
+  _pdCols.forEach(function(c){
+    var sortable=(c.type==='text'||c.type==='date'), on=(_pdSortKey===c.key);
+    h+='<th'+(sortable?' class="pd-sortable'+(on?' on':'')+'" onclick="pdSetSort(event,\''+c.key+'\')" title="클릭: 정렬 (오름차순 → 내림차순 → 입력 순서)"':'')+'>'
+      +(c.lh||_esc(c.label))+(on?(_pdSortAsc?' ▲':' ▼'):'')
+      +'<div class="pd-rz" data-ck="'+c.key+'" title="끌어서 너비 조절 · 더블클릭: 기본 너비"></div></th>';
+  });
   PD_PART_COLS.forEach(function(c){ h+='<th>'+_esc(c.label)+'<div class="pd-rz" data-ck="'+c.key+'" title="끌어서 너비 조절 · 더블클릭: 기본 너비"></div></th>'; });
   h+='</tr></thead><tbody id="pdTbody"></tbody></table>';
   return h;
@@ -292,12 +422,28 @@ function renderPedestalBody(){
   var tb=document.getElementById('pdTbody'); if(!tb) return;
   var real=_pdSortedRows();
   var q=_pdSearch, html='';
-  if(q){
-    real.forEach(function(row,i){ if(_pdSearchText(row).indexOf(q)>=0) html+=_pdRowHtml(row,i,true); });
-    if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+2)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">검색 결과가 없습니다.</td></tr>';
+  // 검색·분류·정렬 중에는 화면 전용 빈 행(v숫자)을 그리지 않는다 — 표시 순서가 입력 순서와 달라지면 빈 행을 실제 행으로 만들 때 위치가 어긋난다
+  if(_pdViewActive()){
+    var items=real.map(function(row,i){return {row:row,i:i};}).filter(function(it){
+      return (!q||_pdSearchText(it.row).indexOf(q)>=0)&&_pdRowPass(it.row);
+    });
+    if(_pdSortKey){
+      var k=_pdSortKey, dir=_pdSortAsc?1:-1;
+      items.sort(function(a,b){
+        var x=_pdCellStr(a.row,k), y=_pdCellStr(b.row,k);
+        if(!x&&!y) return a.i-b.i;
+        if(!x) return 1; if(!y) return -1; // 비어 있는 칸은 정렬 방향과 상관없이 맨 아래
+        var c=x.localeCompare(y,'ko',{numeric:true});
+        return c?c*dir:a.i-b.i;
+      });
+    }
+    items.forEach(function(it){ html+=_pdRowHtml(it.row,it.i,true); });
+    if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+2)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">조건에 맞는 행이 없습니다.</td></tr>';
+    var cnt=document.getElementById('pdCount'); if(cnt) cnt.textContent=items.length+' / '+real.filter(_pdRowHasData).length+'건';
   }else{
     real.forEach(function(row,i){ html+=_pdRowHtml(row,i,true); });
     for(var i=real.length;i<PD_MIN_ROWS;i++) html+=_pdRowHtml({cells:{}},i,false);
+    var cnt2=document.getElementById('pdCount'); if(cnt2) cnt2.textContent='';
   }
   tb.innerHTML=html;
 }
@@ -309,8 +455,14 @@ function renderPedestalTab(){
   var html='<div class="pm-fixed-header"><div class="pm-ctrl-bar">'
     +'<div class="pm-ctrl-group"><span style="font-size:11px;color:#666">🔍</span>'
     +'<input class="pm-search" type="text" placeholder="고객사/설비/S/N/도번/품명 검색..." autocomplete="off" oninput="pdSearch(this.value)" value="'+_esc(_pdSearch)+'"></div>'
+    +'<div class="pm-ctrl-sep"></div>'+_pdMsHtml('customer')
+    +'<div class="pm-ctrl-sep"></div>'+_pdMsHtml('site')
+    +'<div class="pm-ctrl-sep"></div>'+_pdMsHtml('inMonth')
+    +'<div class="pm-ctrl-sep"></div>'+_pdMsHtml('shipMonth')
+    +'<span id="pdCount" style="font-size:11px;color:var(--tx-muted);margin-left:6px"></span>'
+    +'<button class="btn sm" onclick="pdResetView()" title="분류·정렬·검색을 모두 풀고 입력 순서로 되돌림">↺ 분류 초기화</button>'
     +'<div style="flex:1"></div>'
-    +'<span style="font-size:11px;color:var(--tx-muted)">셀을 클릭해 직접 입력 · 📎 칸은 클릭하면 글/이미지/파일 기록</span>'
+    +'<span style="font-size:11px;color:var(--tx-muted)">셀을 클릭해 직접 입력 · 📎 칸은 클릭하면 글/이미지/파일 기록 · 머리글 클릭: 정렬</span>'
     +'<button class="btn sm" onclick="pdAutoFitAll()" title="모든 열의 너비를 입력된 글자 수에 맞춰 다시 정렬">↔ 열 너비 자동 맞춤</button>'
     +'<button class="btn sm" onclick="pdExportExcel()">⬇ 엑셀 내보내기</button>'
     +'<button class="btn pri sm" onclick="pdAddRows(10)">+ 행 10개 추가</button>'
@@ -445,7 +597,7 @@ function pdAddRows(n){
   while(S.pedestalRows.length<target) _pdNewRow();
   S.pedestalRows.forEach(function(r){ if(!r.mt) _touch(r); });
   saveData();
-  _pdSearch=''; renderPedestalTab();
+  _pdClearView(); renderPedestalTab(); // 새 행이 맨 아래에 보이도록 분류·정렬을 푼다
   var sc=document.querySelector('#pdWrap .pm-body-scroll'); if(sc) sc.scrollTop=sc.scrollHeight;
 }
 
