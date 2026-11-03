@@ -22,6 +22,7 @@ var PD_GROUPS=[
     {key:'custReqDate',label:'고객사 요청 출하일',type:'date',w:130},
     {key:'hqInPlanDate',label:'본사 입고 예정일',type:'date',w:130},
     {key:'hqInDate',label:'본사 입고일',type:'date',w:120},
+    {key:'crossDockPlanDate',label:'크로스독 납품 예상일',type:'date',w:140},
     {key:'realShipDate',label:'실제 출하일',type:'date',w:120},
     // 제품 정보 / Tray 정보 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
