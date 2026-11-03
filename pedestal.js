@@ -313,12 +313,13 @@ function _pdPartCellsHtml(part){
     return '<td><input class="pd-in" type="text" value="'+_esc(part[pc.key]||'')+'"'+(pc.ac?' oninput="pdAc(this,\x27part\x27,\x27'+pc.key+'\x27)" onfocus="pdAcHide()" onkeydown="pdAcKey(event)" onblur="pdAcHide()"':'')+' onchange="pdSetPart(this,\''+pc.key+'\')" autocomplete="off"></td>';
   }).join('');
 }
-function _pdRowHtml(row,idx,isReal){
+function _pdRowHtml(row,idx,isReal,no){
   var parts=_pdParts(row), n=1; // 부품은 한 줄만 표시
   var rid=isReal?_esc(row.id):'v'+idx;
-  var attrs=' data-rid="'+rid+'" data-idx="'+idx+'"';
+  if(no==null) no=idx+1; // 표시 번호(No)는 필터·정렬과 무관하게 화면에 보이는 순서대로 1부터, idx는 데이터상 위치
+  var attrs=' data-rid="'+rid+'" data-idx="'+idx+'" data-no="'+no+'"';
   var h='<tr class="pd-row"'+attrs+' data-pi="0">';
-  h+='<td class="pd-no" rowspan="'+n+'">'+(idx+1)+'</td>';
+  h+='<td class="pd-no" rowspan="'+n+'">'+no+'</td>';
   _pdCols.forEach(function(col){ h+=_pdMainCellHtml(row,col).replace('__RS__',n); });
   h+=_pdPartCellsHtml(parts[0]);
   h+='<td class="pd-delcell" rowspan="'+n+'">'
@@ -438,7 +439,7 @@ function renderPedestalBody(){
         return c?c*dir:a.i-b.i;
       });
     }
-    items.forEach(function(it){ html+=_pdRowHtml(it.row,it.i,true); });
+    items.forEach(function(it,n){ html+=_pdRowHtml(it.row,it.i,true,n+1); });
     if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+2)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">조건에 맞는 행이 없습니다.</td></tr>';
     var cnt=document.getElementById('pdCount'); if(cnt) cnt.textContent=items.length+' / '+real.filter(_pdRowHasData).length+'건';
   }else{
@@ -632,7 +633,7 @@ function pdDeleteRow(btn){
   var tr=btn.closest('tr');
   var row=_pdRowById(tr.getAttribute('data-rid'));
   if(!row) return;
-  if(!confirm('No.'+((parseInt(tr.getAttribute('data-idx'),10)||0)+1)+' 행을 삭제할까요?'+(_pdRowHasData(row)?'\n입력한 내용과 첨부파일도 함께 삭제됩니다.':''))) return;
+  if(!confirm('No.'+(tr.getAttribute('data-no')||((parseInt(tr.getAttribute('data-idx'),10)||0)+1))+' 행을 삭제할까요?'+(_pdRowHasData(row)?'\n입력한 내용과 첨부파일도 함께 삭제됩니다.':''))) return;
   _pdDeleteFilesOnDrive(row);
   S.pedestalRows=S.pedestalRows.filter(function(r){return r.id!==row.id;});
   _markDeleted('pedestalRows',row.id);
@@ -770,10 +771,10 @@ function openPedestalCell(td,key){
   var row=_pdResolveRow(tr);
   var col=_pdColByKey(key);
   _pdModal={rowId:row.id,key:key};
-  var idx=parseInt(tr.getAttribute('data-idx'),10)||0;
+  var no=tr.getAttribute('data-no')||((parseInt(tr.getAttribute('data-idx'),10)||0)+1);
   var cust=_pdText(row,_pdColByKey('customer'));
   var isDoc=col.type==='doc';
-  var html='<div class="mtit">'+_esc(col.full||col.label)+' — No.'+(idx+1)+(cust?' · '+_esc(cust):'')+'</div>'
+  var html='<div class="mtit">'+_esc(col.full||col.label)+' — No.'+no+(cust?' · '+_esc(cust):'')+'</div>'
     +(isDoc?_pdDocFieldsHtml(row.cells&&row.cells[key]):'')
     +'<div class="fg"><label class="fl">'+(isDoc?'메모':'내용 (직접 입력)')+'</label>'
     +'<textarea id="pd_cell_text" rows="'+(isDoc?9:18)+'" style="width:100%;box-sizing:border-box;resize:vertical;background:var(--bg-deep);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:6px;padding:8px;font-size:12px;font-family:inherit" placeholder="'+(col.nofile?'글로 기록하세요.':'글로 기록하세요. 캡처한 이미지는 여기에 Ctrl+V로 바로 붙여넣을 수 있습니다.')+'" onchange="pdSaveCellText(this.value)"'+(col.nofile?'':' onpaste="pdOnPaste(event)"')+'>'+_esc(_pdText(row,col))+'</textarea></div>'
@@ -1025,7 +1026,7 @@ function pdXlSave(){
   if(btn) btn.disabled=true; if(st) st.textContent='저장 중...';
   var x=_pdXl, ctx=x.ctx, row=_pdRowById(ctx.rowId);
   var base=(x.fileName||'file.xlsx').replace(/\.xlsx$/i,'').replace(/ — No\.\d+.*$/,'');
-  var idx=(parseInt((document.querySelector('#pdTbody tr.pd-row[data-rid="'+ctx.rowId+'"]')||{getAttribute:function(){return 0;}}).getAttribute('data-idx'),10)||0)+1;
+  var idx=parseInt((document.querySelector('#pdTbody tr.pd-row[data-rid="'+ctx.rowId+'"]')||{getAttribute:function(){return 0;}}).getAttribute('data-no'),10)||1;
   var cust=row?_pdText(row,_pdColByKey('customer')):'';
   var name=String(x.fileId).indexOf('ref-')===0?base+' — No.'+idx+(cust?' '+cust:'')+'.xlsx':(x.fileName||base+'.xlsx');
   x.wb.xlsx.writeBuffer().then(function(buf){
