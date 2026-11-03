@@ -28,13 +28,13 @@ var PD_GROUPS=[
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
     {key:'productName',label:'Pedestal 정보',type:'rich',w:130,nofile:1}, // 예전 "제품명" 칸 — 저장 키는 그대로. 2026-11-03부터 글자만 입력(파일 첨부 없음; 이미 올려 둔 파일은 행 데이터에 남아 있음)
     // Conversion Kit Part List / 고객사 견적서 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
-    {key:'custPO',label:'발주 번호',full:'고객사 발주 번호',type:'doc',w:150} // 예전 "발주서" 칸 — 저장 키는 그대로
+    {key:'custPO',label:'발주 번호',full:'고객사 발주 번호',type:'po',w:150} // 예전 "발주서" 칸 — 저장 키는 그대로(번호는 cells.custPO.no), 번호만 입력하는 칸
   ]},
   {label:'인텍플러스 ↔ PSMP',cols:[
     // 컨셉 도면 / 설계 도면 / 설계 Part List 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
     {key:'psmpSN',label:'PSMP S/N',type:'text',w:120},
     // PSMP 견적서 열도 2026-11-03에 화면에서 제거했다(데이터는 그대로)
-    {key:'psmpPO',label:'발주 번호',full:'PSMP 발주 번호',type:'doc',w:150} // 예전 "발주서" 칸 — 저장 키는 그대로
+    {key:'psmpPO',label:'발주 번호',full:'PSMP 발주 번호',type:'po',w:150} // 예전 "발주서" 칸 — 저장 키는 그대로(번호는 cells.psmpPO.no), 번호만 입력하는 칸
   ]}
 ];
 var PD_PART_COLS=[
@@ -186,6 +186,7 @@ function _pdNewRow(){
 function _pdRowById(id){ return S.pedestalRows.find(function(r){return r.id===id;}); }
 function _pdText(row,col){
   var c=row.cells&&row.cells[col.key];
+  if(col.type==='po') return (typeof c==='string')?c:((c&&c.no)||''); // 발주 번호 칸: 예전 "발주서" 칸의 번호(no)만 보여준다 — 메모·파일·날짜는 데이터에 남아 있지만 화면에는 쓰지 않는다
   if(typeof c==='string') return c; // 글자 칸이었다가 파일 칸으로 바뀐 열(제품명→Pedestal 정보)의 기존 값도 글 내용으로 보여준다
   if(col.type==='text'||col.type==='date') return '';
   return (c&&typeof c==='object'&&c.text)||'';
@@ -291,6 +292,7 @@ function _pdRichCellHtml(row,col){
 function _pdMainCellHtml(row,col){
   if(col.type==='doc') return _pdDocCellHtml(row,col);
   if(col.type==='rich') return _pdRichCellHtml(row,col);
+  if(col.type==='po') return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="text" value="'+_esc(_pdText(row,col))+'" onchange="pdSetPo(this,\''+col.key+'\')" autocomplete="off"></td>';
   if(col.type==='date') return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="date" value="'+_esc(_pdText(row,col))+'" onchange="pdSetText(this,\''+col.key+'\')"></td>';
   return '<td data-k="'+col.key+'" rowspan="__RS__"><input class="pd-in" type="text" value="'+_esc(_pdText(row,col))+'"'
     +(col.ac?' oninput="pdAc(this,\x27cell\x27,\x27'+col.key+'\x27)" onfocus="pdAcHide()" onkeydown="pdAcKey(event)" onblur="pdAcHide()"':'')+' onchange="pdSetText(this,\''+col.key+'\')" autocomplete="off"></td>';
@@ -577,6 +579,16 @@ function pdSetText(inp,key){
   var row=_pdResolveRow(tr);
   if(!row.cells) row.cells={};
   row.cells[key]=val;
+  _touch(row); saveData();
+}
+// 발주 번호 칸: 번호만 cells[key].no에 저장한다(기존 메모·파일·날짜는 건드리지 않는다)
+function pdSetPo(inp,key){
+  var tr=inp.closest('tr'), val=inp.value.trim();
+  var existing=_pdRowById(tr.getAttribute('data-rid'));
+  if(existing){ var cur=existing.cells&&existing.cells[key]; var curNo=(typeof cur==='string')?cur:((cur&&cur.no)||''); if(val===curNo) return; }
+  else if(!val) return;
+  var row=_pdResolveRow(tr);
+  _pdRichCell(row,key).no=val;
   _touch(row); saveData();
 }
 function pdSetPart(inp,field){
