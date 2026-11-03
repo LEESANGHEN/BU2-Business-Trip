@@ -20,10 +20,10 @@ var PD_GROUPS=[
     {key:'site',label:'사이트',type:'text',w:100,ac:1},
     {key:'equip',label:'설비 정보',type:'text',w:130,ac:1},
     {key:'custReqDate',label:'고객사 요청 출하일',type:'date',w:130},
-    {key:'hqInPlanDate',label:'본사 입고 예정일',type:'date',w:130},
+    {key:'hqInPlanDate',label:'입고 예정일',type:'date',w:130},
     {key:'hqInDate',label:'본사 입고일',type:'date',w:120},
-    {key:'crossDockPlanDate',label:'본사 출하 예정일',type:'date',w:130}, // 예전 "크로스독 납품 예상일" — 저장 키는 그대로라 입력된 날짜가 이어진다
-    {key:'realShipDate',label:'실제 출하일',type:'date',w:120},
+    {key:'crossDockPlanDate',label:'출하 예정일',type:'date',w:130}, // 예전 "크로스독 납품 예상일" — 저장 키는 그대로라 입력된 날짜가 이어진다
+    {key:'realShipDate',label:'출하일',type:'date',w:120},
     // 제품 정보 / Tray 정보 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
     {key:'productName',label:'Pedestal 정보',type:'obj',fld:'text',w:130}, // 예전 "제품명" 칸 — 저장 키는 그대로. 2026-11-03부터 팝업·파일 없이 칸에 바로 글자만 입력(cells.productName.text; 이미 올려 둔 파일은 행 데이터에 남아 있음)
@@ -50,7 +50,8 @@ var _pdModal=null; // 열려 있는 기록 팝업 {rowId,key}
 
 /* ── 분류(필터) · 정렬 — 프로젝트 관리 탭과 같은 방식 ──
    고객사 / 사이트 / 입고월 / 출하월은 다중 선택, 입고월·출하월은 "년/월 ~ 년/월" 기간으로도 거를 수 있다.
-   입고월 = 본사 입고일(없으면 본사 입고 예정일)의 월, 출하월 = 실제 출하일(없으면 본사 출하 예정일, 그것도 없으면 고객사 요청 출하일)의 월.
+   입고월 = 본사 입고일(없으면 입고 예정일)의 월, 출하월 = 출하일(없으면 출하 예정일, 그것도 없으면 고객사 요청 출하일)의 월.
+   출하일(realShipDate)이 기록된 행은 '완료'로 보고 연녹색으로 채우며, '진행중만 보기'(기본 On)에서는 숨기고 끄면 맨 아래에 모아 보여준다.
    글자/날짜 열의 머리글을 누르면 오름차순 → 내림차순 → 입력 순서(No) 순으로 정렬한다. */
 var PD_NONE='(미입력)';
 var PD_MS_LABEL={customer:'고객사',site:'사이트',inMonth:'입고월',shipMonth:'출하월'};
@@ -58,6 +59,8 @@ var PD_MS_MONTH={inMonth:1,shipMonth:1};
 var _pdMS={customer:[],site:[],inMonth:[],shipMonth:[]};
 var _pdRg={};            // 입고월/출하월 기간 {key:{from,to}} ('YYYY-MM')
 var _pdSortKey='', _pdSortAsc=true; // 빈 값 = 입력 순서
+var _pdHideDone=true;    // 진행중만 보기(출하일이 기록된 완료 행 숨김) — 프로젝트 관리처럼 기본 On
+function _pdIsDone(row){ return !!_pdCellStr(row,'realShipDate'); }
 function _pdCellStr(row,key){ var c=row.cells&&row.cells[key]; return typeof c==='string'?c.trim():''; }
 function _pdMsVal(row,key){
   if(key==='customer'||key==='site') return _pdCellStr(row,key);
@@ -168,6 +171,12 @@ function _pdClearView(){
   Object.keys(_pdMS).forEach(function(k){ _pdMS[k]=[]; });
 }
 function pdResetView(){ _pdClearView(); renderPedestalTab(); }
+// 진행중만 보기: 켜는 순간 검색·분류·정렬을 비운다(프로젝트 관리와 같음). 끄면 현재 필터는 그대로 두고 완료 행을 맨 아래에 보여준다
+function pdToggleDone(){
+  _pdHideDone=!_pdHideDone;
+  if(_pdHideDone) _pdClearView();
+  renderPedestalTab();
+}
 document.addEventListener('click',function(e){ // 드롭다운 바깥을 누르면 닫는다(projects.js에도 같은 처리가 있으나 이 탭만 열려 있어도 동작하게 한다)
   if(e.target.closest&&e.target.closest('.pm-ms-wrap')) return;
   document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
@@ -318,7 +327,7 @@ function _pdRowHtml(row,idx,isReal,no){
   var rid=isReal?_esc(row.id):'v'+idx;
   if(no==null) no=idx+1; // 표시 번호(No)는 필터·정렬과 무관하게 화면에 보이는 순서대로 1부터, idx는 데이터상 위치
   var attrs=' data-rid="'+rid+'" data-idx="'+idx+'" data-no="'+no+'"';
-  var h='<tr class="pd-row"'+attrs+' data-pi="0">';
+  var h='<tr class="pd-row'+(isReal&&_pdIsDone(row)?' pd-done':'')+'"'+attrs+' data-pi="0">';
   h+='<td class="pd-no" rowspan="'+n+'">'+no+'</td>';
   _pdCols.forEach(function(col){ h+=_pdMainCellHtml(row,col).replace('__RS__',n); });
   h+=_pdPartCellsHtml(parts[0]);
@@ -425,28 +434,28 @@ function renderPedestalBody(){
   var real=_pdSortedRows();
   var q=_pdSearch, html='';
   // 검색·분류·정렬 중에는 화면 전용 빈 행(v숫자)을 그리지 않는다 — 표시 순서가 입력 순서와 달라지면 빈 행을 실제 행으로 만들 때 위치가 어긋난다
-  if(_pdViewActive()){
-    var items=real.map(function(row,i){return {row:row,i:i};}).filter(function(it){
-      return (!q||_pdSearchText(it.row).indexOf(q)>=0)&&_pdRowPass(it.row);
+  var filt=_pdViewActive();
+  var items=real.map(function(row,i){return {row:row,i:i,done:_pdIsDone(row)};}).filter(function(it){
+    if(_pdHideDone&&it.done) return false;
+    return !filt||((!q||_pdSearchText(it.row).indexOf(q)>=0)&&_pdRowPass(it.row));
+  });
+  if(filt&&_pdSortKey){
+    var k=_pdSortKey, dir=_pdSortAsc?1:-1;
+    items.sort(function(a,b){
+      var x=_pdCellStr(a.row,k), y=_pdCellStr(b.row,k);
+      if(!x&&!y) return a.i-b.i;
+      if(!x) return 1; if(!y) return -1; // 비어 있는 칸은 정렬 방향과 상관없이 맨 아래
+      var c=x.localeCompare(y,'ko',{numeric:true});
+      return c?c*dir:a.i-b.i;
     });
-    if(_pdSortKey){
-      var k=_pdSortKey, dir=_pdSortAsc?1:-1;
-      items.sort(function(a,b){
-        var x=_pdCellStr(a.row,k), y=_pdCellStr(b.row,k);
-        if(!x&&!y) return a.i-b.i;
-        if(!x) return 1; if(!y) return -1; // 비어 있는 칸은 정렬 방향과 상관없이 맨 아래
-        var c=x.localeCompare(y,'ko',{numeric:true});
-        return c?c*dir:a.i-b.i;
-      });
-    }
-    items.forEach(function(it,n){ html+=_pdRowHtml(it.row,it.i,true,n+1); });
-    if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+2)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">조건에 맞는 행이 없습니다.</td></tr>';
-    var cnt=document.getElementById('pdCount'); if(cnt) cnt.textContent=items.length+' / '+real.filter(_pdRowHasData).length+'건';
-  }else{
-    real.forEach(function(row,i){ html+=_pdRowHtml(row,i,true); });
-    for(var i=real.length;i<PD_MIN_ROWS;i++) html+=_pdRowHtml({cells:{}},i,false);
-    var cnt2=document.getElementById('pdCount'); if(cnt2) cnt2.textContent='';
   }
+  // 완료(출하일 기록) 행은 정렬과 상관없이 맨 아래로 — 진행중만 보기를 껐을 때 보인다
+  items=items.filter(function(it){return !it.done;}).concat(items.filter(function(it){return it.done;}));
+  items.forEach(function(it,n){ html+=_pdRowHtml(it.row,it.i,true,n+1); });
+  if(!filt) for(var i=real.length;i<PD_MIN_ROWS;i++) html+=_pdRowHtml({cells:{}},i,false,items.length+(i-real.length)+1);
+  if(!html) html='<tr><td colspan="'+(_pdCols.length+PD_PART_COLS.length+2)+'" style="padding:30px;text-align:center;color:var(--tx-muted)">조건에 맞는 행이 없습니다.</td></tr>';
+  var cnt=document.getElementById('pdCount');
+  if(cnt) cnt.textContent=(filt||_pdHideDone)?items.length+' / '+real.filter(_pdRowHasData).length+'건':'';
   tb.innerHTML=html;
 }
 
@@ -461,6 +470,7 @@ function renderPedestalTab(){
     +'<div class="pm-ctrl-sep"></div>'+_pdMsHtml('site')
     +'<div class="pm-ctrl-sep"></div>'+_pdMsHtml('inMonth')
     +'<div class="pm-ctrl-sep"></div>'+_pdMsHtml('shipMonth')
+    +'<div class="pm-ctrl-sep"></div><div class="pm-ctrl-group"><button class="pm-filter-btn'+(_pdHideDone?' on':'')+'" onclick="pdToggleDone()" title="출하일이 기록된 완료 행을 숨김(끄면 완료 행이 맨 아래에 녹색으로 표시)">진행중만 보기</button></div>'
     +'<span id="pdCount" style="font-size:11px;color:var(--tx-muted);margin-left:6px"></span>'
     +'<button class="btn sm" onclick="pdResetView()" title="분류·정렬·검색을 모두 풀고 입력 순서로 되돌림">↺ 분류 초기화</button>'
     +'<div style="flex:1"></div>'
@@ -581,6 +591,7 @@ function pdSetText(inp,key){
   if(!row.cells) row.cells={};
   row.cells[key]=val;
   _touch(row); saveData();
+  if(key==='realShipDate') tr.classList.toggle('pd-done',_pdIsDone(row)); // 바로 녹색으로 바뀐다(진행중만 보기에서는 다음에 화면을 다시 그릴 때 숨겨진다)
 }
 // 발주 번호·Pedestal 정보 칸: 입력한 글자만 cells[key][fld](no 또는 text)에 저장한다(기존 메모·파일·날짜는 건드리지 않는다)
 function pdSetObj(inp,key,fld){

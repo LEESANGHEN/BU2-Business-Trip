@@ -1217,3 +1217,8 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .modal.pd-xl .btn.sm{font-size:14px;padding:8px 16px}
 .modal.pd-xl .mfoot{margin-top:20px;padding-top:16px}
 .modal.pd-xl select{width:104px!important;padding:12px 10px}
+/* Pedestal 완료(출하일 기록) 행 — 연녹색으로 채움 */
+.pd-table tbody tr.pd-done td,.pd-table tbody tr.pd-done td.pd-no{background:#1d3a2b}
+.pd-table tbody tr.pd-done:hover td{background:#25503a}
+[data-theme="light"] .pd-table tbody tr.pd-done td,[data-theme="light"] .pd-table tbody tr.pd-done td.pd-no{background:#d9efdc}
+[data-theme="light"] .pd-table tbody tr.pd-done:hover td{background:#c6e5cb}
