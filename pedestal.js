@@ -22,7 +22,7 @@ var PD_GROUPS=[
     {key:'custReqDate',label:'고객사 요청 출하일',type:'date',w:130},
     {key:'hqInPlanDate',label:'본사 입고 예정일',type:'date',w:130},
     {key:'hqInDate',label:'본사 입고일',type:'date',w:120},
-    {key:'crossDockPlanDate',label:'크로스독 납품 예상일',type:'date',w:140},
+    {key:'crossDockPlanDate',label:'본사 출하 예정일',type:'date',w:130}, // 예전 "크로스독 납품 예상일" — 저장 키는 그대로라 입력된 날짜가 이어진다
     {key:'realShipDate',label:'실제 출하일',type:'date',w:120},
     // 제품 정보 / Tray 정보 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
@@ -50,7 +50,7 @@ var _pdModal=null; // 열려 있는 기록 팝업 {rowId,key}
 
 /* ── 분류(필터) · 정렬 — 프로젝트 관리 탭과 같은 방식 ──
    고객사 / 사이트 / 입고월 / 출하월은 다중 선택, 입고월·출하월은 "년/월 ~ 년/월" 기간으로도 거를 수 있다.
-   입고월 = 본사 입고일(없으면 본사 입고 예정일)의 월, 출하월 = 실제 출하일(없으면 크로스독 납품 예상일, 그것도 없으면 고객사 요청 출하일)의 월.
+   입고월 = 본사 입고일(없으면 본사 입고 예정일)의 월, 출하월 = 실제 출하일(없으면 본사 출하 예정일, 그것도 없으면 고객사 요청 출하일)의 월.
    글자/날짜 열의 머리글을 누르면 오름차순 → 내림차순 → 입력 순서(No) 순으로 정렬한다. */
 var PD_NONE='(미입력)';
 var PD_MS_LABEL={customer:'고객사',site:'사이트',inMonth:'입고월',shipMonth:'출하월'};
