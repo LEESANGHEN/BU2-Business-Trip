@@ -27,15 +27,14 @@ var PD_GROUPS=[
     // 제품 정보 / Tray 정보 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
     {key:'productSize',label:'제품 Size',type:'text',w:90,ac:1},
     {key:'productName',label:'Pedestal 정보',type:'rich',w:130}, // 예전 "제품명"(글자만) 칸 — 저장 키는 그대로라 기존 입력값은 글 내용으로 이어지고, 이제 파일/이미지도 넣을 수 있다
-    {key:'partList',label:'Conversion Kit Part List',lh:'Conversion Kit<br>Part List',type:'rich',w:140},
-    {key:'custQuote',label:'견적서',full:'고객사 견적서',type:'doc',w:150},
-    {key:'custPO',label:'발주서',full:'고객사 발주서',type:'doc',w:150}
+    // Conversion Kit Part List / 고객사 견적서 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
+    {key:'custPO',label:'발주 번호',full:'고객사 발주 번호',type:'doc',w:150} // 예전 "발주서" 칸 — 저장 키는 그대로
   ]},
   {label:'인텍플러스 ↔ PSMP',cols:[
     // 컨셉 도면 / 설계 도면 / 설계 Part List 열은 2026-11-03에 화면에서 제거했다(이미 올려 둔 파일은 행 데이터에 그대로 남아 있음)
     {key:'psmpSN',label:'PSMP S/N',type:'text',w:120},
-    {key:'psmpQuote',label:'견적서',full:'PSMP 견적서',type:'doc',w:150},
-    {key:'psmpPO',label:'발주서',full:'PSMP 발주서',type:'doc',w:150}
+    // PSMP 견적서 열도 2026-11-03에 화면에서 제거했다(데이터는 그대로)
+    {key:'psmpPO',label:'발주 번호',full:'PSMP 발주 번호',type:'doc',w:150} // 예전 "발주서" 칸 — 저장 키는 그대로
   ]}
 ];
 var PD_PART_COLS=[
