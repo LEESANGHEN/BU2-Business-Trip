@@ -57,7 +57,10 @@ function _xStyle(cell,opts){
 /* ── Sheet: 프로젝트관리 ── */
 function _buildProjectsSheet(wb){
   var ws=wb.addWorksheet('프로젝트관리');
-  var rows=_mpActive().slice().sort(function(a,b){
+  // 프로젝트 관리 탭에서 내려받으면 화면에 보이는 목록(필터·검색·정렬 그대로), 다른 탭에서는 숨기지 않은 전체 프로젝트
+  var rows;
+  if(typeof _activeTab!=='undefined'&&_activeTab==='projects') rows=_mpScreenRows();
+  else rows=_mpActive().slice().sort(function(a,b){
     var tieFields=['category','region','customer','projectName'];
     for(var i=0;i<tieFields.length;i++){
       var f=tieFields[i];
@@ -69,7 +72,22 @@ function _buildProjectsSheet(wb){
     return _mpUnitCompare(a.customerUnit,b.customerUnit);
   });
 
-  ws.columns=[12,10,16,20,16,14,14,14,14,20,14,14,10].map(function(w){return {width:w};});
+  // 열 구성은 프로젝트 관리 탭 화면(renderProjectsTable)과 같은 순서·같은 제목
+  var cols=[
+    {label:_xColLbl('colCategory',t('colCategory')),w:12,align:'center'},
+    {label:_xColLbl('colCustomerHdr',t('mpCustomer')),w:16,align:'left'},
+    {label:_xColLbl('colProject',t('colProject')),w:22,align:'left'},
+    {label:_xColLbl('colSerialNo','설비 시리얼 넘버'),w:18,align:'left'},
+    {label:_xColLbl('colUnitCombined2',(typeof _lang!=='undefined'&&_lang!=='ko')?t('colUnitCombined'):'생산 호기(현장 호기)'),w:22,align:'left'},
+    {label:_xColLbl('colTransferDay','이관일'),w:11,align:'center'},
+    {label:_xColLbl('colSetupLocation',t('colSetupLocation')),w:16,align:'left'},
+    {label:_xColLbl('colSetupDone2','셋업 완료'),w:11,align:'center'},
+    {label:_xColLbl('colShipDay','출하일'),w:11,align:'center'},
+    {label:_xColLbl('colTransferToShip','이관→출하'),w:11,align:'center'},
+    {label:_xColLbl('colFieldSetupMgr','Field 셋업 담당'),w:16,align:'left'},
+    {label:_xColLbl('mpStatus',t('mpStatus')),w:13,align:'center'}
+  ];
+  ws.columns=cols.map(function(c){return {width:c.w};});
   ws.views=[{state:'frozen',ySplit:1}];
 
   if(!rows.length){
@@ -77,29 +95,66 @@ function _buildProjectsSheet(wb){
     return;
   }
 
-  var hdr=['구분','지역','고객사','프로젝트','프로젝트 시리얼','생산 호기','고객사 호기','생산 이관일','변경 이관일','생산 셋업 기간','설비 출하 일정','변경 출하 일정','상태'];
   var hRow=ws.getRow(1);
-  hdr.forEach(function(h,i){
+  cols.forEach(function(c,i){
     var cell=hRow.getCell(i+1);
-    cell.value=h;
-    _xStyle(cell,{bg:'#2a2a3e',fg:'#e0e0ec',bold:true});
+    cell.value=c.label;
+    _xStyle(cell,{bg:'#2a2a3e',fg:'#e0e0ec',bold:true,wrap:true});
   });
-  hRow.height=20;
+  hRow.height=24;
+  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:cols.length}};
 
   var rIdx=2;
   rows.forEach(function(mp){
     var bg=rIdx%2===0?'#1c1c24':'#181820';
-    var _sr=_mpSetupRange(mp), setupLbl=_sr?(_sr.start+' ~ '+_sr.end):'';
-    var transferDate=mp.transferDate||'';
+    // 화면(renderProjectRow)과 같은 표기: 호기는 "생산 70호기_(현장 3호기)", 날짜는 YY.MM.DD, 빈 값은 "-"
+    var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
+    var unitLbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
+    var days=_mpDaysToShip(mp);
+    var cat=_mpCatNorm(mp.category);
+    var stEff=_mpEffectiveStatus(mp);
+    var vals=[
+      cat,
+      mp.customer||'',
+      mp.projectName||'',
+      mp.serial||'',
+      unitLbl,
+      _mpFd(_mpEffectiveTransferDate(mp))||'-',
+      mp.setupLocation||'-',
+      _mpFd(mp.setupDone)||'-',
+      _mpFd(_mpEffectiveShipDate(mp))||'-',
+      days==null?'-':days+'일',
+      mp.tripManager||'-',
+      stEff?tStatus(stEff):''
+    ];
     var row=ws.getRow(rIdx);
-    [mp.category,mp.region,mp.customer,mp.projectName,mp.serial,mp.prodUnit,mp.customerUnit,transferDate,mp.transferDateOverride,setupLbl,mp.shipDate,mp.customerReqShipDate,_mpEffectiveStatus(mp)].forEach(function(v,i){
+    vals.forEach(function(v,i){
       var cell=row.getCell(i+1);
-      cell.value=v||'';
-      _xStyle(cell,{bg:bg,fg:'#c8c8d4',align:i<=3?'left':'center'});
+      cell.value=v;
+      var o={bg:bg,fg:'#c8c8d4',align:cols[i].align};
+      // 구분·상태는 화면의 색 배지와 같은 색으로 표시
+      if(i===0) _xBadgeOpts(o,_MP_CATEGORY_BADGE_STYLE[cat]);
+      if(i===11) _xBadgeOpts(o,_MP_STATUS_BADGE_STYLE[stEff]);
+      _xStyle(cell,o);
     });
     row.height=17;
     rIdx++;
   });
+}
+
+// 열 제목: 관리자가 바꾼 표 제목(한국어 화면)이 있으면 화면과 똑같이 반영 ('/'는 줄바꿈)
+function _xColLbl(key,defaultLbl){
+  if(typeof _lang!=='undefined'&&_lang!=='ko') return defaultLbl;
+  var ov=(S.labelOverrides||{})[key];
+  if(ov===undefined||ov==='') return defaultLbl;
+  return String(ov).split('/').join('\n');
+}
+// 배지 CSS 문자열("background:#2e2050;color:#b39ddb;...")에서 배경·글자색을 뽑는다 (var(--…)처럼 색을 못 뽑으면 기본색 유지)
+function _xBadgeOpts(o,css){
+  if(!css) return;
+  var bgm=/background:\s*(#[0-9a-fA-F]{3,6})/.exec(css), fgm=/(?:^|;)\s*color:\s*(#[0-9a-fA-F]{3,6})/.exec(css);
+  if(bgm) o.bg=bgm[1];
+  if(fgm) o.fg=fgm[1];
 }
 
 /* ── Sheet: 월별집계 ── */

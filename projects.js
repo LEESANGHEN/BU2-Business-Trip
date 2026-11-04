@@ -415,6 +415,12 @@ function _mpUpdateSummary(baseRows,shown){
   }).join('');
   el.innerHTML=h;
 }
+// 화면에 보이는 목록(필터·검색·제품군 칩·정렬 모두 적용) — 엑셀 내보내기도 이 함수를 써서 화면과 같은 행·순서로 내보낸다
+function _mpScreenRows(){
+  var baseRows=_mpFilteredProjects(true);
+  var rows=_mpFamSel?baseRows.filter(function(mp){return _mpFamily(mp)===_mpFamSel;}):baseRows;
+  return _mpSortRows(rows.slice());
+}
 function renderProjectsBody(){
   var body=document.getElementById('mpBody');
   if(!body)return;
@@ -428,7 +434,11 @@ function renderProjectsBody(){
       +'</div>';
     return;
   }
-  rows.sort(function(a,b){
+  _mpSortRows(rows);
+  body.innerHTML=renderProjectsTable(rows);
+}
+function _mpSortRows(rows){
+  return rows.sort(function(a,b){
     var k=_mpSortKey,v;
     // 이관일/출하일은 "변경" 값이 있으면 그 값이 화면에 보이므로, 정렬도 실제 보이는(적용되는)
     // 값 기준으로 해야 화면 순서와 어긋나지 않는다. 호기는 숫자 섞인 텍스트라 숫자 크기로 비교한다
@@ -457,7 +467,6 @@ function renderProjectsBody(){
     if(uv!==0) return uv;
     return _mpUnitCompare(a.customerUnit,b.customerUnit);
   });
-  body.innerHTML=renderProjectsTable(rows);
 }
 
 function thS(sortKey,labelKey,defaultLbl,infoText){
