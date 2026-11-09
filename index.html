@@ -81,7 +81,6 @@
           <button class="btn" id="btnHiddenSetup" onclick="toggleShowHidden()">완료 보기</button>
         </div>
         <div id="equipTools" style="display:none;gap:5px;align-items:center;flex-wrap:wrap">
-          <button class="mobile-only sidebar-toggle" onclick="openSidebar('equip')" title="사이트 필터">☰</button>
           <button class="btn" onclick="collapseAllEquip()">접기 전체</button>
           <button class="btn" onclick="expandAllEquip()">펼치기 전체</button>
           <button class="btn" id="btnEquipDone" onclick="toggleEquipDone()" title="출하까지 체크된(HQ 셋업 완료) 호기는 기본적으로 숨겨집니다">완료 보기</button>
@@ -183,8 +182,8 @@
             </div>
         </div>
         <div class="content" id="view_equip" style="display:none">
-          <div class="sidebar" id="equipSidebar"></div>
           <div class="main" style="overflow:hidden;display:flex;flex-direction:column">
+            <div id="eqFilterBar" style="flex-shrink:0;padding:10px 12px 0 12px"></div>
             <div id="eqSummary"></div>
             <div class="eq-scroll" id="eqScroll">
               <div id="eqGrid"></div>
@@ -216,7 +215,7 @@
   <script src="filepreview.js?v=20261016f"></script>
   <script src="setup.js?v=20261026b"></script>
   <script src="person.js?v=20261020a"></script>
-  <script src="equip.js?v=20261110a"></script>
+  <script src="equip.js?v=20261110b"></script>
   <script src="export.js?v=20261104b"></script>
   <script src="home.js?v=20261026a"></script>
   <script src="bu1.js?v=20261027a"></script>

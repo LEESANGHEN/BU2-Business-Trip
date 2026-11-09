@@ -2,10 +2,10 @@
    설비 진행율 탭
 ════════════════════════════════════════════ */
 var _equipEditMode=false;
-var _equipFilterSite='all';
+// 필터 상태(상단 필터 행): 국가 / 고객사(사이트 id) / 설비명(라인) / 셋업 위치 — 각각 여러 개 선택 가능, 빈 배열=전체
+var _eqMS={region:[],site:[],line:[],loc:[]};
+function _eqAnyFilter(){ return !!(_eqMS.region.length||_eqMS.site.length||_eqMS.line.length||_eqMS.loc.length); }
 // 셋업 위치 필터 — 프로젝트 관리의 "셋업 장소"(본사/트리엔(구미)/JTN(천안)/센트로닉스)로 호기를 거른다.
-// 위치를 고르면 그 위치에서 셋업 중인 호기가 있는 사이트만 사이드바에 보이고, 표·요약도 그 호기만 보인다
-var _equipFilterLoc='all';
 var _EQ_LOCS=[
   {key:'본사',label:'본사(대전)'},
   {key:'트리엔',label:'트리엔(구미)'},
@@ -17,7 +17,14 @@ function _eqLocKeyOf(str){
   for(var i=0;i<_EQ_LOCS.length;i++) if(str.indexOf(_EQ_LOCS[i].key)===0) return _EQ_LOCS[i].key;
   return '';
 }
-function _eqUnitInLoc(u){ return _equipFilterLoc==='all'||_eqLocKeyOf(u.autoLoc)===_equipFilterLoc; }
+// 국가·고객사·설비명·셋업 위치 필터를 모두 통과하는지
+function _eqUnitPassFilters(u){
+  if(_eqMS.site.length&&_eqMS.site.indexOf(u.siteId)<0) return false;
+  if(_eqMS.region.length){ var s=_eqSite(u.siteId); if(!s||_eqMS.region.indexOf(s.country||'기타')<0) return false; }
+  if(_eqMS.line.length&&_eqMS.line.indexOf((u.lineName||'').trim())<0) return false;
+  if(_eqMS.loc.length&&_eqMS.loc.indexOf(_eqLocKeyOf(u.autoLoc))<0) return false;
+  return true;
+}
 // 출하까지 체크된("설비 출하" 칸 완료) 호기 = HQ 설비 셋업 완료 → 기본으로 숨기고, "완료 보기"를 누르면 보인다
 var _eqShowDone=false;
 function _eqShipDone(u){
@@ -26,10 +33,9 @@ function _eqShipDone(u){
   return !!(c&&!c.na&&(parseFloat(c.percent)||0)>=100);
 }
 function _eqUnitShown(u){ return _eqShowDone||!_eqShipDone(u); }   // 완료 숨김 규칙만 적용
-function _eqUnitVisible(u){ return _eqUnitInLoc(u)&&_eqUnitShown(u); }
+function _eqUnitVisible(u){ return _eqUnitPassFilters(u)&&_eqUnitShown(u); }
 function _eqVisibleUnits(){ return S.equipUnits.filter(_eqUnitVisible); }
 function toggleEquipDone(){ _eqShowDone=!_eqShowDone; renderEquipTab(); }
-function setEquipLoc(key){ _equipFilterLoc=key; renderEquipTab(); }
 var _EQUIP_COLLAPSED_LS_KEY='bu2_equip_collapsed';
 var _equipCollapsed=(function(){
   try{return JSON.parse(localStorage.getItem(_EQUIP_COLLAPSED_LS_KEY)||'{}')||{};}catch(e){return {};}
@@ -340,96 +346,128 @@ function calcProjectProgress(projectId){
   return Math.round(sum/units.length);
 }
 
-/* ── 사이드바 렌더 ── */
-function renderEquipSidebar(){
-  var el=document.getElementById('equipSidebar');
-  if(!el) return;
-  ensureEquipSiteOrder();
-  // equipSiteOrder 기반 + units에 있는 사이트 fallback
-  var sidebarSiteIds=[];
-  S.equipSiteOrder.forEach(function(id){
-    if(_eqSite(id)) sidebarSiteIds.push(id);
-  });
-  S.equipUnits.forEach(function(u){
-    if(sidebarSiteIds.indexOf(u.siteId)<0) sidebarSiteIds.push(u.siteId);
-  });
-  // 호기가 0개인 사이트는 필터에 보이지 않게 한다(국가 묶음도 전부 비면 같이 사라짐).
-  // 셋업 위치 필터가 걸려 있으면 그 위치의 호기만 기준으로 센다
-  var visUnits=_eqVisibleUnits();
-  sidebarSiteIds=sidebarSiteIds.filter(function(id){
-    return visUnits.some(function(u){return u.siteId===id;});
-  });
-  // 선택해 둔 필터가 사라진 사이트면 전체 보기로 되돌린다
-  if(_equipFilterSite!=='all'&&_equipFilterSite.indexOf('c:')!==0&&sidebarSiteIds.indexOf(_equipFilterSite)<0) _equipFilterSite='all';
-  var html='<div class="sbhead" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between"><span class="slbl">사이트 필터</span>'
-    +'<button class="mobile-only sidebar-toggle" onclick="closeSidebar(\'equip\')" title="닫기" style="font-size:11px;padding:2px 6px">✕</button>';
-  if(_equipEditMode) html+='<div style="width:100%;font-size:10px;color:#6a6a88;margin-top:2px">드래그로 순서 변경</div>';
-  html+='</div>';
-  // 셋업 위치 필터 (전체 / 본사(대전) / 트리엔(구미) / JTN(천안) / 센트로닉스(천안))
-  html+='<div style="padding:8px 10px 4px"><div style="font-size:10px;color:var(--tx-muted);margin-bottom:4px">셋업 위치</div>'
-    +'<div style="display:flex;flex-wrap:wrap;gap:4px">'
-    +'<button class="pm-filter-btn'+(_equipFilterLoc==='all'?' on':'')+'" onclick="setEquipLoc(\'all\')">전체</button>';
-  _EQ_LOCS.forEach(function(l){
-    var n=S.equipUnits.filter(function(u){return _eqUnitShown(u)&&_eqLocKeyOf(u.autoLoc)===l.key;}).length;
-    html+='<button class="pm-filter-btn'+(_equipFilterLoc===l.key?' on':'')+'" onclick="setEquipLoc(\''+l.key+'\')">'+l.label+' '+n+'</button>';
-  });
-  html+='</div></div><div class="sbody">';
-  html+='<div class="sit-all'+(_equipFilterSite==='all'?' on':'')
-    +'" onclick="setEquipFilter(\'all\')"><span class="sname">전체 보기</span></div>';
-
-  // 국가(지역)별로 묶어서 표시 — 간트 차트 사이드바와 동일한 형태
-  var countryMap={};
-  sidebarSiteIds.forEach(function(siteId){
-    var site=_eqSite(siteId);
-    if(!site) return;
-    var c=site.country||'기타';
-    if(!countryMap[c]) countryMap[c]=[];
-    countryMap[c].push(site);
-  });
-  var orderedCountries=[];
-  (typeof BASE_REGIONS!=='undefined'?BASE_REGIONS:[]).forEach(function(c){if(countryMap[c])orderedCountries.push(c);});
-  Object.keys(countryMap).forEach(function(c){if(orderedCountries.indexOf(c)<0)orderedCountries.push(c);});
-
-  orderedCountries.forEach(function(country){
-    var sites=countryMap[country];
-    var countryKey='c:'+country;
-    var grpCnt=sites.reduce(function(sum,s){return sum+visUnits.filter(function(u){return u.siteId===s.id;}).length;},0);
-    html+='<div class="grplbl'+(_equipFilterSite===countryKey?' on':'')+'" onclick="setEquipFilter(\''+countryKey.replace(/'/g,"\\'")+'\')">'
-      +country+'<span class="scnt grp-cnt">'+grpCnt+'</span></div>';
-    sites.forEach(function(site){
-      var siteId=site.id;
-      var cnt=visUnits.filter(function(u){return u.siteId===siteId;}).length;
-      var drag=_equipEditMode
-        ?' draggable="true"'
-         +' ondragstart="onEquipSiteDragStart(\''+siteId+'\')"'
-         +' ondragover="event.preventDefault()"'
-         +' ondrop="onEquipSiteDrop(\''+siteId+'\')"'
-         +' style="cursor:grab"'
-        :'';
-      html+='<div class="sit'+(_equipFilterSite===siteId?' on':'')+'"'
-        +drag+' onclick="setEquipFilter(\''+siteId+'\')">'
-        +'<div class="sdot" style="background:'+site.color+'"></div>'
-        +'<span class="sname">'+site.name+'</span><span class="scnt">'+cnt+'</span></div>';
-    });
-  });
-  html+='</div>';
-  el.innerHTML=html;
+/* ── 상단 필터 행 (프로젝트 관리 탭과 같은 다중 선택 드롭다운) ──
+   국가 / 고객사(사이트) / 설비명(라인) / 셋업 위치를 여러 개씩 고를 수 있고, 표·요약 카드·호기 수가 모두 그 조건을 따른다.
+   (예전 왼쪽 사이드바 필터를 대체한다) */
+var _EQ_MS_LABELS={region:'국가',site:'고객사',line:'설비명',loc:'셋업 위치'};
+var _EQ_MS_DEFS={
+  region:function(){
+    var arr=[];
+    S.equipUnits.filter(_eqUnitShown).forEach(function(u){var s=_eqSite(u.siteId); var c=s?(s.country||'기타'):''; if(c&&arr.indexOf(c)<0) arr.push(c);});
+    var ordered=[];
+    (typeof BASE_REGIONS!=='undefined'?BASE_REGIONS:[]).forEach(function(c){if(arr.indexOf(c)>=0) ordered.push(c);});
+    arr.forEach(function(c){if(ordered.indexOf(c)<0) ordered.push(c);});
+    return ordered.map(function(v){return {value:v,label:(typeof tRegion==='function'?tRegion(v):v)};});
+  },
+  site:function(){
+    ensureEquipSiteOrder();
+    var ids=[];
+    S.equipSiteOrder.forEach(function(id){ if(S.equipUnits.some(function(u){return u.siteId===id&&_eqUnitShown(u);})) ids.push(id); });
+    S.equipUnits.filter(_eqUnitShown).forEach(function(u){ if(ids.indexOf(u.siteId)<0) ids.push(u.siteId); });
+    return ids.map(function(id){var s=_eqSite(id); return s?{value:id,label:s.name}:null;}).filter(Boolean);
+  },
+  line:function(){
+    var arr=[];
+    S.equipUnits.filter(_eqUnitShown).forEach(function(u){var l=(u.lineName||'').trim(); if(l&&arr.indexOf(l)<0) arr.push(l);});
+    arr.sort(function(a,b){return a.localeCompare(b,'ko');});
+    return arr.map(function(v){return {value:v,label:v};});
+  },
+  loc:function(){
+    return _EQ_LOCS.map(function(l){return {value:l.key,label:l.label};});
+  }
+};
+function _eqMsSummary(key){
+  var sel=_eqMS[key];
+  if(!sel.length) return '전체';
+  if(sel.length===1){
+    var o=_EQ_MS_DEFS[key]().find(function(x){return x.value===sel[0];});
+    return o?o.label:sel[0];
+  }
+  return sel.length+'개 선택';
 }
-
-function setEquipFilter(siteId){
-  _equipFilterSite=siteId;
+function _eqMsAttr(v){ return String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+function _eqMsOptionsHtml(key){
+  var sel=_eqMS[key];
+  var html='<label class="pm-ms-opt all"><input type="checkbox" '+(sel.length===0?'checked':'')+' onchange="_eqMsClearAll(\''+key+'\')">전체</label>';
+  _EQ_MS_DEFS[key]().forEach(function(o){
+    html+='<label class="pm-ms-opt"><input type="checkbox" '+(sel.indexOf(o.value)>=0?'checked':'')+' onchange="_eqMsToggle(\''+key+'\',\''+_eqMsAttr(o.value)+'\')">'+_esc(o.label)+'</label>';
+  });
+  return html;
+}
+function _eqMsHtml(key){
+  return '<div class="pm-ctrl-group"><span class="pm-ctrl-label">'+_EQ_MS_LABELS[key]+'</span>'
+    +'<div class="pm-ms-wrap">'
+    +'<button type="button" class="pm-ms-trigger" onclick="_eqMsTogglePanel(\''+key+'\')"><span id="eqMsLbl_'+key+'">'+_esc(_eqMsSummary(key))+'</span> ▾</button>'
+    +'<div class="pm-ms-panel" id="eqMsPanel_'+key+'" style="display:none">'+_eqMsOptionsHtml(key)+'</div>'
+    +'</div></div>';
+}
+function _eqMsTogglePanel(key){
+  var panel=document.getElementById('eqMsPanel_'+key);
+  if(!panel) return;
+  var willOpen=panel.style.display==='none';
+  document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
+  panel.style.display=willOpen?'block':'none';
+}
+function _eqMsRefresh(key){
+  var panel=document.getElementById('eqMsPanel_'+key);
+  if(panel) panel.innerHTML=_eqMsOptionsHtml(key);
+  var lbl=document.getElementById('eqMsLbl_'+key);
+  if(lbl) lbl.textContent=_eqMsSummary(key);
+}
+function _eqUpdateCount(){
+  var el=document.getElementById('eqCount');
+  if(el) el.innerHTML='총 <b>'+S.equipUnits.filter(_eqUnitVisible).length+'</b>호기'+(_eqAnyFilter()?' <span style="color:var(--tx-faint)">(전체 '+S.equipUnits.filter(_eqUnitShown).length+'호기 중)</span>':'');
+}
+function _eqMsAfterChange(key){
+  _eqMsRefresh(key);
+  renderEquipGrid();
+  _eqUpdateCount();
+}
+function _eqMsToggle(key,value){
+  var arr=_eqMS[key], idx=arr.indexOf(value);
+  if(idx>=0) arr.splice(idx,1); else arr.push(value);
+  _eqMsAfterChange(key);
+}
+function _eqMsClearAll(key){
+  _eqMS[key]=[];
+  var panel=document.getElementById('eqMsPanel_'+key);
+  if(panel) panel.style.display='none';
+  _eqMsAfterChange(key);
+}
+function eqResetFilters(){
+  _eqMS={region:[],site:[],line:[],loc:[]};
   renderEquipTab();
 }
-// _equipFilterSite 값이 특정 사이트(siteId) / 국가('c:국가명') / 'all' 중 무엇이든
-// 해당 사이트가 필터 조건에 맞는지 판정
+function renderEquipFilterBar(){
+  var el=document.getElementById('eqFilterBar');
+  if(!el) return;
+  // 더 이상 존재하지 않는 값(호기가 지워졌거나 완료로 숨겨진 사이트 등)은 선택에서 뺀다
+  Object.keys(_eqMS).forEach(function(k){
+    var valid=_EQ_MS_DEFS[k]().map(function(o){return o.value;});
+    _eqMS[k]=_eqMS[k].filter(function(v){return valid.indexOf(v)>=0;});
+  });
+  var html='<div class="pm-ctrl-bar" style="margin-bottom:0">';
+  ['region','site','line','loc'].forEach(function(k,i){
+    if(i) html+='<div class="pm-ctrl-sep"></div>';
+    html+=_eqMsHtml(k);
+  });
+  html+='<div class="pm-ctrl-sep"></div>'
+    +'<button class="pm-filter-btn" onclick="eqResetFilters()" title="모든 필터를 전체로 되돌립니다">필터 초기화</button>'
+    +'<div style="flex:1"></div>'
+    +'<span id="eqCount" style="font-size:12px;color:var(--tx-second)"></span>'
+    +'</div>';
+  el.innerHTML=html;
+  _eqUpdateCount();
+}
+
+// 사이트가 국가·고객사 필터에 맞는지(항목 열의 적용 사이트 판정용)
 function _equipSiteMatchesFilter(siteId){
-  if(_equipFilterSite==='all') return true;
-  if(_equipFilterSite.indexOf('c:')===0){
-    var country=_equipFilterSite.slice(2);
-    var site=_eqSite(siteId);
-    return !!site&&(site.country||'기타')===country;
+  if(_eqMS.site.length&&_eqMS.site.indexOf(siteId)<0) return false;
+  if(_eqMS.region.length){
+    var s=_eqSite(siteId);
+    if(!s||_eqMS.region.indexOf(s.country||'기타')<0) return false;
   }
-  return siteId===_equipFilterSite;
+  return true;
 }
 function toggleEquipCollapse(siteId){
   _equipCollapsed[siteId]=!_equipCollapsed[siteId];
@@ -468,7 +506,7 @@ function renderEquipTab(){
   if(syncEquipFromMasterProjects()) saveData();   // 이관일 D-2가 된 프로젝트의 호기 행 자동 생성
   _migrateEquipCells();
   _migrateEquipProjectManagers();
-  renderEquipSidebar();
+  renderEquipFilterBar();
   renderEquipGrid();
   // "완료 보기" 버튼 상태 동기화(다른 탭의 완료 보기 버튼과 같은 표기: 켜면 "완료 숨기기" + 강조색)
   var doneBtn=document.getElementById('btnEquipDone');
