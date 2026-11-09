@@ -3,6 +3,23 @@
 ════════════════════════════════════════════ */
 var _equipEditMode=false;
 var _equipFilterSite='all';
+// 셋업 위치 필터 — 프로젝트 관리의 "셋업 장소"(본사/트리엔(구미)/JTN(천안)/센트로닉스)로 호기를 거른다.
+// 위치를 고르면 그 위치에서 셋업 중인 호기가 있는 사이트만 사이드바에 보이고, 표·요약도 그 호기만 보인다
+var _equipFilterLoc='all';
+var _EQ_LOCS=[
+  {key:'본사',label:'본사(대전)'},
+  {key:'트리엔',label:'트리엔(구미)'},
+  {key:'JTN',label:'JTN(천안)'},
+  {key:'센트로닉스',label:'센트로닉스(천안)'}
+];
+function _eqLocKeyOf(str){
+  str=String(str||'').trim();
+  for(var i=0;i<_EQ_LOCS.length;i++) if(str.indexOf(_EQ_LOCS[i].key)===0) return _EQ_LOCS[i].key;
+  return '';
+}
+function _eqUnitInLoc(u){ return _equipFilterLoc==='all'||_eqLocKeyOf(u.autoLoc)===_equipFilterLoc; }
+function _eqVisibleUnits(){ return S.equipUnits.filter(_eqUnitInLoc); }
+function setEquipLoc(key){ _equipFilterLoc=key; renderEquipTab(); }
 var _EQUIP_COLLAPSED_LS_KEY='bu2_equip_collapsed';
 var _equipCollapsed=(function(){
   try{return JSON.parse(localStorage.getItem(_EQUIP_COLLAPSED_LS_KEY)||'{}')||{};}catch(e){return {};}
@@ -113,7 +130,10 @@ function syncEquipFromMasterProjects(){
     var line=mp.projectName||'', unitLbl=_eqUnitLabel(mp);
     var sig=[cust,mp.region||'',line,unitLbl].join('|');
     var unit=byMp[mp.id];
+    var loc=mp.setupLocation||'';
     if(unit){
+      // 셋업 위치(프로젝트 관리의 셋업 장소)는 항상 최신으로 맞춘다 — 위치 필터 기준
+      if((unit.autoLoc||'')!==loc){ unit.autoLoc=loc; _touch(unit); changed=true; }
       // 프로젝트 쪽 표기가 바뀐 경우에만 라벨을 다시 맞춘다(그 전에 직접 고친 값은 유지)
       if(unit.autoSig!==sig){
         unit.autoSig=sig; unit.autoCustomer=cust; unit.autoRegion=mp.region||'기타';
@@ -133,7 +153,7 @@ function syncEquipFromMasterProjects(){
       var s=item.siteIds;
       if(!s||s.length===0||s.indexOf(siteId)>=0) cells[item.id]={na:false,planDate:'',percent:0,doneDate:''};
     });
-    S.equipUnits.push(_touch({id:id,mpId:mp.id,auto:true,autoSig:sig,autoCustomer:cust,autoRegion:mp.region||'기타',
+    S.equipUnits.push(_touch({id:id,mpId:mp.id,auto:true,autoSig:sig,autoCustomer:cust,autoRegion:mp.region||'기타',autoLoc:loc,
       siteId:siteId,equipProjectId:null,lineName:line,unitName:unitLbl,memo:'',cells:cells,cellsMt:Date.now()}));
     changed=true;
   });
@@ -295,7 +315,7 @@ function calcUnitProgress(unit){
 }
 
 function calcSiteProgress(siteId){
-  var units=S.equipUnits.filter(function(u){return u.siteId===siteId;});
+  var units=_eqVisibleUnits().filter(function(u){return u.siteId===siteId;});
   if(!units.length) return null;
   var sum=0;
   units.forEach(function(u){sum+=calcUnitProgress(u);});
@@ -323,16 +343,27 @@ function renderEquipSidebar(){
   S.equipUnits.forEach(function(u){
     if(sidebarSiteIds.indexOf(u.siteId)<0) sidebarSiteIds.push(u.siteId);
   });
-  // 호기가 0개인 사이트는 필터에 보이지 않게 한다(국가 묶음도 전부 비면 같이 사라짐)
+  // 호기가 0개인 사이트는 필터에 보이지 않게 한다(국가 묶음도 전부 비면 같이 사라짐).
+  // 셋업 위치 필터가 걸려 있으면 그 위치의 호기만 기준으로 센다
+  var visUnits=_eqVisibleUnits();
   sidebarSiteIds=sidebarSiteIds.filter(function(id){
-    return S.equipUnits.some(function(u){return u.siteId===id;});
+    return visUnits.some(function(u){return u.siteId===id;});
   });
   // 선택해 둔 필터가 사라진 사이트면 전체 보기로 되돌린다
   if(_equipFilterSite!=='all'&&_equipFilterSite.indexOf('c:')!==0&&sidebarSiteIds.indexOf(_equipFilterSite)<0) _equipFilterSite='all';
   var html='<div class="sbhead" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between"><span class="slbl">사이트 필터</span>'
     +'<button class="mobile-only sidebar-toggle" onclick="closeSidebar(\'equip\')" title="닫기" style="font-size:11px;padding:2px 6px">✕</button>';
   if(_equipEditMode) html+='<div style="width:100%;font-size:10px;color:#6a6a88;margin-top:2px">드래그로 순서 변경</div>';
-  html+='</div><div class="sbody">';
+  html+='</div>';
+  // 셋업 위치 필터 (전체 / 본사(대전) / 트리엔(구미) / JTN(천안) / 센트로닉스(천안))
+  html+='<div style="padding:8px 10px 4px"><div style="font-size:10px;color:var(--tx-muted);margin-bottom:4px">셋업 위치</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:4px">'
+    +'<button class="pm-filter-btn'+(_equipFilterLoc==='all'?' on':'')+'" onclick="setEquipLoc(\'all\')">전체</button>';
+  _EQ_LOCS.forEach(function(l){
+    var n=S.equipUnits.filter(function(u){return _eqLocKeyOf(u.autoLoc)===l.key;}).length;
+    html+='<button class="pm-filter-btn'+(_equipFilterLoc===l.key?' on':'')+'" onclick="setEquipLoc(\''+l.key+'\')">'+l.label+' '+n+'</button>';
+  });
+  html+='</div></div><div class="sbody">';
   html+='<div class="sit-all'+(_equipFilterSite==='all'?' on':'')
     +'" onclick="setEquipFilter(\'all\')"><span class="sname">전체 보기</span></div>';
 
@@ -352,12 +383,12 @@ function renderEquipSidebar(){
   orderedCountries.forEach(function(country){
     var sites=countryMap[country];
     var countryKey='c:'+country;
-    var grpCnt=sites.reduce(function(sum,s){return sum+S.equipUnits.filter(function(u){return u.siteId===s.id;}).length;},0);
+    var grpCnt=sites.reduce(function(sum,s){return sum+visUnits.filter(function(u){return u.siteId===s.id;}).length;},0);
     html+='<div class="grplbl'+(_equipFilterSite===countryKey?' on':'')+'" onclick="setEquipFilter(\''+countryKey.replace(/'/g,"\\'")+'\')">'
       +country+'<span class="scnt grp-cnt">'+grpCnt+'</span></div>';
     sites.forEach(function(site){
       var siteId=site.id;
-      var cnt=S.equipUnits.filter(function(u){return u.siteId===siteId;}).length;
+      var cnt=visUnits.filter(function(u){return u.siteId===siteId;}).length;
       var drag=_equipEditMode
         ?' draggable="true"'
          +' ondragstart="onEquipSiteDragStart(\''+siteId+'\')"'
@@ -576,7 +607,7 @@ function renderEquipGrid(){
 
   // 필터링
   var allUnits=S.equipUnits.filter(function(u){
-    return _equipSiteMatchesFilter(u.siteId);
+    return _eqUnitInLoc(u)&&_equipSiteMatchesFilter(u.siteId);
   });
 
   // 사이트 목록 — equipSiteOrder 기반
@@ -604,7 +635,7 @@ function renderEquipGrid(){
       if(!site) return;
       var pct=calcSiteProgress(siteId);
       if(pct===null) return;
-      var units=S.equipUnits.filter(function(u){return u.siteId===siteId;});
+      var units=allUnits.filter(function(u){return u.siteId===siteId;});
       var doneCount=units.filter(function(u){return calcUnitProgress(u)===100;}).length;
       var barColor=pct===100?'#2a8a40':(pct>=70?'#1a6bbf':'#b87a10');
       var siteProjs=(S.equipProjects||[]).filter(function(p){return p.siteId===siteId;});
