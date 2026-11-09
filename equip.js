@@ -802,12 +802,6 @@ function openEquipCellEdit(unitId,itemId){
   if(modalEl) modalEl.style.width='690px';
 }
 
-function equipCellNaChange(){
-  var na=document.getElementById('eq_na').checked;
-  var wrap=document.getElementById('eq_fields_wrap');
-  if(wrap) wrap.style.display=na?'none':'';
-}
-
 // 완료 체크 시 완료일 칸을 보이고(비어 있으면 오늘 날짜), 체크를 풀면 숨긴다
 function equipCellDoneChange(){
   var on=document.getElementById('eq_done').checked;
@@ -823,23 +817,18 @@ function equipCellDoneChange(){
 function saveEquipCell(unitId,itemId){
   var unit=S.equipUnits.find(function(u){return u.id===unitId;});
   if(!unit) return;
-  var na=document.getElementById('eq_na').checked;
   var noteEl=document.getElementById('eq_note');
   var note=noteEl?noteEl.value.trim():'';
-  var cell;
-  if(na){
-    cell={na:true,planDate:'',percent:0,doneDate:'',note:note};
-  } else {
-    var planDate=document.getElementById('eq_planDate').value||'';
-    // 진행률은 완료 체크 여부로만 정한다(체크=100, 해제=0). 완료일은 체크했을 때만 저장
-    var isDone=document.getElementById('eq_done').checked;
-    var doneDate=isDone?(document.getElementById('eq_doneDate').value||''):'';
-    if(isDone&&!doneDate){
-      var d=new Date();
-      doneDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-    }
-    cell={na:false,planDate:planDate,percent:isDone?100:0,doneDate:doneDate,note:note};
+  // 해당 없음(N/A)·시작 예정일 입력은 없앴다 — 모든 칸은 항상 해당되는 항목이고, 예전에 저장된 시작 예정일 값은 그대로 보존한다
+  var old=_migrateEquipCell((unit.cells||{})[itemId]);
+  // 진행률은 완료 체크 여부로만 정한다(체크=100, 해제=0). 완료일은 체크했을 때만 저장
+  var isDone=document.getElementById('eq_done').checked;
+  var doneDate=isDone?(document.getElementById('eq_doneDate').value||''):'';
+  if(isDone&&!doneDate){
+    var d=new Date();
+    doneDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
+  var cell={na:false,planDate:old.planDate||'',percent:isDone?100:0,doneDate:doneDate,note:note};
   if(!unit.cells) unit.cells={};
   unit.cells[itemId]=cell;
   unit.cellsMt=Date.now();
