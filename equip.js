@@ -323,6 +323,12 @@ function renderEquipSidebar(){
   S.equipUnits.forEach(function(u){
     if(sidebarSiteIds.indexOf(u.siteId)<0) sidebarSiteIds.push(u.siteId);
   });
+  // 호기가 0개인 사이트는 필터에 보이지 않게 한다(국가 묶음도 전부 비면 같이 사라짐)
+  sidebarSiteIds=sidebarSiteIds.filter(function(id){
+    return S.equipUnits.some(function(u){return u.siteId===id;});
+  });
+  // 선택해 둔 필터가 사라진 사이트면 전체 보기로 되돌린다
+  if(_equipFilterSite!=='all'&&_equipFilterSite.indexOf('c:')!==0&&sidebarSiteIds.indexOf(_equipFilterSite)<0) _equipFilterSite='all';
   var html='<div class="sbhead" style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between"><span class="slbl">사이트 필터</span>'
     +'<button class="mobile-only sidebar-toggle" onclick="closeSidebar(\'equip\')" title="닫기" style="font-size:11px;padding:2px 6px">✕</button>';
   if(_equipEditMode) html+='<div style="width:100%;font-size:10px;color:#6a6a88;margin-top:2px">드래그로 순서 변경</div>';
