@@ -716,7 +716,9 @@ function renderEquipGrid(){
     var g=item.groupName||'';
     var isGroupStart=(g!==prevGroup);
     var groupLbl='';
-    if(g){
+    // 그룹이 하나뿐이면(지금은 "본사 셋업"만 있음) 열마다 그룹명을 반복해서 보여줄 필요가 없어 표시하지 않는다.
+    // 그룹이 둘 이상이 되면 구분을 위해 다시 표시된다
+    if(g&&groupSeq.length>1){
       groupLbl='<div style="font-size:8px;color:#534AB7;margin-bottom:2px;letter-spacing:.04em">'+g+'</div>';
       if(e&&isGroupStart){
         var gIdx=groupSeq.indexOf(g);
