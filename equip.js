@@ -709,7 +709,7 @@ function openEquipCellEdit(unitId,itemId){
     +'<input type="date" id="eq_planDate" value="'+(cell.planDate||'')+'" style="width:100%"></div>'
     +'<label class="chkrow" style="margin:4px 0 10px"><input type="checkbox" id="eq_done"'+((parseFloat(cell.percent)||0)>=100?' checked':'')+' onchange="equipCellDoneChange()"> 완료</label>'
     +'<div class="fg" id="eq_doneDate_wrap" style="'+((parseFloat(cell.percent)||0)>=100?'':'display:none')+'"><label class="fl">완료일 — 완료를 체크하면 오늘 날짜가 들어가며, 직접 바꿀 수 있습니다</label>'
-    +'<input type="date" id="eq_doneDate" value="'+(cell.doneDate||'')+'" style="width:100%"></div>'
+    +'<input type="date" id="eq_doneDate" value="'+((parseFloat(cell.percent)||0)>=100?(cell.doneDate||''):'')+'" style="width:100%"></div>'
     +'<div class="fg"><label class="fl">특이사항 (선택) — 마우스를 올리면 셀에서 바로 확인 가능</label>'
     +'<textarea id="eq_note" rows="8" placeholder="예: 부품 입고 지연으로 일정 연기" style="width:100%;resize:vertical;background:var(--bg-input);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:4px;padding:6px;font-size:12px">'+(cell.note||'')+'</textarea></div>'
     +'</div>'
