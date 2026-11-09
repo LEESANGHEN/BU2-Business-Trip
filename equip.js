@@ -463,17 +463,10 @@ function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
   var uType=isNoProj?(calcUnitActivePhase(unit)||unit.unitType||'납품셋업'):null;
   var uTypeBadge=uType?'<span class="eq-type-badge" style="font-size:9px;padding:1px 5px;background:'+_typeColor(uType)+'">'+uType+'</span>':'';
   html+='<td class="eq-td-fix eq-col-unit'+(e?' editable':'')+'"'
-    +' style="left:0;border-right:1px solid var(--bd-main);font-weight:500;'+unitBg+'"'
+    +' style="left:0;border-right:2px solid var(--bd-strong);font-weight:500;'+unitBg+'"'
     +(e?' onclick="openEditEquipUnit(\''+unit.id+'\')"':'')+'>'
     +uTypeBadge+(unit.unitName||'')+pctBar+'</td>';
-  if(msDateItem){
-    // 항목별 셋업 시작일/진행율은 수정모드와 무관하게 항상 클릭해서 개별 수정 가능
-    html+=renderEquipCellSticky((unit.cells||{})[msDateItem.id],true,unit.id,msDateItem.id,
-      'eq-col-msdate','left:0;border-right:1px solid #3a3a44');
-  } else {
-    html+='<td class="eq-td-fix eq-col-msdate" style="left:0;border-right:1px solid #3a3a44"></td>';
-  }
-  html+=renderEquipMemoCell(unit,e);
+  // 고정 열은 라인·호기 2개뿐(양산시작·메모 열은 제거함)
   scrollItems.forEach(function(item){
     html+=renderEquipCell((unit.cells||{})[item.id],true,unit.id,item.id);
   });
@@ -571,17 +564,15 @@ function renderEquipGrid(){
   }
 
   var e=_equipEditMode;
-  // colCount: 고정 4열 (라인/호기/양산시작/메모) + 스크롤 항목 + 관리열(수정모드)
+  // colCount: 고정 2열 (라인/호기) + 스크롤 항목 + 관리열(수정모드)
   var scrollColCount=scrollItems.length+(e?1:0);
 
   /* ── 헤더 단일 행 ── */
   var prevGroup=null;
   var hdrRow='<tr>';
-  // 고정 4열 헤더
+  // 고정 2열 헤더
   hdrRow+='<th class="eq-th fix-col eq-col-line" style="left:0;white-space:nowrap;min-width:40px">라인</th>';
-  hdrRow+='<th class="eq-th fix-col eq-col-unit" style="left:0;min-width:80px;width:80px;border-right:1px solid var(--bd-main)">호기</th>';
-  hdrRow+='<th class="eq-th fix-col eq-col-msdate" style="left:0;min-width:80px;width:80px;border-right:1px solid var(--bd-main)">'+(msDateItem?msDateItem.name:'양산시작')+'</th>';
-  hdrRow+='<th class="eq-th fix-col eq-col-memo" style="left:0;min-width:40px;width:40px;border-right:2px solid var(--bd-strong)">메모</th>';
+  hdrRow+='<th class="eq-th fix-col eq-col-unit" style="left:0;min-width:80px;width:80px;border-right:2px solid var(--bd-strong)">호기</th>';
   // 스크롤 항목 헤더
   scrollItems.forEach(function(item,itemIdx){
     var g=item.groupName||'';
@@ -636,7 +627,7 @@ function renderEquipGrid(){
       :'';
     // 사이트 구분 행 — 4열 colspan sticky로 사이트명/출장자 고정
     bodyHtml+='<tr class="eq-site-row">'
-      +'<td colspan="4" style="position:sticky;left:0;z-index:25;border-left:4px solid '+siteColor+'">'
+      +'<td colspan="2" style="position:sticky;left:0;z-index:25;border-left:4px solid '+siteColor+'">'
       +'<div class="eq-site-inner">'
       +collapseBtn
       +'<span style="font-size:14px;font-weight:700;letter-spacing:.04em">'+siteName+'</span>'
@@ -657,7 +648,7 @@ function renderEquipGrid(){
         var pTypeColor=_typeColor(pType);
         var typeBadge='<span class="eq-type-badge" style="background:'+pTypeColor+'">'+pType+'</span>';
         bodyHtml+='<tr class="eq-project-row">'
-          +'<td colspan="4" class="eq-proj-sticky" style="position:sticky;left:0;z-index:22;background:var(--bg-deep);'
+          +'<td colspan="2" class="eq-proj-sticky" style="position:sticky;left:0;z-index:22;background:var(--bg-deep);'
           +'border-top:1px solid var(--bd-light);border-left:3px solid #4a4a6a;border-bottom:1px solid var(--bd-light);">'
           +'<div class="eq-proj-row1">'
           +typeBadge
@@ -679,7 +670,7 @@ function renderEquipGrid(){
       });
       if(unassigned.length){
         bodyHtml+='<tr class="eq-project-row unassigned">'
-          +'<td colspan="'+(4+scrollColCount)+'" style="position:sticky;left:0;z-index:22;background:var(--bg-deep);'
+          +'<td colspan="'+(2+scrollColCount)+'" style="position:sticky;left:0;z-index:22;background:var(--bg-deep);'
           +'border-top:1px solid var(--bd-light);border-bottom:1px solid var(--bd-light);'
           +'color:var(--tx-faint);font-size:11px;font-style:italic;padding:4px 10px 4px 20px">미지정</td>'
           +'</tr>';
