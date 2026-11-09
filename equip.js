@@ -554,19 +554,20 @@ function hideMemoTooltip(){
 // HQ 셋업 간트 차트의 프로젝트 행과 같은 표시 — "☑ 이관 날짜 · 진행 % (셋업 기간) · ☐ 출하"
 // 프로젝트 관리 연동 행(unit.mpId)에만 나오며, 이관·출하 체크와 진행률은 간트 차트와 같은 계산(_spTransferDone/_spShipDone/_spAutoPct)이다
 function _equipScheduleInfoHtml(unit){
-  if(!unit.mpId||typeof _spAutoPct!=='function') return '';
-  var mp=S.masterProjects.find(function(x){return x.id===unit.mpId;});
-  if(!mp) return '';
-  var transferDate=_mpEffectiveTransferDate(mp), shipDate=_mpEffectiveShipDate(mp);
-  var transferDone=_spTransferDone(mp), shipDone=_spShipDone(mp);
-  var setupRg=_mpSetupRange(mp), autoPct=_spAutoPct(mp);
-  return '<div style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:400;color:var(--tx-second);flex-wrap:wrap;margin-top:4px">'
-    +'<label style="display:flex;align-items:center;gap:3px" title="프로젝트 관리의 이관일 기준으로 자동 체크됩니다"><input type="checkbox" '+(transferDone?'checked':'')+' disabled style="accent-color:#5a9aee">이관'
-    +(transferDone&&transferDate?' <span style="color:var(--tx-faint)">'+fmtFull(transferDate)+'</span>':'')+'</label>'
-    +'<span style="display:flex;align-items:center;gap:4px;white-space:nowrap" title="이관일부터 출하일까지 기간 중 오늘까지 지난 비율(자동 계산)">진행 <b style="color:#4aaa70">'+autoPct+'%</b>'
-    +(setupRg?' <span style="color:var(--tx-faint)">(셋업 '+fmtFull(setupRg.start)+'~'+fmtFull(setupRg.end)+')</span>':'')+'</span>'
-    +'<label style="display:flex;align-items:center;gap:3px" title="프로젝트 관리의 출하일 기준으로 자동 체크됩니다"><input type="checkbox" '+(shipDone?'checked':'')+' disabled style="accent-color:#b39ddb">출하'
-    +(shipDone&&shipDate?' <span style="color:var(--tx-faint)">'+fmtFull(shipDate)+'</span>':'')+'</label>'
+  // 이관/출하 체크는 날짜 자동 계산이 아니라 오른쪽 표의 "이관(생산▶BU2)"·"설비 출하" 칸의 완료 체크를 따른다 —
+  // 그 칸에 완료를 체크하면 여기도 체크되고 그 칸의 완료일이 표시된다. (진행 % 표시는 없앰)
+  function stage(itemName){
+    var item=S.equipItems.find(function(i){return i.name===itemName&&(i.groupName||'')==='본사 셋업';});
+    var c=item&&unit.cells?unit.cells[item.id]:null;
+    var done=!!(c&&!c.na&&(parseFloat(c.percent)||0)>=100);
+    return {done:done,date:done?(c.doneDate||''):''};
+  }
+  var tr=stage('이관(생산▶BU2)'), sh=stage('설비 출하');
+  return '<div style="display:flex;align-items:center;gap:12px;font-size:10px;font-weight:400;color:var(--tx-second);flex-wrap:wrap;margin-top:4px">'
+    +'<label style="display:flex;align-items:center;gap:3px" title="오른쪽 \'이관(생산▶BU2)\' 칸에 완료를 체크하면 체크되고 완료일이 표시됩니다"><input type="checkbox" '+(tr.done?'checked':'')+' disabled style="accent-color:#5a9aee">이관'
+    +(tr.date?' <span style="color:var(--tx-faint)">'+fmtFull(tr.date)+'</span>':'')+'</label>'
+    +'<label style="display:flex;align-items:center;gap:3px" title="오른쪽 \'설비 출하\' 칸에 완료를 체크하면 체크되고 완료일이 표시됩니다"><input type="checkbox" '+(sh.done?'checked':'')+' disabled style="accent-color:#b39ddb">출하'
+    +(sh.date?' <span style="color:var(--tx-faint)">'+fmtFull(sh.date)+'</span>':'')+'</label>'
     +'</div>';
 }
 function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
