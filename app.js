@@ -1235,6 +1235,7 @@ function closeSidebar(view){
 // 모든 스크립트 로드 후 실행 (renderAll 등이 gantt.js에 정의되므로 DOMContentLoaded 사용)
 document.addEventListener('DOMContentLoaded', function(){
   initTheme();
+  _restoreNavCollapsed();
   applyLanguage();
   loadData();
   applyLanguage(); // 캐시에 저장된 커스텀 타이틀(appTitle) 반영
@@ -1292,7 +1293,8 @@ function switchTab(tab){
   document.getElementById('tab_home').className='nav-item'+(tab==='home'?' on':'');
   document.getElementById('tab_projects').className='nav-item'+(tab==='projects'?' on':'');
   document.getElementById('tab_pedestal').className='nav-item'+(tab==='pedestal'?' on':'');
-  document.getElementById('tab_setup').className='nav-item'+(tab==='setup'?' on':'');
+  var _tabSetupBtn=document.getElementById('tab_setup');   // HQ 셋업 간트 차트 탭 버튼은 숨김(주석) 처리돼 없을 수 있다
+  if(_tabSetupBtn) _tabSetupBtn.className='nav-item'+(tab==='setup'?' on':'');
   document.getElementById('tab_gantt').className='nav-item'+(tab==='gantt'?' on':'');
   document.getElementById('tab_person').className='nav-item'+(tab==='person'?' on':'');
   document.getElementById('tab_equip').className='nav-item'+(tab==='equip'?' on':'');
@@ -1316,6 +1318,24 @@ function switchTab(tab){
 function toggleGlobalNav(){
   var nav=document.getElementById('sideNav');
   if(nav) nav.classList.toggle('open');
+}
+/* ── 왼쪽 메뉴 숨기기/펼치기(데스크톱) — 상태는 이 브라우저에 기억 ── */
+var _NAV_COLLAPSED_LS_KEY='bu2_nav_collapsed';
+function _applyNavCollapsed(on){
+  var nav=document.getElementById('sideNav'), btn=document.getElementById('navToggleDesk');
+  if(nav) nav.classList.toggle('collapsed',!!on);
+  if(btn) btn.title=on?'왼쪽 메뉴 펼치기':'왼쪽 메뉴 숨기기';
+}
+function toggleSideNavCollapsed(){
+  var nav=document.getElementById('sideNav');
+  var on=!(nav&&nav.classList.contains('collapsed'));
+  _applyNavCollapsed(on);
+  try{localStorage.setItem(_NAV_COLLAPSED_LS_KEY,on?'1':'');}catch(e){}
+}
+function _restoreNavCollapsed(){
+  var on=false;
+  try{on=localStorage.getItem(_NAV_COLLAPSED_LS_KEY)==='1';}catch(e){}
+  _applyNavCollapsed(on);
 }
 function closeGlobalNav(){
   var nav=document.getElementById('sideNav');

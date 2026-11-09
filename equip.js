@@ -18,7 +18,17 @@ function _eqLocKeyOf(str){
   return '';
 }
 function _eqUnitInLoc(u){ return _equipFilterLoc==='all'||_eqLocKeyOf(u.autoLoc)===_equipFilterLoc; }
-function _eqVisibleUnits(){ return S.equipUnits.filter(_eqUnitInLoc); }
+// 출하까지 체크된("설비 출하" 칸 완료) 호기 = HQ 설비 셋업 완료 → 기본으로 숨기고, "완료 보기"를 누르면 보인다
+var _eqShowDone=false;
+function _eqShipDone(u){
+  var item=S.equipItems.find(function(i){return i.name==='설비 출하'&&(i.groupName||'')==='본사 셋업';});
+  var c=item&&u.cells?u.cells[item.id]:null;
+  return !!(c&&!c.na&&(parseFloat(c.percent)||0)>=100);
+}
+function _eqUnitShown(u){ return _eqShowDone||!_eqShipDone(u); }   // 완료 숨김 규칙만 적용
+function _eqUnitVisible(u){ return _eqUnitInLoc(u)&&_eqUnitShown(u); }
+function _eqVisibleUnits(){ return S.equipUnits.filter(_eqUnitVisible); }
+function toggleEquipDone(){ _eqShowDone=!_eqShowDone; renderEquipTab(); }
 function setEquipLoc(key){ _equipFilterLoc=key; renderEquipTab(); }
 var _EQUIP_COLLAPSED_LS_KEY='bu2_equip_collapsed';
 var _equipCollapsed=(function(){
@@ -360,7 +370,7 @@ function renderEquipSidebar(){
     +'<div style="display:flex;flex-wrap:wrap;gap:4px">'
     +'<button class="pm-filter-btn'+(_equipFilterLoc==='all'?' on':'')+'" onclick="setEquipLoc(\'all\')">전체</button>';
   _EQ_LOCS.forEach(function(l){
-    var n=S.equipUnits.filter(function(u){return _eqLocKeyOf(u.autoLoc)===l.key;}).length;
+    var n=S.equipUnits.filter(function(u){return _eqUnitShown(u)&&_eqLocKeyOf(u.autoLoc)===l.key;}).length;
     html+='<button class="pm-filter-btn'+(_equipFilterLoc===l.key?' on':'')+'" onclick="setEquipLoc(\''+l.key+'\')">'+l.label+' '+n+'</button>';
   });
   html+='</div></div><div class="sbody">';
@@ -460,6 +470,9 @@ function renderEquipTab(){
   _migrateEquipProjectManagers();
   renderEquipSidebar();
   renderEquipGrid();
+  // "완료 보기" 버튼 상태 동기화(다른 탭의 완료 보기 버튼과 같은 표기: 켜면 "완료 숨기기" + 강조색)
+  var doneBtn=document.getElementById('btnEquipDone');
+  if(doneBtn){ doneBtn.textContent=_eqShowDone?'완료 숨기기':'완료 보기'; doneBtn.className='btn'+(_eqShowDone?' warn':''); }
 }
 
 /* ── 셀 내용(시작예정일 + 진행율 + 완료) 공용 렌더러 ── */
@@ -628,7 +641,7 @@ function renderEquipGrid(){
 
   // 필터링
   var allUnits=S.equipUnits.filter(function(u){
-    return _eqUnitInLoc(u)&&_equipSiteMatchesFilter(u.siteId);
+    return _eqUnitVisible(u)&&_equipSiteMatchesFilter(u.siteId);
   });
 
   // 사이트 목록 — equipSiteOrder 기반
@@ -643,7 +656,10 @@ function renderEquipGrid(){
   /* ── 요약 카드 — eqSummary 영역 (테이블과 분리, 스크롤 독립) ── */
   var summaryEl=document.getElementById('eqSummary');
   if(!allUnits.length){
-    el.innerHTML='<div class="eq-empty">등록된 설비가 없습니다.'
+    var hiddenDone=S.equipUnits.some(function(u){return _eqShipDone(u);})&&!_eqShowDone;
+    el.innerHTML=hiddenDone
+      ?'<div class="eq-empty">표시할 설비가 없습니다.<div class="eq-empty-sub">출하까지 완료된 호기는 숨겨져 있습니다. 위의 [완료 보기]를 누르면 볼 수 있습니다.</div></div>'
+      :'<div class="eq-empty">등록된 설비가 없습니다.'
       +'<div class="eq-empty-sub">수정 모드로 전환 후 [+ 사이트]와 [+ 호기]를 추가하세요.</div></div>';
     if(summaryEl) summaryEl.innerHTML='';
     return;

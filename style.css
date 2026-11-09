@@ -881,6 +881,9 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
    모바일 유틸리티
 ═══════════════════════════════════════════ */
 .mobile-only{display:none}
+.desktop-only{display:inline-flex;align-items:center}
+/* 왼쪽 메뉴 숨기기(데스크톱) — 모바일은 기존 .open 방식이 우선한다 */
+.side-nav.collapsed{display:none}
 .sidebar-toggle{padding:4px 8px;font-size:14px;border:1px solid var(--bd-strong);border-radius:5px;cursor:pointer;background:transparent;color:var(--tx-primary);transition:background .15s;line-height:1}
 .sidebar-toggle:hover{background:var(--bg-hover)}
 
@@ -924,6 +927,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 @media (max-width: 768px) {
   /* 모바일 전용 표시 */
   .mobile-only{display:inline-flex;align-items:center}
+  .desktop-only{display:none}
 
   /* Topbar 컴팩트 */
   .topbar{padding:5px 8px;gap:4px}
