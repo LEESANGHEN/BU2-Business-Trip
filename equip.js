@@ -551,6 +551,24 @@ function hideMemoTooltip(){
   if(tt) tt.style.display='none';
 }
 
+// HQ 셋업 간트 차트의 프로젝트 행과 같은 표시 — "☑ 이관 날짜 · 진행 % (셋업 기간) · ☐ 출하"
+// 프로젝트 관리 연동 행(unit.mpId)에만 나오며, 이관·출하 체크와 진행률은 간트 차트와 같은 계산(_spTransferDone/_spShipDone/_spAutoPct)이다
+function _equipScheduleInfoHtml(unit){
+  if(!unit.mpId||typeof _spAutoPct!=='function') return '';
+  var mp=S.masterProjects.find(function(x){return x.id===unit.mpId;});
+  if(!mp) return '';
+  var transferDate=_mpEffectiveTransferDate(mp), shipDate=_mpEffectiveShipDate(mp);
+  var transferDone=_spTransferDone(mp), shipDone=_spShipDone(mp);
+  var setupRg=_mpSetupRange(mp), autoPct=_spAutoPct(mp);
+  return '<div style="display:flex;align-items:center;gap:8px;font-size:10px;font-weight:400;color:var(--tx-second);flex-wrap:wrap;margin-top:4px">'
+    +'<label style="display:flex;align-items:center;gap:3px" title="프로젝트 관리의 이관일 기준으로 자동 체크됩니다"><input type="checkbox" '+(transferDone?'checked':'')+' disabled style="accent-color:#5a9aee">이관'
+    +(transferDone&&transferDate?' <span style="color:var(--tx-faint)">'+fmtFull(transferDate)+'</span>':'')+'</label>'
+    +'<span style="display:flex;align-items:center;gap:4px;white-space:nowrap" title="이관일부터 출하일까지 기간 중 오늘까지 지난 비율(자동 계산)">진행 <b style="color:#4aaa70">'+autoPct+'%</b>'
+    +(setupRg?' <span style="color:var(--tx-faint)">(셋업 '+fmtFull(setupRg.start)+'~'+fmtFull(setupRg.end)+')</span>':'')+'</span>'
+    +'<label style="display:flex;align-items:center;gap:3px" title="프로젝트 관리의 출하일 기준으로 자동 체크됩니다"><input type="checkbox" '+(shipDone?'checked':'')+' disabled style="accent-color:#b39ddb">출하'
+    +(shipDone&&shipDate?' <span style="color:var(--tx-faint)">'+fmtFull(shipDate)+'</span>':'')+'</label>'
+    +'</div>';
+}
 function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
   var rowCls='eq-row '+(idx%2===0?'even':'odd');
   var unitPct=calcUnitProgress(unit);
@@ -572,7 +590,7 @@ function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
   html+='<td class="eq-td-fix eq-col-unit'+(e?' editable':'')+'"'
     +' style="left:0;border-right:2px solid var(--bd-strong);font-weight:500;'+unitBg+'"'
     +(e?' onclick="openEditEquipUnit(\''+unit.id+'\')"':'')+'>'
-    +uTypeBadge+(unit.unitName||'')+pctBar+'</td>';
+    +uTypeBadge+(unit.unitName||'')+pctBar+_equipScheduleInfoHtml(unit)+'</td>';
   // 고정 열은 라인·호기 2개뿐(양산시작·메모 열은 제거함)
   scrollItems.forEach(function(item){
     html+=renderEquipCell((unit.cells||{})[item.id],true,unit.id,item.id);
@@ -679,7 +697,7 @@ function renderEquipGrid(){
   var hdrRow='<tr>';
   // 고정 2열 헤더
   hdrRow+='<th class="eq-th fix-col eq-col-line" style="left:0;white-space:nowrap;min-width:40px">라인</th>';
-  hdrRow+='<th class="eq-th fix-col eq-col-unit" style="left:0;min-width:80px;width:80px;border-right:2px solid var(--bd-strong)">호기</th>';
+  hdrRow+='<th class="eq-th fix-col eq-col-unit" style="left:0;min-width:260px;width:260px;border-right:2px solid var(--bd-strong)">호기</th>';
   // 스크롤 항목 헤더
   scrollItems.forEach(function(item,itemIdx){
     var g=item.groupName||'';
