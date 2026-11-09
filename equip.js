@@ -361,16 +361,12 @@ function _equipCellInner(cell){
   var today=TODAY.toISOString().slice(0,10);
   var isOver=cell.planDate&&cell.planDate<today&&!isDone;
   var html='';
-  if(cell.planDate){
-    html+='<div class="'+(isOver?'eq-date overdue':'eq-date')+'" style="font-size:10px">'+cell.planDate+'</div>';
-  }
+  // %는 입력하지 않는다 — 완료를 체크하면 "완료 ✓"와 완료일만 보이고, 완료 전에는 시작 예정일만 보인다
   if(isDone){
-    html+='<div style="font-weight:600;color:#4aaa70">100% ✓</div>';
-    if(cell.doneDate) html+='<div style="font-size:10px;color:#5a9aee">'+cell.doneDate+'</div>';
-  } else {
-    var barCls2=pct>=90?'eq-bar-fill hi':'eq-bar-fill';
-    html+='<div class="eq-pct">'+pct+'%</div>'
-      +'<div class="eq-bar-wrap"><div class="'+barCls2+'" style="width:'+Math.min(pct,100)+'%"></div></div>';
+    html+='<div style="font-weight:600;color:#4aaa70">완료 ✓</div>';
+    if(cell.doneDate) html+='<div style="font-size:11px;color:#5a9aee">'+cell.doneDate+'</div>';
+  } else if(cell.planDate){
+    html+='<div class="'+(isOver?'eq-date overdue':'eq-date')+'" style="font-size:11px">'+cell.planDate+'</div>';
   }
   if(cell.note) html+='<span class="eq-note-dot" title="특이사항 있음">●</span>';
   return {done:isDone,html:html};
@@ -711,9 +707,8 @@ function openEquipCellEdit(unitId,itemId){
     +'<div id="eq_fields_wrap" style="'+(cell.na?'display:none':'')+'">'
     +'<div class="fg"><label class="fl">시작 예정일 (선택)</label>'
     +'<input type="date" id="eq_planDate" value="'+(cell.planDate||'')+'" style="width:100%"></div>'
-    +'<div class="fg"><label class="fl">진행율(%) — 100이면 자동으로 완료 처리됩니다</label>'
-    +'<input type="number" id="eq_percent" min="0" max="100" value="'+(cell.percent!=null?cell.percent:0)+'" style="width:100%"></div>'
-    +'<div class="fg"><label class="fl">완료일 (선택, 100%일 때만 표시됨)</label>'
+    +'<label class="chkrow" style="margin:4px 0 10px"><input type="checkbox" id="eq_done"'+((parseFloat(cell.percent)||0)>=100?' checked':'')+' onchange="equipCellDoneChange()"> 완료</label>'
+    +'<div class="fg" id="eq_doneDate_wrap" style="'+((parseFloat(cell.percent)||0)>=100?'':'display:none')+'"><label class="fl">완료일 — 완료를 체크하면 오늘 날짜가 들어가며, 직접 바꿀 수 있습니다</label>'
     +'<input type="date" id="eq_doneDate" value="'+(cell.doneDate||'')+'" style="width:100%"></div>'
     +'<div class="fg"><label class="fl">특이사항 (선택) — 마우스를 올리면 셀에서 바로 확인 가능</label>'
     +'<textarea id="eq_note" rows="8" placeholder="예: 부품 입고 지연으로 일정 연기" style="width:100%;resize:vertical;background:var(--bg-input);color:var(--tx-primary);border:1px solid var(--bd-main);border-radius:4px;padding:6px;font-size:12px">'+(cell.note||'')+'</textarea></div>'
@@ -733,6 +728,18 @@ function equipCellNaChange(){
   if(wrap) wrap.style.display=na?'none':'';
 }
 
+// 완료 체크 시 완료일 칸을 보이고(비어 있으면 오늘 날짜), 체크를 풀면 숨긴다
+function equipCellDoneChange(){
+  var on=document.getElementById('eq_done').checked;
+  var wrap=document.getElementById('eq_doneDate_wrap');
+  var inp=document.getElementById('eq_doneDate');
+  if(wrap) wrap.style.display=on?'':'none';
+  if(on&&inp&&!inp.value){
+    var d=new Date();
+    inp.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+}
+
 function saveEquipCell(unitId,itemId){
   var unit=S.equipUnits.find(function(u){return u.id===unitId;});
   if(!unit) return;
@@ -744,10 +751,14 @@ function saveEquipCell(unitId,itemId){
     cell={na:true,planDate:'',percent:0,doneDate:'',note:note};
   } else {
     var planDate=document.getElementById('eq_planDate').value||'';
-    var percent=parseFloat(document.getElementById('eq_percent').value);
-    if(isNaN(percent)||percent<0||percent>100){alert('진행율은 0~100 사이의 숫자로 입력해주세요.');return;}
-    var doneDate=document.getElementById('eq_doneDate').value||'';
-    cell={na:false,planDate:planDate,percent:percent,doneDate:doneDate,note:note};
+    // 진행률은 완료 체크 여부로만 정한다(체크=100, 해제=0). 완료일은 체크했을 때만 저장
+    var isDone=document.getElementById('eq_done').checked;
+    var doneDate=isDone?(document.getElementById('eq_doneDate').value||''):'';
+    if(isDone&&!doneDate){
+      var d=new Date();
+      doneDate=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    }
+    cell={na:false,planDate:planDate,percent:isDone?100:0,doneDate:doneDate,note:note};
   }
   if(!unit.cells) unit.cells={};
   unit.cells[itemId]=cell;
