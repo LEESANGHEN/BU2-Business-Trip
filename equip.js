@@ -12,6 +12,8 @@ var _EQ_LOCS=[
   {key:'JTN',label:'JTN(천안)'},
   {key:'센트로닉스',label:'센트로닉스(천안)'}
 ];
+// 셋업 위치별 배지 색
+var _EQ_LOC_COLORS={'본사':'#1a55bb','트리엔':'#1a7a3a','JTN':'#aa6000','센트로닉스':'#7a1a99'};
 function _eqLocKeyOf(str){
   str=String(str||'').trim();
   for(var i=0;i<_EQ_LOCS.length;i++) if(str.indexOf(_EQ_LOCS[i].key)===0) return _EQ_LOCS[i].key;
@@ -614,6 +616,11 @@ function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
   var isNoProj=!(unit.equipProjectId&&(S.equipProjects||[]).find(function(p){return p.id===unit.equipProjectId;}));
   var uType=isNoProj?(calcUnitActivePhase(unit)||unit.unitType||'납품셋업'):null;
   var uTypeBadge=uType?'<span class="eq-type-badge" style="font-size:9px;padding:1px 5px;background:'+_typeColor(uType)+'">'+uType+'</span>':'';
+  // 프로젝트 관리 연동 행은 진행 단계("본사 셋업")가 아니라 셋업 위치(본사/트리엔/JTN/센트로닉스)를 배지로 보여준다
+  if(unit.mpId||unit.auto){
+    var lk=_eqLocKeyOf(unit.autoLoc), lbl=lk||String(unit.autoLoc||'').trim();
+    uTypeBadge=lbl?'<span class="eq-type-badge" style="font-size:9px;padding:1px 5px;background:'+(_EQ_LOC_COLORS[lk]||'#5a5a6a')+'">'+_esc(lbl)+'</span>':'';
+  }
   html+='<td class="eq-td-fix eq-col-unit'+(e?' editable':'')+'"'
     +' style="left:0;border-right:2px solid var(--bd-strong);font-weight:500;'+unitBg+'"'
     +(e?' onclick="openEditEquipUnit(\''+unit.id+'\')"':'')+'>'
