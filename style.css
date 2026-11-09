@@ -432,7 +432,6 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .eq-empty{padding:60px 40px;text-align:center;color:var(--tx-faint);font-size:13px}
 .eq-empty-sub{font-size:11px;color:var(--tx-dim);margin-top:8px}
 /* 설비 요약 */
-#eqSummary{flex-shrink:0;border-bottom:2px solid var(--bd-light);background:var(--bg-base)}
 .eq-summary-bar{display:flex;flex-wrap:wrap;gap:10px;padding:12px 16px 10px}
 .eq-summary-card{background:var(--bg-alt);border:1px solid var(--bd-light);border-radius:8px;padding:10px 14px;min-width:130px;flex:0 0 auto}
 /* 인원 탭 — 1인 테이블 */

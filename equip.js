@@ -691,58 +691,14 @@ function renderEquipGrid(){
     if(siteIds.indexOf(u.siteId)<0) siteIds.push(u.siteId);
   });
 
-  /* ── 요약 카드 — eqSummary 영역 (테이블과 분리, 스크롤 독립) ── */
-  var summaryEl=document.getElementById('eqSummary');
+  /* (상단 사이트별 진행률 요약 카드는 제거함) */
   if(!allUnits.length){
     var hiddenDone=S.equipUnits.some(function(u){return _eqShipDone(u);})&&!_eqShowDone;
     el.innerHTML=hiddenDone
       ?'<div class="eq-empty">표시할 설비가 없습니다.<div class="eq-empty-sub">출하까지 완료된 호기는 숨겨져 있습니다. 위의 [완료 보기]를 누르면 볼 수 있습니다.</div></div>'
       :'<div class="eq-empty">등록된 설비가 없습니다.'
       +'<div class="eq-empty-sub">수정 모드로 전환 후 [+ 사이트]와 [+ 호기]를 추가하세요.</div></div>';
-    if(summaryEl) summaryEl.innerHTML='';
     return;
-  }
-
-  if(summaryEl){
-    var summaryHtml='<div class="eq-summary-bar">';
-    siteIds.forEach(function(siteId){
-      var site=_eqSite(siteId);
-      if(!site) return;
-      var pct=calcSiteProgress(siteId);
-      if(pct===null) return;
-      var units=allUnits.filter(function(u){return u.siteId===siteId;});
-      var doneCount=units.filter(function(u){return calcUnitProgress(u)===100;}).length;
-      var barColor=pct===100?'#2a8a40':(pct>=70?'#1a6bbf':'#b87a10');
-      var siteProjs=(S.equipProjects||[]).filter(function(p){return p.siteId===siteId;});
-      var projSubHtml='';
-      if(siteProjs.length>0){
-        projSubHtml='<div class="eq-proj-sub-list">';
-        siteProjs.forEach(function(proj){
-          var pp=calcProjectProgress(proj.id);
-          if(pp===null) return;
-          var pc=pp===100?'#2a8a40':(pp>=70?'#1a6bbf':'#b87a10');
-          projSubHtml+='<div class="eq-proj-sub-item">'
-            +'<span class="eq-proj-sub-name">'+proj.name+'</span>'
-            +'<span class="eq-proj-sub-pct" style="color:'+pc+'">'+pp+'%</span>'
-            +'<div class="eq-proj-sub-bar"><div class="eq-proj-sub-bar-fill" style="width:'+pp+'%;background:'+pc+'"></div></div>'
-            +'</div>';
-        });
-        projSubHtml+='</div>';
-      }
-      summaryHtml+='<div class="eq-summary-card">'
-        +'<div style="display:flex;align-items:center;gap:7px;margin-bottom:6px">'
-        +'<div style="width:4px;height:28px;border-radius:2px;background:'+site.color+';flex-shrink:0"></div>'
-        +'<span style="font-size:13px;font-weight:700">'+site.name+'</span>'
-        +'</div>'
-        +'<div style="font-size:24px;font-weight:700;line-height:1">'+pct+'%</div>'
-        +'<div style="margin:6px 0 3px;background:var(--bd-light);border-radius:3px;height:5px;overflow:hidden">'
-        +'<div style="height:100%;border-radius:3px;background:'+barColor+';width:'+pct+'%"></div></div>'
-        +'<div style="font-size:10px;color:var(--tx-muted);margin-top:3px">'+doneCount+' / '+units.length+' 호기 완료</div>'
-        +projSubHtml
-        +'</div>';
-    });
-    summaryHtml+='</div>';
-    summaryEl.innerHTML=summaryHtml;
   }
 
   var e=_equipEditMode;
