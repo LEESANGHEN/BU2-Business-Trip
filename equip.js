@@ -783,10 +783,7 @@ function openEquipCellEdit(unitId,itemId){
 
   mw('<div class="mtit">셀 편집</div>'
     +'<div style="font-size:11px;color:#888;margin-bottom:14px">'+item.name+'</div>'
-    +'<label class="chkrow" style="margin-bottom:10px"><input type="checkbox" id="eq_na"'+(cell.na?' checked':'')+' onchange="equipCellNaChange()"> 해당 없음 (N/A)</label>'
-    +'<div id="eq_fields_wrap" style="'+(cell.na?'display:none':'')+'">'
-    +'<div class="fg"><label class="fl">시작 예정일 (선택)</label>'
-    +'<input type="date" id="eq_planDate" value="'+(cell.planDate||'')+'" style="width:100%"></div>'
+    +'<div id="eq_fields_wrap">'
     +'<label class="chkrow" style="margin:4px 0 10px"><input type="checkbox" id="eq_done"'+((parseFloat(cell.percent)||0)>=100?' checked':'')+' onchange="equipCellDoneChange()"> 완료</label>'
     +'<div class="fg" id="eq_doneDate_wrap" style="'+((parseFloat(cell.percent)||0)>=100?'':'display:none')+'"><label class="fl">완료일 — 완료를 체크하면 오늘 날짜가 들어가며, 직접 바꿀 수 있습니다</label>'
     +'<input type="date" id="eq_doneDate" value="'+((parseFloat(cell.percent)||0)>=100?(cell.doneDate||''):'')+'" style="width:100%"></div>'
