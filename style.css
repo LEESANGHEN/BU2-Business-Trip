@@ -374,6 +374,11 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 /* 셀 특이사항 표시 점 */
 .eq-note-dot{position:absolute;top:2px;right:3px;font-size:7px;color:#e8a020;line-height:1}
 .eq-td{position:relative}
+/* 보기 모드(수정 모드 아님): 표가 화면 폭에 맞춰 항목 열이 줄어들어, 100% 배율에서도 가로 스크롤 없이 한 화면에 보이게 한다 */
+.eq-table.eq-compact{table-layout:fixed;width:100%;min-width:1120px}
+.eq-table.eq-compact .eq-th{white-space:normal;padding:4px 2px;font-size:10px;line-height:1.25;overflow-wrap:anywhere}
+.eq-table.eq-compact .eq-td{min-width:0;padding:4px 1px;font-size:11px;overflow:hidden}
+.eq-table.eq-compact .eq-td-fix{white-space:normal;overflow-wrap:anywhere}
 /* 그룹 선택기 드롭다운 (옵션별 삭제 버튼 포함) */
 .eq-group-panel{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--bg-panel);border:1px solid var(--bd-main);border-radius:4px;margin-top:2px;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .eq-group-opt{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;font-size:12px;color:var(--tx-primary);cursor:pointer}

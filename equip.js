@@ -473,11 +473,13 @@ function _equipCellInner(cell){
   var isOver=cell.planDate&&cell.planDate<today&&!isDone;
   var html='';
   // %는 입력하지 않는다 — 완료를 체크하면 "완료 ✓"와 완료일만 보이고, 완료 전에는 시작 예정일만 보인다
+  // 날짜는 YY.MM.DD(프로젝트 관리와 같은 짧은 표기)로 표시해 좁은 칸에도 한 줄에 들어가게 한다
+  function sd(s){ return s?String(s).slice(2).replace(/-/g,'.'):''; }
   if(isDone){
     html+='<div style="font-weight:600;color:#4aaa70">완료 ✓</div>';
-    if(cell.doneDate) html+='<div style="font-size:11px;color:#5a9aee">'+cell.doneDate+'</div>';
+    if(cell.doneDate) html+='<div style="font-size:11px;color:#5a9aee">'+sd(cell.doneDate)+'</div>';
   } else if(cell.planDate){
-    html+='<div class="'+(isOver?'eq-date overdue':'eq-date')+'" style="font-size:11px">'+cell.planDate+'</div>';
+    html+='<div class="'+(isOver?'eq-date overdue':'eq-date')+'" style="font-size:11px">'+sd(cell.planDate)+'</div>';
   }
   if(cell.note) html+='<span class="eq-note-dot" title="특이사항 있음">●</span>';
   return {done:isDone,html:html};
@@ -565,9 +567,9 @@ function _equipScheduleInfoHtml(unit){
   var tr=stage('이관(생산▶BU2)'), sh=stage('설비 출하');
   return '<div style="display:flex;align-items:center;gap:12px;font-size:10px;font-weight:400;color:var(--tx-second);flex-wrap:wrap;margin-top:4px">'
     +'<label style="display:flex;align-items:center;gap:3px" title="오른쪽 \'이관(생산▶BU2)\' 칸에 완료를 체크하면 체크되고 완료일이 표시됩니다"><input type="checkbox" '+(tr.done?'checked':'')+' disabled style="accent-color:#5a9aee">이관'
-    +(tr.date?' <span style="color:var(--tx-faint)">'+fmtFull(tr.date)+'</span>':'')+'</label>'
+    +(tr.date?' <span style="color:var(--tx-faint)">'+tr.date.slice(2).replace(/-/g,'.')+'</span>':'')+'</label>'
     +'<label style="display:flex;align-items:center;gap:3px" title="오른쪽 \'설비 출하\' 칸에 완료를 체크하면 체크되고 완료일이 표시됩니다"><input type="checkbox" '+(sh.done?'checked':'')+' disabled style="accent-color:#b39ddb">출하'
-    +(sh.date?' <span style="color:var(--tx-faint)">'+fmtFull(sh.date)+'</span>':'')+'</label>'
+    +(sh.date?' <span style="color:var(--tx-faint)">'+sh.date.slice(2).replace(/-/g,'.')+'</span>':'')+'</label>'
     +'</div>';
 }
 function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
@@ -581,7 +583,7 @@ function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
     pctBar='<div style="font-size:11px;color:var(--tx-muted);margin-top:2px">'+unitPct+'%</div>';
   }
   var html='<tr class="'+rowCls+'">';
-  html+='<td class="eq-td-fix eq-col-line'+(e?' editable':'')+'" style="left:0;min-width:0;white-space:nowrap;text-align:left"'
+  html+='<td class="eq-td-fix eq-col-line'+(e?' editable':'')+'" style="left:0;min-width:0;'+(e?'white-space:nowrap;':'')+'text-align:left"'
     +(e?' onclick="openEditEquipUnit(\''+unit.id+'\')">':'>')
     +(unit.lineName||'')+'</td>';
   // 프로젝트 없는 사이트 직속 호기에만 유형 배지 표시 (프로젝트 호기는 프로젝트 행에서 표시)
@@ -697,8 +699,8 @@ function renderEquipGrid(){
   var prevGroup=null;
   var hdrRow='<tr>';
   // 고정 2열 헤더
-  hdrRow+='<th class="eq-th fix-col eq-col-line" style="left:0;white-space:nowrap;min-width:40px">라인</th>';
-  hdrRow+='<th class="eq-th fix-col eq-col-unit" style="left:0;min-width:260px;width:260px;border-right:2px solid var(--bd-strong)">호기</th>';
+  hdrRow+='<th class="eq-th fix-col eq-col-line" style="left:0;'+(e?'white-space:nowrap;min-width:40px':'width:96px')+'">라인</th>';
+  hdrRow+='<th class="eq-th fix-col eq-col-unit" style="left:0;'+(e?'min-width:260px;width:260px':'width:210px')+';border-right:2px solid var(--bd-strong)">호기</th>';
   // 스크롤 항목 헤더
   scrollItems.forEach(function(item,itemIdx){
     var g=item.groupName||'';
@@ -808,7 +810,7 @@ function renderEquipGrid(){
     }
   });
 
-  el.innerHTML='<table class="eq-table"><thead>'+hdrRow+'</thead><tbody>'+bodyHtml+'</tbody></table>';
+  el.innerHTML='<table class="eq-table'+(e?'':' eq-compact')+'"><thead>'+hdrRow+'</thead><tbody>'+bodyHtml+'</tbody></table>';
   fixEquipStickyOffsets();
 }
 
