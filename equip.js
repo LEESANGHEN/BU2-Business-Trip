@@ -71,6 +71,75 @@ var _EQUIP_SITE_GROUPS=[
   {label:'유럽',        ids:['WA']},
 ];
 
+/* ── 프로젝트 관리 연동 ──
+   프로젝트 관리의 프로젝트가 생산 이관일 2일 전이 되면 이 탭에 호기 행이 자동으로 생긴다.
+   · 구분(사이트)은 S.sites와 무관하게 프로젝트의 "고객사" 이름을 그대로 쓴다 → siteId는 'mp:고객사명'(가상 사이트)
+   · 라인 = 설비명(프로젝트), 호기 = 프로젝트 관리와 같은 표기("생산 33호기_(현장 2호기)")
+   · 행 id는 'eu_mp_<프로젝트 id>'로 고정 → 여러 기기에서 동시에 만들어도 중복되지 않는다
+   · 한 번 만든 행은 이관일이 바뀌어도 그대로 두고, 직접 삭제하면(삭제 기록) 다시 만들지 않는다 */
+var _EQ_AUTO_LEAD_DAYS=2;
+var _EQ_AUTO_COLORS=['#4a8fd8','#3aaa7a','#d89a3a','#b06ad8','#d85a7a','#3ab0c8','#8aa83a','#d8683a'];
+function _eqIsVirtualSiteId(id){ return typeof id==='string'&&id.indexOf('mp:')===0; }
+// 사이트 조회: S.sites에 있으면 그것, 자동 생성 행의 가상 사이트(고객사)면 호기 데이터로 이름·국가·색을 만들어 돌려준다
+function _eqSite(siteId){
+  var real=S.sites.find(function(s){return s.id===siteId;});
+  if(real) return real;
+  if(!_eqIsVirtualSiteId(siteId)) return null;
+  var u=S.equipUnits.find(function(x){return x.siteId===siteId;});
+  if(!u) return null;
+  var name=u.autoCustomer||siteId.slice(3)||'미지정';
+  var h=0; for(var i=0;i<name.length;i++) h=(h*31+name.charCodeAt(i))>>>0;
+  return {id:siteId,name:name,country:u.autoRegion||'기타',color:_EQ_AUTO_COLORS[h%_EQ_AUTO_COLORS.length],virtual:true};
+}
+function _eqLocalToday(){
+  var d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function _eqUnitLabel(mp){
+  var prodLbl=mp.prodUnit?('생산 '+mp.prodUnit):'';
+  var lbl=(prodLbl&&mp.customerUnit)?(prodLbl+'_(현장 '+mp.customerUnit+')'):(prodLbl||(mp.customerUnit?('현장 '+mp.customerUnit):''));
+  return lbl||mp.serial||'';
+}
+// 변경이 있으면 true (호출한 쪽에서 저장)
+function syncEquipFromMasterProjects(){
+  if(!S.masterProjects||!S.masterProjects.length||!S.equipItems||!S.equipItems.length) return false;
+  if(typeof _mpActive!=='function') return false;
+  var today=_eqLocalToday(), changed=false;
+  var byMp={};
+  S.equipUnits.forEach(function(u){ if(u.mpId) byMp[u.mpId]=u; });
+  _mpActive().forEach(function(mp){
+    if(_MP_HIDDEN_STATUSES.indexOf(mp.status||'')>=0) return;   // 완료/LOI 접수/PO 대기/PO 발행은 제외
+    var cust=(mp.customer||'').trim()||'미지정';
+    var line=mp.projectName||'', unitLbl=_eqUnitLabel(mp);
+    var sig=[cust,mp.region||'',line,unitLbl].join('|');
+    var unit=byMp[mp.id];
+    if(unit){
+      // 프로젝트 쪽 표기가 바뀐 경우에만 라벨을 다시 맞춘다(그 전에 직접 고친 값은 유지)
+      if(unit.autoSig!==sig){
+        unit.autoSig=sig; unit.autoCustomer=cust; unit.autoRegion=mp.region||'기타';
+        unit.siteId='mp:'+cust; unit.lineName=line; unit.unitName=unitLbl;
+        _touch(unit); changed=true;
+      }
+      return;
+    }
+    var id='eu_mp_'+mp.id;
+    if(_isDeleted('equipUnits',id)) return;                       // 직접 지운 행은 다시 만들지 않음
+    if(S.equipUnits.some(function(u){return u.id===id;})) return;
+    var t=_mpEffectiveTransferDate(mp); if(!t) return;
+    if(_addDaysStr(t,-_EQ_AUTO_LEAD_DAYS)>today) return;          // 이관일 2일 전부터
+    var rg=_mpSetupRange(mp); if(rg&&rg.end&&rg.end<today) return; // 셋업 기간이 이미 끝난 프로젝트는 만들지 않음
+    var siteId='mp:'+cust, cells={};
+    S.equipItems.forEach(function(item){
+      var s=item.siteIds;
+      if(!s||s.length===0||s.indexOf(siteId)>=0) cells[item.id]={na:false,planDate:'',percent:0,doneDate:''};
+    });
+    S.equipUnits.push(_touch({id:id,mpId:mp.id,auto:true,autoSig:sig,autoCustomer:cust,autoRegion:mp.region||'기타',
+      siteId:siteId,equipProjectId:null,lineName:line,unitName:unitLbl,memo:'',cells:cells,cellsMt:Date.now()}));
+    changed=true;
+  });
+  return changed;
+}
+
 /* ── 설비 탭 사이트 순서 헬퍼 ── */
 function ensureEquipSiteOrder(){
   if(!S.equipSiteOrder) S.equipSiteOrder=[];
@@ -80,8 +149,12 @@ function ensureEquipSiteOrder(){
     if(inUnits[s.id]&&S.equipSiteOrder.indexOf(s.id)<0)
       S.equipSiteOrder.push(s.id);
   });
+  // 프로젝트 관리 연동으로 생긴 가상 사이트(고객사)도 순서 목록에 포함
+  Object.keys(inUnits).forEach(function(id){
+    if(_eqIsVirtualSiteId(id)&&S.equipSiteOrder.indexOf(id)<0) S.equipSiteOrder.push(id);
+  });
   S.equipSiteOrder=S.equipSiteOrder.filter(function(id){
-    return S.sites.some(function(s){return s.id===id;});
+    return S.sites.some(function(s){return s.id===id;})||(_eqIsVirtualSiteId(id)&&inUnits[id]);
   });
 }
 function onEquipSiteDragStart(siteId){_dragEquipSiteId=siteId;}
@@ -245,7 +318,7 @@ function renderEquipSidebar(){
   // equipSiteOrder 기반 + units에 있는 사이트 fallback
   var sidebarSiteIds=[];
   S.equipSiteOrder.forEach(function(id){
-    if(S.sites.some(function(s){return s.id===id;})) sidebarSiteIds.push(id);
+    if(_eqSite(id)) sidebarSiteIds.push(id);
   });
   S.equipUnits.forEach(function(u){
     if(sidebarSiteIds.indexOf(u.siteId)<0) sidebarSiteIds.push(u.siteId);
@@ -260,7 +333,7 @@ function renderEquipSidebar(){
   // 국가(지역)별로 묶어서 표시 — 간트 차트 사이드바와 동일한 형태
   var countryMap={};
   sidebarSiteIds.forEach(function(siteId){
-    var site=S.sites.find(function(s){return s.id===siteId;});
+    var site=_eqSite(siteId);
     if(!site) return;
     var c=site.country||'기타';
     if(!countryMap[c]) countryMap[c]=[];
@@ -306,7 +379,7 @@ function _equipSiteMatchesFilter(siteId){
   if(_equipFilterSite==='all') return true;
   if(_equipFilterSite.indexOf('c:')===0){
     var country=_equipFilterSite.slice(2);
-    var site=S.sites.find(function(s){return s.id===siteId;});
+    var site=_eqSite(siteId);
     return !!site&&(site.country||'기타')===country;
   }
   return siteId===_equipFilterSite;
@@ -345,6 +418,7 @@ function fixEquipStickyOffsets(){
 
 /* ── 메인 렌더 진입점 ── */
 function renderEquipTab(){
+  if(syncEquipFromMasterProjects()) saveData();   // 이관일 D-2가 된 프로젝트의 호기 행 자동 생성
   _migrateEquipCells();
   _migrateEquipProjectManagers();
   renderEquipSidebar();
@@ -520,7 +594,7 @@ function renderEquipGrid(){
   if(summaryEl){
     var summaryHtml='<div class="eq-summary-bar">';
     siteIds.forEach(function(siteId){
-      var site=S.sites.find(function(s){return s.id===siteId;});
+      var site=_eqSite(siteId);
       if(!site) return;
       var pct=calcSiteProgress(siteId);
       if(pct===null) return;
@@ -608,7 +682,7 @@ function renderEquipGrid(){
   /* ── 데이터 행 ── */
   var bodyHtml='';
   siteIds.forEach(function(siteId){
-    var site=S.sites.find(function(s){return s.id===siteId;});
+    var site=_eqSite(siteId);
     if(!site) return; // 삭제된 사이트는 표시하지 않음
     var siteName=site.name;
     var siteColor=site.color;
@@ -983,7 +1057,7 @@ function _buildSiteCheckboxesHtml(checkedIds){
     var found=(S.sites||[]).some(function(s){return s.id===sid;});
     if(!found){
       if(!regionMap['기타']) regionMap['기타']=[];
-      regionMap['기타'].push({id:sid,name:sid});
+      regionMap['기타'].push({id:sid,name:(_eqSite(sid)||{name:sid}).name});
     }
   });
   var orderedRegions=_REGION_ORDER.filter(function(r){return regionMap[r];});
@@ -1209,6 +1283,11 @@ function openEditEquipUnit(unitId){
   var siteOpts=S.sites.map(function(s){
     return '<option value="'+s.id+'"'+(s.id===unit.siteId?' selected':'')+'>'+s.name+'</option>';
   }).join('');
+  // 프로젝트 관리 연동으로 만들어진 행은 고객사(가상 사이트) 항목을 맨 앞에 두어 저장해도 구분이 바뀌지 않게 한다
+  if(_eqIsVirtualSiteId(unit.siteId)){
+    var vs=_eqSite(unit.siteId);
+    siteOpts='<option value="'+unit.siteId+'" selected>'+(vs?vs.name:unit.siteId)+' (프로젝트 관리 연동)</option>'+siteOpts;
+  }
   var projOpts=_equipProjOpts(unit.siteId,unit.equipProjectId||'');
   // 프로젝트에 속하지 않는 사이트 직속 호기일 때 유형 선택 표시
   var hasProj=!!(unit.equipProjectId&&(S.equipProjects||[]).find(function(p){return p.id===unit.equipProjectId;}));

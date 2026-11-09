@@ -1242,6 +1242,11 @@ document.addEventListener('DOMContentLoaded', function(){
   loadFromSheets(function(){
     applyLanguage(); // Sheets의 최신 커스텀 타이틀 반영
     renderAll(); // Sheets 최신 데이터로 교체
+    // 프로젝트 관리 연동 — 이관일 2일 전이 된 프로젝트의 HQ 설비 셋업 진행률 행을 (탭을 열지 않아도) 자동 생성
+    if(typeof syncEquipFromMasterProjects==='function'&&syncEquipFromMasterProjects()){
+      saveData();
+      if(_activeTab==='equip') renderEquipTab();
+    }
   });
   // Apps Script 워밍업 - 4분마다 ping으로 콜드 스타트 방지
   (function keepWarm(){
