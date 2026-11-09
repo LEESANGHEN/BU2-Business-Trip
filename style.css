@@ -375,7 +375,7 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .eq-note-dot{position:absolute;top:2px;right:3px;font-size:7px;color:#e8a020;line-height:1}
 .eq-td{position:relative}
 /* 보기 모드(수정 모드 아님): 표가 화면 폭에 맞춰 항목 열이 줄어들어, 100% 배율에서도 가로 스크롤 없이 한 화면에 보이게 한다 */
-.eq-table.eq-compact{table-layout:fixed;width:100%;min-width:1120px}
+.eq-table.eq-compact{table-layout:fixed;width:100%;min-width:1040px}
 .eq-table.eq-compact .eq-th{white-space:normal;padding:4px 2px;font-size:10px;line-height:1.25;overflow-wrap:anywhere}
 .eq-table.eq-compact .eq-td{min-width:0;padding:4px 1px;font-size:11px;overflow:hidden}
 .eq-table.eq-compact .eq-td-fix{white-space:normal;overflow-wrap:anywhere}
