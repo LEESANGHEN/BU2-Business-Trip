@@ -407,6 +407,14 @@ function eqResetFilters(){
   _eqMS={region:[],site:[],line:[],loc:[]};
   renderEquipTab();
 }
+// 필터 행 접기/펼치기 — 접어도 걸려 있는 필터는 그대로 적용되고, 상태는 이 브라우저에 기억한다
+var _EQ_FILTER_COLLAPSED_LS_KEY='bu2_eq_filter_collapsed';
+var _eqFilterCollapsed=(function(){ try{return localStorage.getItem(_EQ_FILTER_COLLAPSED_LS_KEY)==='1';}catch(e){return false;} })();
+function eqToggleFilterBar(){
+  _eqFilterCollapsed=!_eqFilterCollapsed;
+  try{localStorage.setItem(_EQ_FILTER_COLLAPSED_LS_KEY,_eqFilterCollapsed?'1':'');}catch(e){}
+  renderEquipFilterBar();
+}
 function renderEquipFilterBar(){
   var el=document.getElementById('eqFilterBar');
   if(!el) return;
@@ -417,7 +425,20 @@ function renderEquipFilterBar(){
   });
   var html='<div class="pm-ctrl-bar" style="margin-bottom:0;flex-direction:column;align-items:stretch;gap:4px">';
   html+='<div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx-second)"><span id="eqCount"></span>'
-    +'<button class="pm-filter-btn" onclick="eqResetFilters()" title="모든 필터를 전체로 되돌립니다">필터 초기화</button></div>';
+    +'<button class="pm-filter-btn" onclick="eqResetFilters()" title="모든 필터를 전체로 되돌립니다">필터 초기화</button>'
+    +'<button class="pm-filter-btn" onclick="eqToggleFilterBar()" title="국가·고객사·설비명·셋업 위치 필터 줄을 접거나 폅니다">'+(_eqFilterCollapsed?'▼ 필터 펼치기':'▲ 필터 접기')+'</button>';
+  // 접힌 상태에서도 어떤 필터가 걸려 있는지 한눈에 보이도록 선택 값을 요약해서 보여준다
+  if(_eqFilterCollapsed){
+    var act=[];
+    ['region','site','line','loc'].forEach(function(k){
+      if(!_eqMS[k].length) return;
+      var names=_eqMS[k].map(function(v){var o=_EQ_MS_DEFS[k]().find(function(x){return x.value===v;}); return o?o.label:v;});
+      act.push(_EQ_MS_LABELS[k]+': '+names.join(', '));
+    });
+    if(act.length) html+='<span style="color:#7aafee;font-size:11px">적용 중 — '+_esc(act.join(' / '))+'</span>';
+  }
+  html+='</div>';
+  if(_eqFilterCollapsed){ html+='</div>'; el.innerHTML=html; _eqUpdateCount(); return; }
   ['region','site','line','loc'].forEach(function(k){
     var opts=_EQ_MS_DEFS[k]();
     if(!opts.length) return;
