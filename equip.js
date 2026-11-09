@@ -18,13 +18,15 @@ function _eqLocKeyOf(str){
   return '';
 }
 // 국가·고객사·설비명·셋업 위치 필터를 모두 통과하는지
-function _eqUnitPassFilters(u){
-  if(_eqMS.site.length&&_eqMS.site.indexOf(u.siteId)<0) return false;
-  if(_eqMS.region.length){ var s=_eqSite(u.siteId); if(!s||_eqMS.region.indexOf(s.country||'기타')<0) return false; }
-  if(_eqMS.line.length&&_eqMS.line.indexOf((u.lineName||'').trim())<0) return false;
-  if(_eqMS.loc.length&&_eqMS.loc.indexOf(_eqLocKeyOf(u.autoLoc))<0) return false;
+// skipKey로 지정한 필터 하나는 빼고 나머지만 적용(칩에 붙는 개수 계산용). 같은 필터 안에서 여러 값을 켜면 OR, 서로 다른 필터끼리는 AND
+function _eqPassExcept(u,skipKey){
+  if(skipKey!=='site'&&_eqMS.site.length&&_eqMS.site.indexOf(u.siteId)<0) return false;
+  if(skipKey!=='region'&&_eqMS.region.length){ var s=_eqSite(u.siteId); if(!s||_eqMS.region.indexOf(s.country||'기타')<0) return false; }
+  if(skipKey!=='line'&&_eqMS.line.length&&_eqMS.line.indexOf((u.lineName||'').trim())<0) return false;
+  if(skipKey!=='loc'&&_eqMS.loc.length&&_eqMS.loc.indexOf(_eqLocKeyOf(u.autoLoc))<0) return false;
   return true;
 }
+function _eqUnitPassFilters(u){ return _eqPassExcept(u,''); }
 // 출하까지 체크된("설비 출하" 칸 완료) 호기 = HQ 설비 셋업 완료 → 기본으로 숨기고, "완료 보기"를 누르면 보인다
 var _eqShowDone=false;
 function _eqShipDone(u){
@@ -376,63 +378,28 @@ var _EQ_MS_DEFS={
     return _EQ_LOCS.map(function(l){return {value:l.key,label:l.label};});
   }
 };
-function _eqMsSummary(key){
-  var sel=_eqMS[key];
-  if(!sel.length) return '전체';
-  if(sel.length===1){
-    var o=_EQ_MS_DEFS[key]().find(function(x){return x.value===sel[0];});
-    return o?o.label:sel[0];
-  }
-  return sel.length+'개 선택';
+// 필터 값 하나를 다른 필터와 독립적으로 뽑는다(칩 개수 계산용)
+function _eqUnitKeyVal(u,key){
+  if(key==='site') return u.siteId;
+  if(key==='region'){ var s=_eqSite(u.siteId); return s?(s.country||'기타'):''; }
+  if(key==='line') return (u.lineName||'').trim();
+  return _eqLocKeyOf(u.autoLoc);
 }
-function _eqMsAttr(v){ return String(v).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
-function _eqMsOptionsHtml(key){
-  var sel=_eqMS[key];
-  var html='<label class="pm-ms-opt all"><input type="checkbox" '+(sel.length===0?'checked':'')+' onchange="_eqMsClearAll(\''+key+'\')">전체</label>';
-  _EQ_MS_DEFS[key]().forEach(function(o){
-    html+='<label class="pm-ms-opt"><input type="checkbox" '+(sel.indexOf(o.value)>=0?'checked':'')+' onchange="_eqMsToggle(\''+key+'\',\''+_eqMsAttr(o.value)+'\')">'+_esc(o.label)+'</label>';
-  });
-  return html;
-}
-function _eqMsHtml(key){
-  return '<div class="pm-ctrl-group"><span class="pm-ctrl-label">'+_EQ_MS_LABELS[key]+'</span>'
-    +'<div class="pm-ms-wrap">'
-    +'<button type="button" class="pm-ms-trigger" onclick="_eqMsTogglePanel(\''+key+'\')"><span id="eqMsLbl_'+key+'">'+_esc(_eqMsSummary(key))+'</span> ▾</button>'
-    +'<div class="pm-ms-panel" id="eqMsPanel_'+key+'" style="display:none">'+_eqMsOptionsHtml(key)+'</div>'
-    +'</div></div>';
-}
-function _eqMsTogglePanel(key){
-  var panel=document.getElementById('eqMsPanel_'+key);
-  if(!panel) return;
-  var willOpen=panel.style.display==='none';
-  document.querySelectorAll('.pm-ms-panel').forEach(function(p){p.style.display='none';});
-  panel.style.display=willOpen?'block':'none';
-}
-function _eqMsRefresh(key){
-  var panel=document.getElementById('eqMsPanel_'+key);
-  if(panel) panel.innerHTML=_eqMsOptionsHtml(key);
-  var lbl=document.getElementById('eqMsLbl_'+key);
-  if(lbl) lbl.textContent=_eqMsSummary(key);
+// 칩에 붙는 개수 = 다른 필터는 그대로 적용한 상태에서 그 값에 해당하는 호기 수 (프로젝트 관리의 제품군 칩과 같은 방식)
+function _eqOptCount(key,value){
+  return S.equipUnits.filter(function(u){return _eqUnitShown(u)&&_eqPassExcept(u,key)&&_eqUnitKeyVal(u,key)===value;}).length;
 }
 function _eqUpdateCount(){
   var el=document.getElementById('eqCount');
   if(el) el.innerHTML='총 <b>'+S.equipUnits.filter(_eqUnitVisible).length+'</b>호기'+(_eqAnyFilter()?' <span style="color:var(--tx-faint)">(전체 '+S.equipUnits.filter(_eqUnitShown).length+'호기 중)</span>':'');
 }
-function _eqMsAfterChange(key){
-  _eqMsRefresh(key);
+// 칩을 누르면 그 값이 켜지고(램프 점등), 다시 누르면 꺼진다. 여러 개를 동시에 켤 수 있다
+function eqChipToggle(el){
+  var key=el.getAttribute('data-k'), val=el.getAttribute('data-v');
+  var arr=_eqMS[key], idx=arr.indexOf(val);
+  if(idx>=0) arr.splice(idx,1); else arr.push(val);
+  renderEquipFilterBar();
   renderEquipGrid();
-  _eqUpdateCount();
-}
-function _eqMsToggle(key,value){
-  var arr=_eqMS[key], idx=arr.indexOf(value);
-  if(idx>=0) arr.splice(idx,1); else arr.push(value);
-  _eqMsAfterChange(key);
-}
-function _eqMsClearAll(key){
-  _eqMS[key]=[];
-  var panel=document.getElementById('eqMsPanel_'+key);
-  if(panel) panel.style.display='none';
-  _eqMsAfterChange(key);
 }
 function eqResetFilters(){
   _eqMS={region:[],site:[],line:[],loc:[]};
@@ -446,16 +413,22 @@ function renderEquipFilterBar(){
     var valid=_EQ_MS_DEFS[k]().map(function(o){return o.value;});
     _eqMS[k]=_eqMS[k].filter(function(v){return valid.indexOf(v)>=0;});
   });
-  var html='<div class="pm-ctrl-bar" style="margin-bottom:0">';
-  ['region','site','line','loc'].forEach(function(k,i){
-    if(i) html+='<div class="pm-ctrl-sep"></div>';
-    html+=_eqMsHtml(k);
+  var html='<div class="pm-ctrl-bar" style="margin-bottom:0;flex-direction:column;align-items:stretch;gap:4px">';
+  html+='<div style="display:flex;align-items:center;gap:10px;font-size:12px;color:var(--tx-second)"><span id="eqCount"></span>'
+    +'<button class="pm-filter-btn" onclick="eqResetFilters()" title="모든 필터를 전체로 되돌립니다">필터 초기화</button></div>';
+  ['region','site','line','loc'].forEach(function(k){
+    var opts=_EQ_MS_DEFS[k]();
+    if(!opts.length) return;
+    html+='<div class="mp-summary" style="padding:2px 0"><span class="mp-sum-sep" style="margin-left:0;min-width:64px;font-weight:700;color:var(--tx-second)">'+_EQ_MS_LABELS[k]+'</span>';
+    opts.forEach(function(o){
+      var on=_eqMS[k].indexOf(o.value)>=0, n=_eqOptCount(k,o.value);
+      html+='<span class="mp-sum-chip'+(on?' on':'')+'" data-k="'+k+'" data-v="'+_esc(o.value)+'" onclick="eqChipToggle(this)"'
+        +' style="'+((!on&&n===0)?'opacity:.45':'')+'" title="'+(on?'다시 누르면 해제':'누르면 이 항목만 보기 (여러 개 선택 가능)')+'">'
+        +'<i class="mp-lamp"></i>'+_esc(o.label)+' <b>'+n+'</b></span>';
+    });
+    html+='</div>';
   });
-  html+='<div class="pm-ctrl-sep"></div>'
-    +'<button class="pm-filter-btn" onclick="eqResetFilters()" title="모든 필터를 전체로 되돌립니다">필터 초기화</button>'
-    +'<div style="flex:1"></div>'
-    +'<span id="eqCount" style="font-size:12px;color:var(--tx-second)"></span>'
-    +'</div>';
+  html+='</div>';
   el.innerHTML=html;
   _eqUpdateCount();
 }
