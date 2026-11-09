@@ -379,6 +379,9 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .eq-table.eq-compact .eq-th{white-space:normal;padding:4px 2px;font-size:10px;line-height:1.25;overflow-wrap:anywhere}
 .eq-table.eq-compact .eq-td{min-width:0;padding:4px 1px;font-size:11px;overflow:hidden}
 .eq-table.eq-compact .eq-td-fix{white-space:normal;overflow-wrap:anywhere}
+/* 표 상단 타이틀(머리글) 행 — 굵은 글씨 + 파란 계열 배경으로 데이터 행과 확실히 구분 */
+.eq-table .eq-th,.eq-table .eq-th.fix-col{background:#1f3d63;color:#eaf3ff;font-weight:700;border-bottom:2px solid #4a86c8;border-right:1px solid #2f5a8a}
+[data-theme="light"] .eq-table .eq-th,[data-theme="light"] .eq-table .eq-th.fix-col{background:#cfe3fb;color:#143a6b;border-bottom:2px solid #4a86c8;border-right:1px solid #9cc2ec}
 /* 그룹 선택기 드롭다운 (옵션별 삭제 버튼 포함) */
 .eq-group-panel{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--bg-panel);border:1px solid var(--bd-main);border-radius:4px;margin-top:2px;max-height:180px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.4)}
 .eq-group-opt{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;font-size:12px;color:var(--tx-primary);cursor:pointer}
