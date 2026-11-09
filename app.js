@@ -1290,7 +1290,7 @@ function switchTab(tab){
   document.getElementById('tab_setup').className='nav-item'+(tab==='setup'?' on':'');
   document.getElementById('tab_gantt').className='nav-item'+(tab==='gantt'?' on':'');
   document.getElementById('tab_person').className='nav-item'+(tab==='person'?' on':'');
-  document.getElementById('tab_equip').className='nav-item'+(tab==='equip'?' on':'');
+  document.getElementById('tab_equip').className='nav-item nav-sub'+(tab==='equip'?' on':'');   // HQ 셋업 간트 차트의 하위 메뉴
   document.getElementById('tab_vision').className='nav-item'+(tab==='vision'?' on':'');
   document.getElementById('tab_bu1').className='nav-item'+(tab==='bu1'?' on':'');
   document.getElementById('ganttTools').style.display=tab==='gantt'?'flex':'none';
