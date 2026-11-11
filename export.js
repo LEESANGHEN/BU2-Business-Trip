@@ -21,6 +21,8 @@ function _doDownloadExcel(){
   wb.creator='BU2 출장 일정 관리';
   wb.created=new Date();
   _buildProjectsSheet(wb);
+  _buildEquipSetupSheet(wb);
+  wb.calcProperties={fullCalcOnLoad:true};   // 파일을 열 때 수식을 다시 계산
   _buildGanttSheet(wb);
   _buildPersonSheet(wb);
   _buildMonthlyAggSheet(wb);
@@ -155,6 +157,132 @@ function _xBadgeOpts(o,css){
   var bgm=/background:\s*(#[0-9a-fA-F]{3,6})/.exec(css), fgm=/(?:^|;)\s*color:\s*(#[0-9a-fA-F]{3,6})/.exec(css);
   if(bgm) o.bg=bgm[1];
   if(fgm) o.fg=fgm[1];
+}
+
+/* ── Sheet: HQ 설비 셋업 진행률 ──
+   파일 안에서도 앱과 같이 동작하도록 만든다(매크로는 .xlsx에 넣을 수 없어 수식·입력 제한·조건부 서식·필터를 쓴다).
+   · 항목 칸 = 완료일(날짜). 날짜를 입력하면 완료, 비우면 미완료 → 진행률·이관·출하가 수식으로 자동 계산된다
+   · 진행률 = 완료한 항목 수 ÷ 전체 항목 수 (앱의 호기별 진행률과 같은 값)
+   · 이관/출하 = 오른쪽 「이관(생산▶BU2)」「설비 출하」 칸에 날짜가 있으면 ☑ + 날짜
+   · 항목 칸에는 날짜만 입력되게 데이터 유효성을 걸고, 완료된 칸은 조건부 서식으로 초록색이 된다
+   · 하단 요약(호기 수·평균 진행률)은 필터를 걸면 보이는 행만 기준으로 다시 계산된다 */
+function _buildEquipSetupSheet(wb){
+  var ws=wb.addWorksheet('HQ설비셋업진행률');
+  var items=_sortedEquipItemsGrouped();
+  // HQ 설비 셋업 진행률 탭에서 내려받으면 화면에 보이는 호기(필터·완료 숨김 그대로), 다른 탭에서는 전체 호기
+  var onTab=(typeof _activeTab!=='undefined'&&_activeTab==='equip');
+  var order=(typeof ensureEquipSiteOrder==='function')?(ensureEquipSiteOrder(),S.equipSiteOrder||[]):[];
+  var units=S.equipUnits.map(function(u,i){return {u:u,i:i};}).filter(function(x){return onTab?_eqUnitVisible(x.u):true;})
+    .sort(function(a,b){
+      var ia=order.indexOf(a.u.siteId), ib=order.indexOf(b.u.siteId);
+      ia=ia<0?9999:ia; ib=ib<0?9999:ib;
+      return ia-ib||a.i-b.i;
+    }).map(function(x){return x.u;});
+
+  var FIX=7;                                   // 앞쪽 고정 열: 구분·라인·호기·셋업 위치·진행률·이관·출하
+  var N=items.length, c1=FIX+1, cN=FIX+N;      // 항목 열 범위(1-based 열 번호)
+  function L(col){ var s=''; while(col>0){ var m=(col-1)%26; s=String.fromCharCode(65+m)+s; col=Math.floor((col-1)/26); } return s; }
+  var widths=[16,20,24,11,10,13,13].concat(items.map(function(){return 12;}));
+  ws.columns=widths.map(function(w){return {width:w};});
+  ws.views=[{state:'frozen',xSplit:3,ySplit:1}];
+
+  var hdr=['구분(고객사)','라인(설비명)','호기','셋업 위치','진행률','이관','출하'].concat(items.map(function(i){return i.name;}));
+  var hRow=ws.getRow(1);
+  hdr.forEach(function(h,i){
+    var cell=hRow.getCell(i+1); cell.value=h;
+    _xStyle(cell,{bg:'#1f3d63',fg:'#eaf3ff',bold:true,wrap:true});
+  });
+  hRow.height=34;
+
+  if(!units.length){
+    ws.getCell('A2').value='표시할 호기가 없습니다.';
+    return;
+  }
+  var trItem=items.find(function(i){return i.name==='이관(생산▶BU2)';});
+  var shItem=items.find(function(i){return i.name==='설비 출하';});
+  var trCol=trItem?FIX+1+items.indexOf(trItem):0, shCol=shItem?FIX+1+items.indexOf(shItem):0;
+
+  function toDate(s){ var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s||''); return m?new Date(Date.UTC(+m[1],+m[2]-1,+m[3])):null; }
+  function sd(s){ return s?String(s).slice(2).replace(/-/g,'.'):''; }
+  var locOf=function(u){ var k=_eqLocKeyOf(u.autoLoc); var l=_EQ_LOCS.find(function(x){return x.key===k;}); return l?l.label:(u.autoLoc||''); };
+
+  var rIdx=2;
+  units.forEach(function(u){
+    var bg=rIdx%2===0?'#1c1c24':'#181820';
+    var site=_eqSite(u.siteId);
+    var row=ws.getRow(rIdx);
+    var firstL=L(c1), lastL=L(cN);
+    var done=0;
+    var itemVals=items.map(function(it){
+      var c=(u.cells||{})[it.id];
+      var ok=!!(c&&!c.na&&(parseFloat(c.percent)||0)>=100);
+      if(ok) done++;
+      return {ok:ok,c:c};
+    });
+    var pct=N?done/N:0;
+    // 이관·출하 표시값(수식 결과 미리보기용)
+    function stage(col){
+      if(!col) return '☐';
+      var v=itemVals[col-c1]; if(!v.ok) return '☐';
+      return v.c.doneDate?('☑ '+sd(v.c.doneDate)):'☑';
+    }
+    var A=u.autoCustomer||(site?site.name:u.siteId), B=u.lineName||'', C=u.unitName||'', D=locOf(u);
+    [A,B,C,D].forEach(function(v,i){
+      var cell=row.getCell(i+1); cell.value=v;
+      _xStyle(cell,{bg:bg,fg:'#c8c8d4',align:i===3?'center':'left'});
+    });
+    // 진행률 = 완료한 항목 수 ÷ 전체 항목 수
+    var pc=row.getCell(5);
+    pc.value={formula:'COUNTA('+firstL+rIdx+':'+lastL+rIdx+')/COLUMNS('+firstL+rIdx+':'+lastL+rIdx+')',result:pct};
+    pc.numFmt='0%'; _xStyle(pc,{bg:bg,fg:'#c8c8d4',align:'center',bold:true});
+    // 이관 / 출하: 해당 항목 칸에 값(완료일)이 있으면 ☑ + 날짜
+    [[6,trCol],[7,shCol]].forEach(function(p){
+      var cell=row.getCell(p[0]);
+      if(p[1]){
+        var ref=L(p[1])+rIdx;
+        cell.value={formula:'IF('+ref+'<>"",IF(ISNUMBER('+ref+'),"☑ "&TEXT('+ref+',"yy.mm.dd"),"☑"),"☐")',result:stage(p[1])};
+      } else cell.value='☐';
+      _xStyle(cell,{bg:bg,fg:'#c8c8d4',align:'center'});
+    });
+    // 항목 칸: 완료일(날짜). 특이사항은 셀 메모로 붙인다
+    items.forEach(function(it,j){
+      var cell=row.getCell(c1+j), v=itemVals[j];
+      if(v.ok){ var d=toDate(v.c.doneDate); cell.value=d||'완료'; if(d) cell.numFmt='yy.mm.dd'; }
+      if(v.c&&v.c.note) cell.note=String(v.c.note);
+      _xStyle(cell,{bg:bg,fg:'#c8c8d4',align:'center'});
+      cell.dataValidation={type:'date',operator:'greaterThan',formulae:[new Date(Date.UTC(2020,0,1))],allowBlank:true,
+        showInputMessage:true,promptTitle:'완료일',prompt:'날짜를 입력하면 완료, 비우면 미완료입니다. (예: 2026-11-09)',
+        showErrorMessage:true,errorStyle:'stop',errorTitle:'날짜만 입력',error:'완료일을 날짜로 입력해 주세요 (예: 2026-11-09). 비우면 미완료입니다.'};
+    });
+    row.height=20;
+    rIdx++;
+  });
+  var last=rIdx-1;
+
+  // 조건부 서식: 완료된 항목 칸 = 초록, 진행률 구간별 색, 이관·출하 ☑ = 강조
+  var green={font:{color:{argb:'FF4AAA70'},bold:true},fill:{type:'pattern',pattern:'solid',bgColor:{argb:'FF0A3D1E'}}};
+  ws.addConditionalFormatting({ref:L(c1)+'2:'+L(cN)+last,rules:[{type:'expression',priority:1,formulae:['LEN('+L(c1)+'2)>0'],style:green}]});
+  ws.addConditionalFormatting({ref:'E2:E'+last,rules:[
+    {type:'cellIs',priority:2,operator:'greaterThanOrEqual',formulae:[1],style:{font:{color:{argb:'FF4AAA70'},bold:true}}},
+    {type:'cellIs',priority:3,operator:'greaterThanOrEqual',formulae:[0.5],style:{font:{color:{argb:'FF4A9EEE'},bold:true}}},
+    {type:'cellIs',priority:4,operator:'greaterThan',formulae:[0],style:{font:{color:{argb:'FFE8A020'},bold:true}}}
+  ]});
+  ws.addConditionalFormatting({ref:'F2:G'+last,rules:[{type:'expression',priority:5,formulae:['LEFT(F2,1)="☑"'],style:{font:{color:{argb:'FF5A9AEE'},bold:true}}}]});
+
+  // 필터 + 하단 요약(필터를 걸면 보이는 행 기준으로 재계산)
+  ws.autoFilter={from:{row:1,column:1},to:{row:1,column:cN}};
+  var sRow=last+2;
+  var avg=0; units.forEach(function(u){ var d=0; items.forEach(function(it){ var c=(u.cells||{})[it.id]; if(c&&!c.na&&(parseFloat(c.percent)||0)>=100) d++; }); avg+=N?d/N:0; });
+  avg=units.length?avg/units.length:0;
+  var lab1=ws.getCell(sRow,3), val1=ws.getCell(sRow,5), lab2=ws.getCell(sRow+1,3), val2=ws.getCell(sRow+1,5), lab3=ws.getCell(sRow+2,3), val3=ws.getCell(sRow+2,5);
+  lab1.value='표시 호기 수'; val1.value={formula:'SUBTOTAL(103,C2:C'+last+')',result:units.length};
+  lab2.value='평균 진행률'; val2.value={formula:'SUBTOTAL(101,E2:E'+last+')',result:avg}; val2.numFmt='0%';
+  lab3.value='출하 완료 호기'; val3.value={formula:'COUNTIF(G2:G'+last+',"☑*")',result:units.filter(function(u){return _eqShipDone(u);}).length};
+  [lab1,lab2,lab3].forEach(function(c){ _xStyle(c,{bg:'#2a2a3e',fg:'#e0e0ec',bold:true,align:'left'}); });
+  [val1,val2,val3].forEach(function(c){ _xStyle(c,{bg:'#2a2a3e',fg:'#e0e0ec',bold:true,align:'center'}); });
+  var note=ws.getCell(sRow+4,1);
+  note.value='사용법: 항목 칸에 완료일(날짜)을 입력하면 진행률·이관·출하가 자동 계산됩니다. 비우면 미완료입니다. 특이사항은 칸의 메모로 들어 있습니다.';
+  note.font={name:'맑은 고딕',size:10,color:{argb:'FF9A9AB0'},italic:true};
 }
 
 /* ── Sheet: 월별집계 ── */
