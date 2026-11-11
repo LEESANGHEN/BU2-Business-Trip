@@ -1299,7 +1299,8 @@ function switchTab(tab){
   document.getElementById('tab_person').className='nav-item'+(tab==='person'?' on':'');
   document.getElementById('tab_equip').className='nav-item'+(tab==='equip'?' on':'');
   document.getElementById('tab_vision').className='nav-item'+(tab==='vision'?' on':'');
-  document.getElementById('tab_bu1').className='nav-item'+(tab==='bu1'?' on':'');
+  var _tabBu1Btn=document.getElementById('tab_bu1');   // 참고자료(BU1) 탭 버튼은 숨김(주석) 처리돼 없을 수 있다
+  if(_tabBu1Btn) _tabBu1Btn.className='nav-item'+(tab==='bu1'?' on':'');
   document.getElementById('ganttTools').style.display=tab==='gantt'?'flex':'none';
   document.getElementById('equipTools').style.display=tab==='equip'?'flex':'none';
   document.getElementById('setupTools').style.display=tab==='setup'?'flex':'none';
