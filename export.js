@@ -233,7 +233,8 @@ function _buildEquipSetupSheet(wb){
     });
     // 진행률 = 완료한 항목 수 ÷ 전체 항목 수
     var pc=row.getCell(5);
-    pc.value={formula:'COUNTA('+firstL+rIdx+':'+lastL+rIdx+')/COLUMNS('+firstL+rIdx+':'+lastL+rIdx+')',result:pct};
+    // 결과가 0이면 미리보기 값이 빠지는 라이브러리 특성 때문에 아주 작은 값으로 대신한다(엑셀이 열릴 때 다시 계산하며 표시는 0%)
+    pc.value={formula:'COUNTA('+firstL+rIdx+':'+lastL+rIdx+')/COLUMNS('+firstL+rIdx+':'+lastL+rIdx+')',result:pct||1e-9};
     pc.numFmt='0%'; _xStyle(pc,{bg:bg,fg:'#c8c8d4',align:'center',bold:true});
     // 이관 / 출하: 해당 항목 칸에 값(완료일)이 있으면 ☑ + 날짜
     [[6,trCol],[7,shCol]].forEach(function(p){
@@ -277,7 +278,8 @@ function _buildEquipSetupSheet(wb){
   var lab1=ws.getCell(sRow,3), val1=ws.getCell(sRow,5), lab2=ws.getCell(sRow+1,3), val2=ws.getCell(sRow+1,5), lab3=ws.getCell(sRow+2,3), val3=ws.getCell(sRow+2,5);
   lab1.value='표시 호기 수'; val1.value={formula:'SUBTOTAL(103,C2:C'+last+')',result:units.length};
   lab2.value='평균 진행률'; val2.value={formula:'SUBTOTAL(101,E2:E'+last+')',result:avg}; val2.numFmt='0%';
-  lab3.value='출하 완료 호기'; val3.value={formula:'COUNTIF(G2:G'+last+',"☑*")',result:units.filter(function(u){return _eqShipDone(u);}).length};
+  lab3.value='출하 완료 호기'; val3.value={formula:'COUNTIF(G2:G'+last+',"☑*")',result:units.filter(function(u){return _eqShipDone(u);}).length||1e-9};
+  val1.numFmt='0'; val3.numFmt='0';
   [lab1,lab2,lab3].forEach(function(c){ _xStyle(c,{bg:'#2a2a3e',fg:'#e0e0ec',bold:true,align:'left'}); });
   [val1,val2,val3].forEach(function(c){ _xStyle(c,{bg:'#2a2a3e',fg:'#e0e0ec',bold:true,align:'center'}); });
   var note=ws.getCell(sRow+4,1);
