@@ -379,6 +379,12 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .eq-table.eq-compact .eq-th{white-space:normal;padding:4px 2px;font-size:10px;line-height:1.25;overflow-wrap:anywhere}
 .eq-table.eq-compact .eq-td{min-width:0;padding:4px 1px;font-size:11px;overflow:hidden}
 .eq-table.eq-compact .eq-td-fix{white-space:normal;overflow-wrap:anywhere}
+/* 호기 칸의 진행률: 큰 숫자 + 막대 */
+.eq-prog{display:flex;align-items:center;gap:8px;margin:4px 0 3px}
+.eq-prog-n{font-size:21px;font-weight:800;line-height:1;min-width:50px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.eq-prog-n small{font-size:11px;font-weight:700;margin-left:1px}
+.eq-prog-bar{flex:1;height:8px;border-radius:4px;background:var(--bd-light);overflow:hidden;min-width:44px}
+.eq-prog-fill{height:100%;border-radius:4px;transition:width .2s}
 /* 표 상단 타이틀(머리글) 행 — 굵은 글씨 + 파란 계열 배경으로 데이터 행과 확실히 구분 */
 .eq-table .eq-th,.eq-table .eq-th.fix-col{background:#1f3d63;color:#eaf3ff;font-weight:700;border-bottom:2px solid #4a86c8;border-right:1px solid #2f5a8a}
 [data-theme="light"] .eq-table .eq-th,[data-theme="light"] .eq-table .eq-th.fix-col{background:#cfe3fb;color:#143a6b;border-bottom:2px solid #4a86c8;border-right:1px solid #9cc2ec}

@@ -622,13 +622,12 @@ function _equipScheduleInfoHtml(unit){
 function _renderEquipUnitHtml(unit,idx,e,msDateItem,scrollItems){
   var rowCls='eq-row '+(idx%2===0?'even':'odd');
   var unitPct=calcUnitProgress(unit);
-  var pctBar,unitBg='';
-  if(unitPct===100){
-    pctBar='<div style="font-size:11px;font-weight:600;color:#4aaa70;margin-top:2px">완료 ✓</div>';
-    unitBg='background:var(--bg-eq-done);';
-  } else {
-    pctBar='<div style="font-size:11px;color:var(--tx-muted);margin-top:2px">'+unitPct+'%</div>';
-  }
+  // 진행률은 큰 숫자 + 막대로 한눈에 보이게 한다 — 색은 0%=회색, 1~49%=주황, 50~99%=파랑, 100%=초록
+  var unitBg='';
+  var pcol=unitPct>=100?'#4aaa70':(unitPct>=50?'#4a9eee':(unitPct>0?'#e8a020':'var(--tx-faint)'));
+  if(unitPct===100) unitBg='background:var(--bg-eq-done);';
+  var pctBar='<div class="eq-prog" title="완료한 항목 비율 (본사 셋업 항목 기준)"><span class="eq-prog-n" style="color:'+pcol+'">'+unitPct+'<small>%</small></span>'
+    +'<div class="eq-prog-bar"><div class="eq-prog-fill" style="width:'+unitPct+'%;background:'+pcol+'"></div></div></div>';
   var html='<tr class="'+rowCls+'">';
   html+='<td class="eq-td-fix eq-col-line'+(e?' editable':'')+'" style="left:0;min-width:0;'+(e?'white-space:nowrap;':'')+'text-align:left"'
     +(e?' onclick="openEditEquipUnit(\''+unit.id+'\')">':'>')
