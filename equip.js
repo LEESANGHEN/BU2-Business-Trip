@@ -756,14 +756,15 @@ function renderEquipGrid(){
     if(!site) return; // 삭제된 사이트는 표시하지 않음
     var siteName=site.name;
     var siteColor=site.color;
-    var collapsed=!!_equipCollapsed[siteId];
-    var sitePct=calcSiteProgress(siteId);
-    var sitePctStr=sitePct!==null?sitePct+'%':'—';
-    var sitePctColor=sitePct===100?'#2a8a40':(sitePct>=70?'#1a6bbf':'#b87a10');
-    var collapseBtn='<button class="eq-collapse-btn" onclick="toggleEquipCollapse(\''+siteId+'\')">'+(collapsed?'▶':'▼')+'</button>';
+    var siteUnits=allUnits.filter(function(u){return u.siteId===siteId;});
+    // 사이트 전체 진행률은 표시하지 않는다. 설비가 1대 이상 있는 사이트만 접고 펼 수 있다(접으면 호기 행이 숨는다)
+    var canCollapse=siteUnits.length>0;
+    var collapsed=canCollapse && !!_equipCollapsed[siteId];
+    var collapseBtn=canCollapse
+      ?'<button class="eq-collapse-btn" title="'+(collapsed?'설비 펼치기':'설비 접기')+'" onclick="toggleEquipCollapse(\''+siteId+'\')">'+(collapsed?'▶':'▼')+'</button>'
+      :'';
     var collapsedInfo=collapsed
-      ?'<span class="eq-site-pct" style="color:'+sitePctColor+'">'+sitePctStr+'</span>'
-       +'<div class="eq-site-pbar"><div class="eq-site-pbar-fill" style="width:'+(sitePct||0)+'%;background:'+sitePctColor+'"></div></div>'
+      ?'<span style="font-size:12px;color:var(--tx-dim);margin-left:10px;flex-shrink:0">'+siteUnits.length+'대</span>'
       :'';
     // 사이트 구분 행 — 4열 colspan sticky로 사이트명/출장자 고정
     bodyHtml+='<tr class="eq-site-row">'
@@ -776,7 +777,7 @@ function renderEquipGrid(){
       +(scrollColCount>0?'<td colspan="'+scrollColCount+'" style="background:var(--bg-alt);border-top:2px solid var(--bd-light)"></td>':'')
       +'</tr>';
 
-    var siteUnits=allUnits.filter(function(u){return u.siteId===siteId;});
+    if(collapsed) return;   // 접힌 사이트는 사이트 행만 남기고 프로젝트·호기 행을 숨김
     var siteProjects=(S.equipProjects||[]).filter(function(p){return p.siteId===siteId;});
     if(siteProjects.length>0){
       // 프로젝트 모드: 프로젝트별 서브그룹
