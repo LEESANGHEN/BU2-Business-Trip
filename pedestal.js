@@ -113,7 +113,15 @@ function _pdMsOptionsHtml(key){
       +'<button type="button" class="btn sm" onclick="pdMsRangeClear(\''+key+'\')" title="기간 지우기">지우기</button></div></div>';
   }
   html+='<label class="pm-ms-opt all"><input type="checkbox" '+(!sel.length&&!_pdRange(key)?'checked':'')+' onchange="pdMsClearAll(\''+key+'\')">전체</label>';
-  _pdMsOptions(key).forEach(function(v){
+  var allOpts=_pdMsOptions(key);
+  if(PD_MS_MONTH[key]){
+    // 연도만 먼저 보이고, 연도를 체크하면 1~12월이 하위에 펼쳐진다 (미입력은 맨 아래 별도 항목)
+    html+=_mtreeHtml('pd_'+key,allOpts,sel,
+      function(v){return "pdMsToggle('"+key+"','"+v+"')";},
+      function(y){return "pdMsYear('"+key+"','"+y+"')";});
+    allOpts=allOpts.filter(function(v){return !_mtIsMonth(v);});
+  }
+  allOpts.forEach(function(v){
     html+='<label class="pm-ms-opt"><input type="checkbox" data-v="'+_esc(v)+'" '+(sel.indexOf(v)>=0?'checked':'')+' onchange="pdMsToggle(\''+key+'\',this.getAttribute(\'data-v\'))">'+_esc(v)+'</label>';
   });
   return html;
@@ -138,8 +146,13 @@ function pdMsToggle(key,v){
   if(i>=0) a.splice(i,1); else a.push(v);
   _pdMsRefresh(key); renderPedestalBody();
 }
+function pdMsYear(key,y){
+  var changed=_mtYearToggle('pd_'+key,y,_pdMS[key]);
+  _pdMsRefresh(key);
+  if(changed) renderPedestalBody();
+}
 function pdMsClearAll(key){
-  _pdMS[key]=[]; delete _pdRg[key];
+  _pdMS[key]=[]; delete _pdRg[key]; delete _mtOpen['pd_'+key];
   _pdMsRefresh(key);
   var p=document.getElementById('pdMsPanel_'+key); if(p) p.style.display='none';
   renderPedestalBody();
@@ -168,7 +181,7 @@ function pdSetSort(ev,key){
 // 분류·정렬·검색을 모두 풀고 입력 순서로 되돌린다
 function _pdClearView(){
   _pdSearch=''; _pdSortKey=''; _pdSortAsc=true; _pdRg={};
-  Object.keys(_pdMS).forEach(function(k){ _pdMS[k]=[]; });
+  Object.keys(_pdMS).forEach(function(k){ _pdMS[k]=[]; delete _mtOpen['pd_'+k]; });
 }
 function pdResetView(){ _pdClearView(); renderPedestalTab(); }
 // 진행중만 보기: 켜는 순간 검색·분류·정렬을 비운다(프로젝트 관리와 같음). 끄면 현재 필터는 그대로 두고 완료 행을 맨 아래에 보여준다

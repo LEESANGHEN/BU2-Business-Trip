@@ -109,6 +109,13 @@ function _bu1MsPanelHtml(key){
       +'<button type="button" class="btn sm" onclick="bu1MsRangeClear(\''+key+'\')" title="기간 지우기">지우기</button></div></div>';
   }
   h+='<label class="pm-ms-opt all"><input type="checkbox" '+((!sel.length&&!_bu1Rg[key])?'checked':'')+' onchange="bu1MsClear(\''+key+'\')">전체</label>';
+  if(BU1_RANGE[key]){
+    // 연도만 먼저 보이고, 연도를 체크하면 1~12월이 하위에 펼쳐진다
+    h+=_mtreeHtml('bu1_'+key,opts.map(function(o){return o.v;}),sel,
+      function(v){return "bu1MsToggleV('"+key+"','"+v+"')";},
+      function(y){return "bu1MsYear('"+key+"','"+y+"')";});
+    return h;
+  }
   opts.forEach(function(o,i){
     h+='<label class="pm-ms-opt"><input type="checkbox" '+(sel.indexOf(o.v)>=0?'checked':'')+' onchange="bu1MsToggle(\''+key+'\','+i+')">'+_esc(o.l)+'</label>';
   });
@@ -137,8 +144,18 @@ function bu1MsToggle(key,i){
   if(j>=0) a.splice(j,1); else a.push(o.v);
   _bu1MsRefresh(key);
 }
+function bu1MsToggleV(key,v){
+  var a=_bu1MS[key], j=a.indexOf(v);
+  if(j>=0) a.splice(j,1); else a.push(v);
+  _bu1MsRefresh(key);
+}
+function bu1MsYear(key,y){
+  var changed=_mtYearToggle('bu1_'+key,y,_bu1MS[key]);
+  if(changed){ _bu1MsRefresh(key); return; }
+  var p=document.getElementById('bu1MsPanel_'+key); if(p) p.innerHTML=_bu1MsPanelHtml(key); // 선택이 안 바뀌면 패널만 갱신
+}
 function bu1MsClear(key){
-  _bu1MS[key]=[]; if(BU1_RANGE[key]) _bu1Rg[key]=null;
+  _bu1MS[key]=[]; if(BU1_RANGE[key]){ _bu1Rg[key]=null; delete _mtOpen['bu1_'+key]; }
   _bu1MsRefresh(key);
   var p=document.getElementById('bu1MsPanel_'+key); if(p) p.style.display='none';
 }

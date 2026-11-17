@@ -281,12 +281,61 @@ function _mpMsOptionsHtml(key){
       +'<button type="button" class="btn sm" onclick="_mpMsRangeClear(\''+key+'\')" title="기간 지우기">지우기</button></div></div>';
   }
   html+='<label class="pm-ms-opt all"><input type="checkbox" '+(sel.length===0&&!_mpRange(key)?'checked':'')+' onchange="_mpMsClearAll(\''+key+'\')">'+t('optAll')+'</label>';
+  if(_MP_RANGE_KEYS[key]){
+    // 월 필터는 연도만 먼저 보이고, 연도를 체크하면 1~12월이 하위에 펼쳐진다
+    html+=_mtreeHtml('mp_'+key,opts.map(function(o){return o.value;}),sel,
+      function(v){return "_mpMsToggle('"+key+"','"+v+"')";},
+      function(y){return "_mpMsYear('"+key+"','"+y+"')";});
+    return html;
+  }
   opts.forEach(function(o){
     var vAttr=String(o.value).replace(/'/g,"\\'");
     var checked=sel.indexOf(o.value)>=0;
     html+='<label class="pm-ms-opt"><input type="checkbox" '+(checked?'checked':'')+' onchange="_mpMsToggle(\''+key+'\',\''+vAttr+'\')">'+_esc(o.label)+'</label>';
   });
   return html;
+}
+/* ── 월 선택 트리 공용 (프로젝트 관리·Pedestal·BU1/BU3 탭이 같이 쓴다) ──
+   연도 줄만 먼저 보이고, 연도를 체크하면 그 아래에 1~12월 체크박스가 나온다.
+   연도 체크를 풀면 그 연도의 월 선택도 함께 풀리고 다시 연도들만 보인다. */
+var _mtOpen={}; // 패널 id → {연도:true} (펼친 연도)
+function _mtIsMonth(v){ return /^\d{4}-\d{2}$/.test(String(v)); }
+function _mtYearOpen(id,y,sel){
+  var o=_mtOpen[id]; if(o&&o[y]) return true;
+  return sel.some(function(v){ return _mtIsMonth(v)&&v.slice(0,4)===y; });
+}
+function _mtreeHtml(id,vals,sel,monthCall,yearCall){
+  var years=[];
+  vals.concat(sel).forEach(function(v){ if(_mtIsMonth(v)){ var y=String(v).slice(0,4); if(years.indexOf(y)<0) years.push(y); } });
+  years.sort();
+  var h='';
+  years.forEach(function(y){
+    var open=_mtYearOpen(id,y,sel);
+    h+='<label class="pm-ms-opt pm-yr"><input type="checkbox" '+(open?'checked':'')+' onchange="'+yearCall(y)+'">'+y+'년</label>';
+    if(open){
+      h+='<div class="pm-ms-sub">';
+      for(var m=1;m<=12;m++){
+        var v=y+'-'+(m<10?'0':'')+m;
+        h+='<label class="pm-ms-opt"><input type="checkbox" '+(sel.indexOf(v)>=0?'checked':'')+' onchange="'+monthCall(v)+'">'+m+'월</label>';
+      }
+      h+='</div>';
+    }
+  });
+  return h;
+}
+// 연도 체크 토글 — 펼침 상태를 바꾸고, 풀 때는 그 연도의 선택 월을 sel에서 제거. 선택이 바뀌었으면 true
+function _mtYearToggle(id,y,sel){
+  var o=_mtOpen[id]||(_mtOpen[id]={}), changed=false;
+  if(_mtYearOpen(id,y,sel)){
+    delete o[y];
+    for(var i=sel.length-1;i>=0;i--){ if(_mtIsMonth(sel[i])&&sel[i].slice(0,4)===y){ sel.splice(i,1); changed=true; } }
+  } else o[y]=true;
+  return changed;
+}
+function _mpMsYear(key,y){
+  var changed=_mtYearToggle('mp_'+key,y,_mpMS[key]);
+  _mpMsRefresh(key);
+  if(changed) renderProjectsBody();
 }
 function _mpMsHtml(key,label){
   return '<div class="pm-ctrl-group"><span class="pm-ctrl-label">'+label+'</span>'
@@ -332,7 +381,7 @@ function _mpMsRangeClear(key){
   _mpMsRange(key);
 }
 function _mpMsClearAll(key){
-  _mpMS[key]=[]; delete _mpMS[key+'Range'];
+  _mpMS[key]=[]; delete _mpMS[key+'Range']; delete _mtOpen['mp_'+key];
   _mpMsRefresh(key);
   var panel=document.getElementById('mpMsPanel_'+key);
   if(panel) panel.style.display='none';
