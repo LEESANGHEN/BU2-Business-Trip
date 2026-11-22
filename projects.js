@@ -81,8 +81,11 @@ function renderProjectsTab(){
   html+='<button class="pm-filter-btn'+(_mpHideInactive?' on':'')+'" id="mpHideInactiveBtn" onclick="togglePmHideInactive()">'+t('mpHideInactive')+'</button>';
   html+='</div>';
   html+='<div style="flex:1"></div>';
-  if(!S.masterProjects.length){
-    html+='<button class="btn warn sm" onclick="importExcelSeedMasterProjects()">엑셀 데이터 가져오기 (최초 1회)</button>';
+  // (2026-11-23) "엑셀 데이터 가져오기 (최초 1회)" 버튼 제거 — 목록이 비어 보일 때(서버 데이터 도착 전) 눌러
+  // 시드 160건이 기존 데이터 위에 중복으로 얹힌 사고가 있었다. 최초 가져오기는 이미 끝났다.
+  var _dupSer=_mpDuplicateSerials();
+  if(_dupSer.length){
+    html+='<span class="pm-dup-warn" title="같은 시리얼이 둘 이상의 프로젝트에 등록돼 있습니다: '+_esc(_dupSer.join(', '))+'">⚠ 중복 시리얼 '+_dupSer.length+'건</span>';
   }
   var _selN=Object.keys(_mpSelectedIds).length;
   html+='<button class="btn sm" onclick="toggleMpHiddenView()" title="숨겨 둔 프로젝트를 다시 찾아 숨김 해제">'+(_mpViewHidden?'← 전체 목록으로':'🙈 숨긴 항목 ('+_mpHiddenList().length+')')+'</button>';
@@ -899,16 +902,17 @@ function _mpCloneSeed(seed){
     status:seed.status, id:_mpId()
   };
 }
-function importExcelSeedMasterProjects(){
-  if(S.masterProjects.length){alert('이미 프로젝트 데이터가 있어 가져오기를 실행할 수 없습니다.');return;}
-  if(!confirm('엑셀 "프로젝트 입력" 시트의 데이터 '+_EXCEL_SEED_MASTER_PROJECTS.length+'건을 가져옵니다.\n간트 차트에는 반영되지 않습니다.\n계속할까요?'))return;
-  _EXCEL_SEED_MASTER_PROJECTS.forEach(function(seed){
-    var mp=_touch(_mpCloneSeed(seed));
-    S.masterProjects.push(mp);
+// 최초 가져오기 함수(importExcelSeedMasterProjects)는 2026-11-23 제거했다 — 서버에 데이터가 있는데도
+// 이 브라우저 목록이 비어 보이면 실행돼 160건이 중복 생성된 사고(기록_2026-11-23_프로젝트관리_중복행_점검.json).
+// 시드 상수(_EXCEL_SEED_MASTER_PROJECTS)와 _mpCloneSeed는 참고용으로만 남기고 어디서도 호출하지 않는다.
+// 같은 시리얼이 둘 이상의 프로젝트에 있으면 시리얼 목록을 돌려준다 (프로젝트 관리 상단 경고용)
+function _mpDuplicateSerials(){
+  var seen={}, dup={};
+  (S.masterProjects||[]).forEach(function(m){
+    var s=String(m.serial||'').trim().toLowerCase(); if(!s) return;
+    if(seen[s]) dup[String(m.serial).trim()]=1; else seen[s]=1;
   });
-  saveData();
-  renderProjectsTab();
-  alert('가져오기가 완료되었습니다.');
+  return Object.keys(dup);
 }
 
 /* ══════════════════════════════════════════

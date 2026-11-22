@@ -1129,6 +1129,7 @@ body.pd-resizing{cursor:col-resize;user-select:none}
 .pm-ms-range-row span{color:var(--tx-muted)}
 .pm-ms-panel:has(.pm-ms-range){min-width:290px;max-width:320px}
 /* 월 선택 트리 — 연도 줄 아래에 1~12월을 3열로 펼친다 */
+.pm-dup-warn{display:inline-flex;align-items:center;padding:3px 9px;margin-right:8px;border-radius:12px;font-size:12px;font-weight:600;color:#ffb74d;border:1px solid #ffb74d;background:rgba(255,183,77,.12);cursor:help;white-space:nowrap}
 .pm-ms-opt.pm-yr{font-weight:600}
 .pm-ms-sub{display:grid;grid-template-columns:repeat(3,1fr);padding:0 0 4px 22px}
 
