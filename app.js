@@ -1240,6 +1240,7 @@ document.addEventListener('DOMContentLoaded', function(){
   applyLanguage();
   loadData();
   applyLanguage(); // 캐시에 저장된 커스텀 타이틀(appTitle) 반영
+  _restoreActiveTab(); // 새로고침 전에 보던 탭으로 복원
   renderAll(); // 캐시/DEF 데이터로 즉시 표시
   loadFromSheets(function(){
     applyLanguage(); // Sheets의 최신 커스텀 타이틀 반영
@@ -1280,8 +1281,16 @@ document.addEventListener('DOMContentLoaded', function(){
 ════════════════════════════════════════════ */
 var _activeTab='home';
 
+/* ── 보고 있던 탭 기억: 새로고침해도 같은 탭으로 돌아온다(브라우저 탭 단위, 새로 접속하면 홈) ── */
+var _ACTIVE_TAB_SS_KEY='bu2_active_tab';
+function _restoreActiveTab(){
+  var t0=null;
+  try{t0=sessionStorage.getItem(_ACTIVE_TAB_SS_KEY);}catch(e){}
+  if(t0&&t0!=='home'&&document.getElementById('tab_'+t0)) switchTab(t0);   // 숨김 처리된 탭(버튼 없음)은 복원하지 않는다
+}
 function switchTab(tab){
   _activeTab=tab;
+  try{sessionStorage.setItem(_ACTIVE_TAB_SS_KEY,tab);}catch(e){}
   document.getElementById('view_home').style.display=tab==='home'?'flex':'none';
   document.getElementById('view_projects').style.display=tab==='projects'?'flex':'none';
   document.getElementById('view_pedestal').style.display=tab==='pedestal'?'flex':'none';
