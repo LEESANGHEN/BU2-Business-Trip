@@ -1236,6 +1236,7 @@ function closeSidebar(view){
 document.addEventListener('DOMContentLoaded', function(){
   initTheme();
   _restoreNavCollapsed();
+  _initNavPeek();
   applyLanguage();
   loadData();
   applyLanguage(); // 캐시에 저장된 커스텀 타이틀(appTitle) 반영
@@ -1330,8 +1331,34 @@ function _applyNavCollapsed(on){
 function toggleSideNavCollapsed(){
   var nav=document.getElementById('sideNav');
   var on=!(nav&&nav.classList.contains('collapsed'));
+  _navPeek(false);
   _applyNavCollapsed(on);
   try{localStorage.setItem(_NAV_COLLAPSED_LS_KEY,on?'1':'');}catch(e){}
+}
+/* ── 접힌 메뉴 미리보기: ☰ 버튼에 마우스를 올리면 펼쳐 보이고, 벗어나면 사라진다 ── */
+var _navPeekTimer=null;
+function _navPeek(on){
+  clearTimeout(_navPeekTimer);
+  var nav=document.getElementById('sideNav');
+  if(!nav) return;
+  if(on && !nav.classList.contains('collapsed')) return;   // 펼쳐 둔 상태에서는 필요 없음
+  nav.classList.toggle('peek',!!on);
+}
+function _navPeekLater(){          // 버튼↔메뉴 사이를 지나는 동안 깜빡이지 않도록 잠깐 기다린 뒤 숨김
+  clearTimeout(_navPeekTimer);
+  _navPeekTimer=setTimeout(function(){_navPeek(false);},250);
+}
+function _initNavPeek(){
+  var btn=document.getElementById('navToggleDesk'), nav=document.getElementById('sideNav');
+  if(!btn||!nav) return;
+  btn.addEventListener('mouseenter',function(){_navPeek(true);});
+  btn.addEventListener('mouseleave',_navPeekLater);
+  nav.addEventListener('mouseenter',function(){clearTimeout(_navPeekTimer);});
+  nav.addEventListener('mouseleave',_navPeekLater);
+  // 미리보기 중 탭을 고르면 이동하고 메뉴는 바로 숨긴다
+  nav.addEventListener('click',function(e){
+    if(e.target.closest&&e.target.closest('.nav-item')) _navPeek(false);
+  });
 }
 function _restoreNavCollapsed(){
   var on=false;

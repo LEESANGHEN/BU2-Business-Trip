@@ -892,6 +892,8 @@ input[type=text]:focus,input[type=date]:focus,select:focus{border-color:#1a6bbf}
 .desktop-only{display:inline-flex;align-items:center}
 /* 왼쪽 메뉴 숨기기(데스크톱) — 모바일은 기존 .open 방식이 우선한다 */
 .side-nav.collapsed{display:none}
+/* 접힌 상태에서 ☰ 버튼에 마우스를 올리면 메뉴가 콘텐츠 위에 떠서 보인다(.peek) — 버튼·메뉴에서 벗어나거나 탭을 고르면 다시 숨김 */
+.side-nav.collapsed.peek{display:flex;position:absolute;top:0;left:0;bottom:0;z-index:60;box-shadow:4px 0 12px rgba(0,0,0,.4)}
 .sidebar-toggle{padding:4px 8px;font-size:14px;border:1px solid var(--bd-strong);border-radius:5px;cursor:pointer;background:transparent;color:var(--tx-primary);transition:background .15s;line-height:1}
 .sidebar-toggle:hover{background:var(--bg-hover)}
 
